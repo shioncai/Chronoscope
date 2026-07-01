@@ -1,23 +1,18 @@
-import { useState } from 'react'
 import { useAppStore, useAppState } from '../../state'
 
 export interface TopBarProps {
-  onNew: () => void
   onToggleSidebar?: () => void
   sidebarOpen?: boolean
 }
 
-export function TopBar({ onNew, onToggleSidebar, sidebarOpen = false }: TopBarProps) {
+export function TopBar({ onToggleSidebar, sidebarOpen = false }: TopBarProps) {
   const app = useAppStore()
   const state = useAppState()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const closeMenu = () => setMenuOpen(false)
-
   return (
     <header className="topbar">
       <button
         type="button"
-        className="drawer-toggle"
+        className="icon-btn drawer-toggle"
         aria-label="菜单"
         aria-controls="sidebar"
         aria-expanded={sidebarOpen}
@@ -26,43 +21,31 @@ export function TopBar({ onNew, onToggleSidebar, sidebarOpen = false }: TopBarPr
         ☰
       </button>
       <span className="display title">Chronoscope</span>
-
+      <div className="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          type="search"
+          aria-label="搜索事件"
+          placeholder="搜索事件…"
+          value={state.filter.query}
+          onChange={(e) => app.setFilter({ query: e.target.value })}
+        />
+      </div>
       <nav className="view-switch">
         <button type="button" className={state.view === 'list' ? 'active' : ''} onClick={() => app.setView('list')}>
           列表
         </button>
-        <button type="button" className={state.view === 'timeline' ? 'active' : ''} onClick={() => app.setView('timeline')}>
+        <button
+          type="button"
+          className={state.view === 'timeline' ? 'active' : ''}
+          onClick={() => app.setView('timeline')}
+        >
           时间轴
         </button>
       </nav>
-
-      <div className="spacer" />
-
-      <button type="button" onClick={onNew}>
-        新建
-      </button>
-
-      {/* Narrow screens collapse the secondary actions behind this toggle; wide
-          screens hide it (CSS) and lay the actions out inline. */}
-      <button
-        type="button"
-        className="overflow-toggle"
-        aria-label="更多"
-        aria-haspopup="true"
-        aria-expanded={menuOpen}
-        onClick={() => setMenuOpen((o) => !o)}
-      >
-        ⋯
-      </button>
-
-      {/* Same DOM in both layouts; clicking any action closes the popover. */}
-      <div className={menuOpen ? 'topbar-actions open' : 'topbar-actions'} onClick={closeMenu}>
-        <button type="button" aria-label="主题" onClick={() => app.setTheme(state.theme === 'day' ? 'night' : 'day')}>
-          {state.theme === 'day' ? '🌙' : '☀️'}
-        </button>
-      </div>
-
-      {menuOpen && <div className="overflow-backdrop" onClick={closeMenu} />}
     </header>
   )
 }

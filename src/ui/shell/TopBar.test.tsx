@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TopBar } from './TopBar'
@@ -23,14 +23,12 @@ beforeEach(() => {
   app = makeApp()
 })
 
-function renderTopBar(over: Partial<{ onNew: () => void }> = {}) {
-  const props = { onNew: vi.fn(), ...over }
+function renderTopBar() {
   render(
     <AppStoreProvider value={app}>
-      <TopBar {...props} />
+      <TopBar onToggleSidebar={() => {}} />
     </AppStoreProvider>,
   )
-  return props
 }
 
 describe('TopBar', () => {
@@ -39,24 +37,14 @@ describe('TopBar', () => {
     await userEvent.click(screen.getByRole('button', { name: '时间轴' }))
     expect(app.store.getState().view).toBe('timeline')
   })
-  it('toggles the theme', async () => {
+  it('typing in the search box updates the query filter', async () => {
     renderTopBar()
-    await userEvent.click(screen.getByRole('button', { name: '主题' }))
-    expect(app.store.getState().theme).toBe('night')
+    const box = screen.getByPlaceholderText('搜索事件…')
+    await userEvent.type(box, '登月')
+    expect(app.store.getState().filter.query).toBe('登月')
   })
-  it('fires onNew', async () => {
-    const props = renderTopBar()
-    await userEvent.click(screen.getByRole('button', { name: '新建' }))
-    expect(props.onNew).toHaveBeenCalled()
-  })
-  it('opens and closes the overflow menu', async () => {
+  it('no longer renders a 新建 button (moved to FAB)', () => {
     renderTopBar()
-    const toggle = screen.getByRole('button', { name: '更多' })
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    await userEvent.click(toggle)
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    // clicking an action inside the menu closes it again
-    await userEvent.click(screen.getByRole('button', { name: '主题' }))
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText('新建')).toBeNull()
   })
 })

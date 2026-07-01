@@ -6,82 +6,20 @@
 :root { --radius: 8px; }
 
 /* ---------- top bar ---------- */
-.topbar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 0 0 auto;
-  height: 52px;
-  padding: 0 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow);
-}
-.topbar .title { font-size: 18px; font-weight: 600; letter-spacing: 0.02em; }
-.topbar .spacer { flex: 1; }
-
-.view-switch {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-.view-switch button {
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  padding: 6px 14px;
-  cursor: pointer;
-}
-.view-switch button.active { background: var(--accent); color: var(--surface); }
-
-/* Secondary-action cluster: an inline row on wide screens, a "⋯" popover on
-   narrow screens. nowrap + flex:0 0 auto stops CJK labels from being crushed
-   into one-character-per-line columns at any width. */
-.topbar > button,
-.view-switch button,
-.topbar-actions > button {
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-.topbar .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar-actions { display: flex; align-items: center; gap: 12px; }
-.overflow-toggle { display: none; }
-.overflow-backdrop { display: none; }
-
-@media (max-width: 640px) {
-  .topbar { gap: 8px; }
-  .topbar .title { display: none; }
-  .overflow-toggle { display: inline-flex; align-items: center; }
-  .topbar-actions {
-    position: absolute;
-    top: 52px;
-    right: 8px;
-    z-index: 41;
-    display: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    min-width: 168px;
-    padding: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-  }
-  .topbar-actions.open { display: flex; }
-  .overflow-backdrop {
-    display: block;
-    position: fixed;
-    inset: 52px 0 0 0;
-    z-index: 40;
-  }
-  /* keep the list table readable on phones (cells tagged in ListView) */
-  .list-view .col-updated,
-  .list-view .col-note { display: none; }
-}
+.topbar{position:relative;display:flex;align-items:center;gap:14px;flex:0 0 auto;height:54px;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--border);transition:background .35s ease,border-color .35s ease;}
+.topbar .title{font-family:var(--font-display);font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;font-size:17px;transition:background .18s,color .18s,transform .18s;}
+.icon-btn:hover{background:var(--hover);color:var(--text);}
+.icon-btn:active{transform:scale(.92);}
+.search-box{flex:0 1 440px;margin:0 auto;position:relative;display:flex;align-items:center;}
+.search-box svg{position:absolute;left:12px;width:16px;height:16px;color:var(--faint);pointer-events:none;}
+.search-box input{width:100%;height:38px;padding:0 14px 0 36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font:inherit;font-size:14px;outline:none;transition:border-color .18s,box-shadow .18s;}
+.search-box input::placeholder{color:var(--faint);}
+.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+.view-switch{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
+.view-switch button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;transition:color .2s,background .25s;}
+.view-switch button.active{background:var(--accent);color:var(--on-accent);}
+@media (max-width:640px){.topbar .title{display:none;}.search-box{flex:1 1 auto;}}
 
 /* ---------- sidebar / filters ---------- */
 .sidebar {
@@ -280,7 +218,14 @@
 .add-row button { flex: 0 0 auto; }
 
 /* ---------- view area ---------- */
-.view-area { background: var(--bg); }
+.view-area { background: var(--bg); position: relative; }
+
+/* ---------- floating new-event button ---------- */
+.fab{position:absolute;right:28px;bottom:28px;width:56px;height:56px;border:0;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--fab-shadow);transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,filter .2s;z-index:8;}
+.fab span{display:block;transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+.fab:hover{transform:translateY(-3px) scale(1.06);filter:brightness(1.05);}
+.fab:hover span{transform:rotate(90deg);}
+.fab:active{transform:scale(.95);}
 
 /* ---------- buttons & form controls ---------- */
 button {
@@ -410,6 +355,12 @@ legend {
 .list-view th, .list-view td { white-space: nowrap; }
 .list-view .empty { padding: 24px; text-align: center; color: var(--muted); cursor: default; }
 
+/* keep the list table readable on phones */
+@media (max-width: 640px) {
+  .list-view .col-updated,
+  .list-view .col-note { display: none; }
+}
+
 /* ---------- detail card (augments the base box in tokens.css) ---------- */
 .event-card h3 { font-family: var(--font-display); font-size: 16px; }
 .event-card .category {
@@ -444,14 +395,17 @@ legend {
 
 /* ---------- collapsible sidebar ---------- */
 /* The ☰ toggle is always available (not only on phones); it collapses/expands
-   the sidebar at every width. On desktop the sidebar is an in-flow column that
-   simply disappears when collapsed; on phones it becomes an overlay drawer. */
+   the sidebar at every width. On desktop the sidebar stays in flow and slides
+   out via a negative margin (animated); on phones it becomes an overlay drawer. */
 .drawer-toggle { display: inline-flex; align-items: center; border: 0; background: transparent; font-size: 20px; padding: 4px 8px; }
 .drawer-backdrop { display: none; }
 
-/* desktop: collapsing just removes the column from the flow (no backdrop) */
+.sidebar{transition:margin-left .32s cubic-bezier(.4,0,.2,1),background .35s,border-color .35s;}
+
+/* desktop: collapsing slides the column out of view (no backdrop); -248px
+   matches .sidebar's flex-basis/width above */
 @media (min-width: 641px) {
-  .sidebar:not(.open) { display: none; }
+  .sidebar:not(.open) { margin-left: -248px; }
 }
 
 @media (max-width: 640px) {

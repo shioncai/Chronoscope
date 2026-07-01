@@ -36,11 +36,7 @@ function ShellBody() {
 
   return (
     <div className="app-shell">
-      <TopBar
-        onNew={() => setEditor('new')}
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen((o) => !o)}
-      />
+      <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((o) => !o)} />
       <div className="body">
         <Sidebar open={sidebarOpen} />
         <main className="view-area">
@@ -49,6 +45,9 @@ function ShellBody() {
           ) : (
             <TimelineView onEdit={(id) => setEditor(id)} />
           )}
+          <button type="button" className="fab" aria-label="新建事件" onClick={() => setEditor('new')}>
+            <span aria-hidden="true">＋</span>
+          </button>
         </main>
         {sidebarOpen && <div className="drawer-backdrop" onClick={() => setSidebarOpen(false)} />}
       </div>

@@ -36,13 +36,19 @@ describe('AppShell', () => {
     expect(container.querySelector('canvas')).not.toBeNull()
   })
 
-  it('creates an event end-to-end: 新建 → fill → 保存 → appears in the list', async () => {
+  it('creates an event end-to-end: FAB → fill → 保存 → appears in the list', async () => {
     render(<AppShell app={app} />)
-    await userEvent.click(screen.getByRole('button', { name: '新建' }))
+    await userEvent.click(screen.getByLabelText('新建事件'))
     await userEvent.type(screen.getByLabelText('标题'), '宇宙大爆炸')
     await userEvent.type(screen.getByLabelText('起点 年'), '2020')
     await userEvent.click(screen.getByRole('button', { name: '保存' }))
     expect(screen.getByText('宇宙大爆炸')).toBeTruthy()
+  })
+
+  it('clicking the FAB opens the new-event editor', async () => {
+    render(<AppShell app={app} />)
+    await userEvent.click(screen.getByLabelText('新建事件'))
+    expect(screen.getByRole('dialog', { name: '新建事件' })).toBeTruthy()
   })
 
   it('toggles the sidebar drawer via the menu button', async () => {

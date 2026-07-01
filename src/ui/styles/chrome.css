@@ -501,3 +501,13 @@ legend {
 .btn-sm{border:1px solid var(--border);background:transparent;color:var(--text);font:inherit;font-size:13px;padding:7px 15px;border-radius:8px;cursor:pointer;transition:background .15s;}
 .btn-sm:hover{background:var(--hover);}
 .btn-sm.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;}
+
+/* ---------- overview module (sidebar) ---------- */
+.overview{display:flex;flex-direction:column;gap:2px;}
+.ov-row{display:flex;align-items:center;gap:9px;height:34px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:14px;text-align:left;cursor:pointer;transition:background .16s;}
+.ov-row:hover{background:var(--hover);}
+.ov-row.active{background:var(--selected);}
+.ov-row.active .label{font-weight:500;}
+.ov-row .glyph{flex:0 0 auto;width:15px;color:var(--muted);font-size:13px;text-align:center;display:inline-flex;justify-content:center;}
+.ov-row .label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ov-row .count{flex:0 0 auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;}

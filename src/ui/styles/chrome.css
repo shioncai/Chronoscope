@@ -319,6 +319,17 @@ legend {
   box-shadow: 0 12px 48px rgb(0 0 0 / 0.4);
 }
 
+/* ---------- about modal ---------- */
+.info-card{width:380px;max-width:90vw;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px 26px 22px;box-shadow:var(--shadow);}
+.info-card .logo{font-size:24px;font-weight:600;}
+.info-card .ver{color:var(--muted);font-size:12px;margin-top:2px;}
+.info-card p{color:var(--muted);font-size:13.5px;line-height:1.65;margin:14px 0 0;}
+.info-card .meta{margin-top:16px;display:flex;flex-direction:column;gap:7px;font-size:12.5px;}
+.info-card .meta div{display:flex;justify-content:space-between;color:var(--muted);}
+.info-card .meta b{color:var(--text);font-weight:500;}
+.info-card .close{margin-top:20px;width:100%;height:38px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--text);font:inherit;cursor:pointer;transition:background .15s;}
+.info-card .close:hover{background:var(--hover);}
+
 /* ---------- list view ---------- */
 .list-view { width: 100%; border-collapse: collapse; font-size: 14px; }
 .list-view thead th {

@@ -10,6 +10,7 @@ import type { EventRecord, Category, Tag, Id } from '../domain/model'
 import type { LinearView } from '../domain/time'
 import { createStore, type Store } from './store'
 import { descendantCategoryIds } from './selectors'
+import { reorderedCategories } from './categoryOrder'
 import { initialAppState, type AppState, type Filter, type Sort, type Theme, type View } from './types'
 
 export interface AppStoreDeps {
@@ -33,7 +34,7 @@ export interface AppStore {
   createCategory(fields: { name: string; parentId?: Id | null; color?: string; order?: number }): Promise<Id>
   updateCategory(id: Id, changes: Partial<Category>): Promise<void>
   deleteCategory(id: Id): Promise<void>
-  moveCategory(id: Id, parentId: Id | null): Promise<void>
+  moveCategory(id: Id, parentId: Id | null, beforeId?: Id | null): Promise<void>
   createTag(fields: { name: string; color?: string }): Promise<Id>
   updateTag(id: Id, changes: Partial<Tag>): Promise<void>
   deleteTag(id: Id): Promise<void>
@@ -218,16 +219,22 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       })
     },
 
-    async moveCategory(id, parentId) {
+    async moveCategory(id, parentId, beforeId = null) {
       const s = store.getState()
-      const current = s.categories.find((c) => c.id === id)
-      if (!current) throw new Error(`moveCategory: no category ${id}`)
-      // A category may not become its own ancestor. The UI never offers such a
-      // target; this is the defensive guard, so an invalid move is a no-op.
-      if (parentId !== null && descendantCategoryIds(s.categories, id).has(parentId)) return
-      const next = touch(current, { parentId }, clock)
-      await db.categories.put(next)
-      store.setState((st) => ({ ...st, categories: upsert(st.categories, next) }))
+      if (!s.categories.find((c) => c.id === id)) throw new Error(`moveCategory: no category ${id}`)
+      const changes = reorderedCategories(s.categories, id, parentId, beforeId)
+      if (changes.length === 0) return
+      const written: Category[] = []
+      for (const c of changes) {
+        const next = touch(c, { parentId: c.parentId, order: c.order }, clock)
+        await db.categories.put(next)
+        written.push(next)
+      }
+      store.setState((st) => {
+        let categories = st.categories
+        for (const c of written) categories = upsert(categories, c)
+        return { ...st, categories }
+      })
     },
 
     async createTag(fields) {

@@ -196,4 +196,25 @@ describe('untagged / deleted filters', () => {
     const byNote = visibleEvents(st({ events, tags, sort: { key: 'note', dir: 'asc' } }))
     expect(byNote.map((e) => e.id)).toEqual(['b', 'a']) // 'a' note < 'z' note
   })
+
+  it('sorts by the tags key using live tag names', () => {
+    const events = [
+      ev({ id: 'a', tagIds: ['t2'], start: y(1) }),
+      ev({ id: 'b', tagIds: ['t1'], start: y(2) }),
+      ev({ id: 'c', tagIds: [], start: y(3) }),
+    ]
+    const tags = [tag({ id: 't1', name: 'alpha' }), tag({ id: 't2', name: 'zeta' })]
+    const rows = visibleEvents(st({ events, tags, sort: { key: 'tags', dir: 'asc' } }))
+    expect(rows.map((e) => e.id)).toEqual(['b', 'a', 'c']) // alpha < zeta < ￿(untagged)
+  })
+
+  it('excludes deleted tags from the tags sort key', () => {
+    const events = [
+      ev({ id: 'a', tagIds: ['t1'], start: y(1) }),
+      ev({ id: 'b', tagIds: ['t2'], start: y(2) }),
+    ]
+    const tags = [tag({ id: 't1', name: 'zeta', deleted: true }), tag({ id: 't2', name: 'alpha' })]
+    const rows = visibleEvents(st({ events, tags, sort: { key: 'tags', dir: 'asc' } }))
+    expect(rows.map((e) => e.id)).toEqual(['a', 'b']) // 'a' resolves to '' (deleted tag excluded) < 'alpha'
+  })
 })

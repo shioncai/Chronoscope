@@ -108,7 +108,7 @@ function sortValue(e: EventRecord, sort: Sort, catName: (id: Id | null) => strin
 export function visibleEvents(state: AppState): EventRecord[] {
   const cats = state.categories
   const catName = (id: Id | null) => cats.find((c) => c.id === id)?.name ?? ''
-  const tagName = (id: Id) => state.tags.find((t) => t.id === id)?.name ?? ''
+  const tagName = (id: Id) => state.tags.find((t) => t.id === id && !t.deleted)?.name ?? ''
   const base = state.filter.trash
     ? state.events.filter((e) => e.deleted && matchesQuery(e, state.filter.query))
     : state.events.filter((e) => !e.deleted && matchesFilter(e, state.filter, cats))

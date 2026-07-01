@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { descendantCategoryIds, buildCategoryTree, categoryEventCounts, visibleEvents, flattenCategoryTree, assignableParents } from './selectors'
+import {
+  descendantCategoryIds,
+  buildCategoryTree,
+  categoryEventCounts,
+  visibleEvents,
+  flattenCategoryTree,
+  assignableParents,
+  untaggedCount,
+  deletedCount,
+} from './selectors'
 import { initialAppState, type AppState } from './types'
-import { ev, cat, y } from '../test/fixtures'
+import { ev, cat, tag, y } from '../test/fixtures'
 
 // helper to build a state with overrides
 function st(over: Partial<AppState>): AppState {
@@ -148,5 +157,43 @@ describe('assignableParents', () => {
   it('excludes the category itself and all its descendants', () => {
     const cats = [cat({ id: 'a' }), cat({ id: 'b', parentId: 'a' }), cat({ id: 'c', parentId: 'b' }), cat({ id: 'd' })]
     expect(assignableParents(cats, 'a').map((e) => e.category.id)).toEqual(['d'])
+  })
+})
+
+describe('untagged / deleted filters', () => {
+  it('untaggedCount counts live events with no tags', () => {
+    const events = [
+      ev({ id: 'a', tagIds: [] }),
+      ev({ id: 'b', tagIds: ['t1'] }),
+      ev({ id: 'c', tagIds: [], deleted: true }),
+    ]
+    expect(untaggedCount(st({ events }))).toBe(1)
+  })
+
+  it('deletedCount counts tombstoned events', () => {
+    const events = [ev({ id: 'a' }), ev({ id: 'b', deleted: true })]
+    expect(deletedCount(st({ events }))).toBe(1)
+  })
+
+  it('filter.untagged keeps only events with no tags', () => {
+    const events = [ev({ id: 'a', tagIds: [], start: y(1) }), ev({ id: 'b', tagIds: ['t1'], start: y(2) })]
+    const rows = visibleEvents(st({ events, filter: { ...initialAppState(2026, 'day').filter, untagged: true } }))
+    expect(rows.map((e) => e.id)).toEqual(['a'])
+  })
+
+  it('filter.trash shows only deleted events', () => {
+    const events = [ev({ id: 'a', start: y(1) }), ev({ id: 'b', deleted: true, start: y(2) })]
+    const rows = visibleEvents(st({ events, filter: { ...initialAppState(2026, 'day').filter, trash: true } }))
+    expect(rows.map((e) => e.id)).toEqual(['b'])
+  })
+
+  it('sorts by tags then note', () => {
+    const events = [
+      ev({ id: 'a', title: 'a', tagIds: [], note: 'z', start: y(1) }),
+      ev({ id: 'b', title: 'b', tagIds: ['t1'], note: 'a', start: y(2) }),
+    ]
+    const tags = [tag({ id: 't1', name: 'alpha' })]
+    const byNote = visibleEvents(st({ events, tags, sort: { key: 'note', dir: 'asc' } }))
+    expect(byNote.map((e) => e.id)).toEqual(['b', 'a']) // 'a' note < 'z' note
   })
 })

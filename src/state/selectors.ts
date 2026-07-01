@@ -66,6 +66,11 @@ export function categoryEventCounts(state: AppState): Map<Id, number> {
   return totals
 }
 
+function matchesQuery(e: EventRecord, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  return !q || `${e.title} ${e.note}`.toLowerCase().includes(q)
+}
+
 function matchesFilter(e: EventRecord, filter: Filter, categories: Category[]): boolean {
   if (filter.uncategorized) {
     if (e.categoryId != null) return false
@@ -73,16 +78,15 @@ function matchesFilter(e: EventRecord, filter: Filter, categories: Category[]): 
     const ids = descendantCategoryIds(categories, filter.categoryId)
     if (!e.categoryId || !ids.has(e.categoryId)) return false
   }
+  if (filter.untagged && e.tagIds.length > 0) return false
   if (filter.tagIds.length > 0) {
     const has = (t: Id) => e.tagIds.includes(t)
     if (filter.tagMode === 'and' ? !filter.tagIds.every(has) : !filter.tagIds.some(has)) return false
   }
-  const q = filter.query.trim().toLowerCase()
-  if (q && !`${e.title} ${e.note}`.toLowerCase().includes(q)) return false
-  return true
+  return matchesQuery(e, filter.query)
 }
 
-function sortValue(e: EventRecord, sort: Sort, catName: (id: Id | null) => string): number | string {
+function sortValue(e: EventRecord, sort: Sort, catName: (id: Id | null) => string, tagName: (id: Id) => string): number | string {
   switch (sort.key) {
     case 'start':
       return e.start ? instantOf(e.start) : e.end ? instantOf(e.end) : Number.POSITIVE_INFINITY
@@ -90,6 +94,12 @@ function sortValue(e: EventRecord, sort: Sort, catName: (id: Id | null) => strin
       return e.title
     case 'category':
       return e.categoryId != null ? catName(e.categoryId) : '￿'
+    case 'tags':
+      return e.tagIds.length
+        ? e.tagIds.map((id) => tagName(id)).filter(Boolean).sort().join(' ')
+        : '￿'
+    case 'note':
+      return e.note || '￿'
     case 'updated':
       return e.updatedAt
   }
@@ -98,11 +108,14 @@ function sortValue(e: EventRecord, sort: Sort, catName: (id: Id | null) => strin
 export function visibleEvents(state: AppState): EventRecord[] {
   const cats = state.categories
   const catName = (id: Id | null) => cats.find((c) => c.id === id)?.name ?? ''
-  const filtered = state.events.filter((e) => !e.deleted && matchesFilter(e, state.filter, cats))
+  const tagName = (id: Id) => state.tags.find((t) => t.id === id)?.name ?? ''
+  const base = state.filter.trash
+    ? state.events.filter((e) => e.deleted && matchesQuery(e, state.filter.query))
+    : state.events.filter((e) => !e.deleted && matchesFilter(e, state.filter, cats))
   const dir = state.sort.dir === 'asc' ? 1 : -1
-  return [...filtered].sort((a, b) => {
-    const va = sortValue(a, state.sort, catName)
-    const vb = sortValue(b, state.sort, catName)
+  return [...base].sort((a, b) => {
+    const va = sortValue(a, state.sort, catName, tagName)
+    const vb = sortValue(b, state.sort, catName, tagName)
     if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
     return String(va).localeCompare(String(vb)) * dir
   })
@@ -125,4 +138,11 @@ export function flattenCategoryTree(categories: Category[]): { category: Categor
 export function assignableParents(categories: Category[], id: Id): { category: Category; depth: number }[] {
   const excluded = descendantCategoryIds(categories, id)
   return flattenCategoryTree(categories).filter((e) => !excluded.has(e.category.id))
+}
+
+export function untaggedCount(state: AppState): number {
+  return state.events.filter((e) => !e.deleted && e.tagIds.length === 0).length
+}
+export function deletedCount(state: AppState): number {
+  return state.events.filter((e) => e.deleted).length
 }

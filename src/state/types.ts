@@ -10,13 +10,15 @@ export interface Filter {
   // true → show only events with no category ("未分类" folder). Distinct from
   // categoryId === null, which means "全部" (no category filter at all).
   uncategorized?: boolean
+  untagged?: boolean // true → 仅显示无标签事件
+  trash?: boolean // true → 回收站：仅显示已删除事件
   tagIds: Id[]
   tagMode: TagMode
   query: string
 }
 
 export interface Sort {
-  key: 'start' | 'title' | 'category' | 'updated'
+  key: 'start' | 'title' | 'category' | 'tags' | 'note' | 'updated'
   dir: 'asc' | 'desc'
 }
 
@@ -46,7 +48,7 @@ export function initialAppState(nowYear: number, theme: Theme): AppState {
     events: [],
     categories: [],
     tags: [],
-    filter: { categoryId: null, uncategorized: false, tagIds: [], tagMode: 'or', query: '' },
+    filter: { categoryId: null, uncategorized: false, untagged: false, trash: false, tagIds: [], tagMode: 'or', query: '' },
     selectedId: null,
     view: 'list',
     sort: { key: 'start', dir: 'asc' },

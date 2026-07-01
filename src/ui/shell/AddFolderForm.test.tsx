@@ -6,6 +6,7 @@ import { AddFolderForm } from './AddFolderForm'
 import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { CATEGORY_PRESETS } from '../categoryColors'
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
   let t = 0, i = 0; const clock: Clock = { now: () => `t${++t}` }
@@ -20,8 +21,9 @@ describe('AddFolderForm', () => {
     render(<AppStoreProvider value={app}><AddFolderForm defaultParentId={null} onCreated={onCreated} onCancel={() => {}} /></AppStoreProvider>)
     await userEvent.type(screen.getByLabelText('名称'), '宋朝')
     await userEvent.click(screen.getByRole('button', { name: '创建' }))
-    const cats = app.store.getState().categories
-    expect(cats.find((c) => c.name === '宋朝')).toBeTruthy()
+    const folder = app.store.getState().categories.find((c) => c.name === '宋朝')!
+    expect(folder).toBeTruthy()
+    expect(CATEGORY_PRESETS as readonly string[]).toContain(folder.color)
     expect(onCreated).toHaveBeenCalled()
   })
 

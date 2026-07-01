@@ -9,30 +9,48 @@
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* Day theme (default) */
-  --bg: #f4f6f8;
-  --surface: #ffffff;
+  /* Day theme (default) — 面板分层：主工作区略灰、侧栏纯白浮起 */
+  --bg: #e9edf1;          /* 主工作区 / canvas 背景 */
+  --panel: #ffffff;       /* 侧栏 / 顶栏 */
+  --surface: #ffffff;     /* 卡片 / 弹层 / 输入 */
+  --field: #f3f5f8;       /* 编辑器输入底 */
+  --hover: #eef1f5;
+  --selected: #e7ecf2;
+  --border: #dce1e7;
+  --border-soft: #e6eaee;
   --text: #1c2430;
   --muted: #5c6b7a;
-  --border: #d3dae2;
-  --accent: #0d7d8c;       /* cyan-teal = interactive */
-  --now: #06b6c4;          /* now / active lens */
-  --deep-time: #b4541f;    /* warm = deep time */
+  --faint: #94a0ad;
+  --accent: #0d7d8c;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(13, 125, 140, 0.10);
+  --now: #06b6c4;
+  --deep-time: #b4541f;
   --danger: #c0392b;
-  --shadow: 0 1px 3px rgba(20, 30, 45, 0.12);
+  --shadow: 0 6px 22px rgba(20, 30, 45, 0.14);
+  --fab-shadow: 0 6px 16px rgba(13, 125, 140, 0.35);
 }
 
 [data-theme='night'] {
-  --bg: #11161d;
-  --surface: #1a212b;
-  --text: #e7edf3;
-  --muted: #9aa7b4;
-  --border: #2b3644;
+  --bg: #0d1117;          /* 最暗炭灰：主工作区 */
+  --panel: #161b22;       /* 略浅：侧栏 / 顶栏，浮起 */
+  --surface: #1c2330;
+  --field: #11161d;
+  --hover: #1e2632;
+  --selected: #232c3a;
+  --border: #2a313c;
+  --border-soft: #222933;
+  --text: #e6edf3;
+  --muted: #7d8794;
+  --faint: #586170;
   --accent: #2bd4e4;
+  --on-accent: #06222a;
+  --accent-soft: rgba(43, 212, 228, 0.14);
   --now: #3fe0ee;
   --deep-time: #e8843f;
   --danger: #e06b5e;
-  --shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  --fab-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; }

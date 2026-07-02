@@ -31,4 +31,9 @@ describe('Overview', () => {
     expect(f.untagged).toBe(false)
     expect(f.trash).toBe(false)
   })
+  it('clicking 未分类事件 sets the uncategorized filter', async () => {
+    r()
+    await userEvent.click(screen.getByText('未分类事件'))
+    expect(app.store.getState().filter.uncategorized).toBe(true)
+  })
 })

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TagPanel } from './TagPanel'
@@ -26,5 +26,20 @@ describe('TagPanel', () => {
     r()
     await userEvent.click(screen.getByRole('button', { name: /切换/ }))
     expect(app.store.getState().filter.tagMode).toBe('and')
+  })
+  it('creates a tag via the inline form', async () => {
+    r()
+    await userEvent.click(screen.getByLabelText('添加标签'))
+    await userEvent.type(screen.getByLabelText('标签名称'), '旅行')
+    await userEvent.click(screen.getByRole('button', { name: '创建' }))
+    expect(app.store.getState().tags.some((t) => !t.deleted && t.name === '旅行')).toBe(true)
+  })
+  it('deletes a tag after confirmation', async () => {
+    const id = await app.createTag({ name: '重要' })
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    r()
+    await userEvent.click(screen.getByRole('button', { name: '删除「重要」' }))
+    expect(app.store.getState().tags.find((t) => t.id === id)?.deleted).toBe(true)
+    confirm.mockRestore()
   })
 })

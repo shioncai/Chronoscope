@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FolderPanel } from './FolderPanel'
@@ -26,5 +26,30 @@ describe('FolderPanel', () => {
     r()
     await userEvent.click(screen.getByText('历史'))
     expect(app.store.getState().filter.categoryId).toBe(id)
+  })
+  it('deletes a folder after confirmation', async () => {
+    const id = await app.createCategory({ name: '历史' })
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    r()
+    await userEvent.click(screen.getByLabelText('删除文件夹「历史」'))
+    expect(confirm).toHaveBeenCalled()
+    expect(app.store.getState().categories.find((c) => c.id === id)?.deleted).toBe(true)
+    confirm.mockRestore()
+  })
+  it('does not delete a folder when confirmation is cancelled', async () => {
+    const id = await app.createCategory({ name: '历史' })
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    r()
+    await userEvent.click(screen.getByLabelText('删除文件夹「历史」'))
+    expect(app.store.getState().categories.find((c) => c.id === id)?.deleted).toBe(false)
+    confirm.mockRestore()
+  })
+  it('collapsing a folder hides its children', async () => {
+    const p = await app.createCategory({ name: '历史' })
+    await app.createCategory({ name: '古代史', parentId: p })
+    r()
+    expect(screen.getByText('古代史')).toBeTruthy()
+    await userEvent.click(screen.getByLabelText('折叠「历史」'))
+    expect(screen.queryByText('古代史')).toBeNull()
   })
 })

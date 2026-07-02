@@ -99,9 +99,19 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
   const categoryColors = input.categoryColors ?? new Map<Id, string>()
   const xOf = (year: number) => projectLinear(year, view) * width
 
-  const ticks: SceneTick[] = generateTicks(view)
-    .map((tp) => ({ x: xOf(instantOf(tp)), label: formatTimePoint(tp, nowYear) }))
-    .filter((t) => t.x >= 0 && t.x <= width)
+  // Thin ticks to a minimum pixel gap so their (left-aligned) labels never
+  // collide — deep-time labels like "约140.0亿年前" are ~70px wide, so at narrow
+  // widths a full set of ticks would overlap into an unreadable smear.
+  const MIN_TICK_GAP = 80
+  const ticks: SceneTick[] = []
+  let lastTickX = -Infinity
+  for (const tp of generateTicks(view)) {
+    const x = xOf(instantOf(tp))
+    if (x < 0 || x > width) continue
+    if (x - lastTickX < MIN_TICK_GAP) continue
+    ticks.push({ x, label: formatTimePoint(tp, nowYear) })
+    lastTickX = x
+  }
 
   type Raw = Omit<SceneGlyph, 'row'> & { left: number; right: number }
   const raws: Raw[] = []

@@ -81,6 +81,18 @@ describe('buildScene', () => {
       expect(typeof t.label).toBe('string')
     }
   })
+  it('thins ticks to a minimum pixel gap so labels do not overlap at narrow widths', () => {
+    const scene = buildScene({
+      ...base,
+      width: 360,
+      events: [],
+      view: { min: 2026 - 1.4e10, max: 2026 },
+      overview: { min: 2026 - 1.4e10, max: 2026 },
+    })
+    const xs = scene.detail.ticks.map((t) => t.x)
+    expect(xs.length).toBeGreaterThan(0)
+    for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(80)
+  })
   it('emits a whisker segment for a fuzzy endpoint and none for a crisp one', () => {
     const crisp = buildScene({ ...base, events: [ev({ id: 'p', start: y(2050) })] })
     expect(crisp.detail.glyphs[0].whiskers).toEqual([])

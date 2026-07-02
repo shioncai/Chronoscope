@@ -19,6 +19,13 @@ describe('formatTimePoint', () => {
     expect(formatTimePoint(fromYear(NOW - 3.8e9, 'Ga'), NOW)).toBe('约38.0亿年前')
     expect(formatTimePoint(fromYear(NOW - 66e6, 'Ma'), NOW)).toBe('约6600万年前')
   })
+
+  it('keeps one decimal for non-integer 万 magnitudes, none for whole ones', () => {
+    // 12 ka = 12,000 years → 1.2万, not a lossy "约1万年前"
+    expect(formatTimePoint(fromYear(NOW - 12000, 'ka'), NOW)).toBe('约1.2万年前')
+    // whole-万 values stay clean (no trailing .0)
+    expect(formatTimePoint(fromYear(NOW - 50000, 'ka'), NOW)).toBe('约5万年前')
+  })
   it('reads a coarse tick at/near now as 现在, not a tiny "X年前"', () => {
     // At Ga scale a tick lands on year 0; its distance (~2026y) is negligible
     // against the billion-year unit, so it should read 现在 rather than 约2026年前.

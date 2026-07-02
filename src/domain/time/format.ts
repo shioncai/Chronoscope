@@ -13,6 +13,12 @@ function yearNum(y: number): string {
 function yearLabel(y: number): string {
   return y > 0 ? `${y}年` : `公元前${1 - y}年`
 }
+// One decimal place, but drop a trailing ".0" so whole magnitudes stay clean
+// (1.2 → "1.2", 6600 → "6600").
+function oneDecimal(n: number): string {
+  const r = Math.round(n * 10) / 10
+  return Number.isInteger(r) ? String(r) : r.toFixed(1)
+}
 
 export function formatTimePoint(tp: TimePoint, nowYear: number): string {
   if (RELATIVE.includes(tp.precision)) {
@@ -23,7 +29,7 @@ export function formatTimePoint(tp: TimePoint, nowYear: number): string {
     if (abs < PRECISION_YEARS[tp.precision] / 2) return '现在'
     const dir = ago > 0 ? '前' : '后' // future points read "…年后", never negative "年前"
     if (abs >= 1e8) return `约${(abs / 1e8).toFixed(1)}亿年${dir}`
-    if (abs >= 1e4) return `约${Math.round(abs / 1e4)}万年${dir}`
+    if (abs >= 1e4) return `约${oneDecimal(abs / 1e4)}万年${dir}`
     return `约${Math.round(abs)}年${dir}`
   }
   const c = tp.civil

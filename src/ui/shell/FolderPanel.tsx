@@ -92,7 +92,7 @@ export function FolderPanel() {
           if (dragId === row.id) cls.push('dragging')
           return (
             <div key={row.id} className={cls.join(' ')} draggable
-              style={{ paddingLeft: 10 + row.depth * 20 }}
+              style={{ paddingLeft: 8 + row.depth * 16 }}
               onDragStart={() => setDragId(row.id)}
               onDragOver={(e) => {
                 e.preventDefault()
@@ -130,12 +130,14 @@ export function FolderPanel() {
                 />
               ) : (
                 <button type="button" className="label" onClick={() => pick(row.id)}
-                  onDoubleClick={() => startRename(row.id, c.name)} title="双击重命名">{c.name}</button>
+                  onDoubleClick={() => startRename(row.id, c.name)} title={c.name}>{c.name}</button>
               )}
               <span className="count">{counts.get(row.id) ?? 0}</span>
-              <button type="button" className="rename" aria-label={`重命名文件夹「${c.name}」`}
-                onClick={() => startRename(row.id, c.name)}>✎</button>
-              <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={() => del(row.id, c.name)}>×</button>
+              <span className="row-actions">
+                <button type="button" className="rename" aria-label={`重命名文件夹「${c.name}」`}
+                  onClick={() => startRename(row.id, c.name)}>✎</button>
+                <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={() => del(row.id, c.name)}>×</button>
+              </span>
               {colorFor === row.id && (
                 <div className="dot-picker">
                   <ColorPicker value={c.color} presets={CATEGORY_PRESETS} custom={custom}

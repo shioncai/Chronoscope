@@ -71,7 +71,7 @@ body {
    design — sidebar/topbar styling, spacing, the Deep Time Instrument look —
    is Plan 6; this is only the height/flex skeleton the canvas requires. */
 html, body, #root { height: 100%; }
-.app-shell { display: flex; flex-direction: column; height: 100%; }
+.app-shell { --sidebar-w: 248px; display: flex; flex-direction: column; height: 100%; }
 .app-shell .body { flex: 1; display: flex; min-height: 0; }
 .sidebar { flex: 0 0 auto; overflow: auto; }
 .view-area { flex: 1; min-height: 0; overflow: auto; }

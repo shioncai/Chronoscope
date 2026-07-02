@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AppShell } from './AppShell'
 import { createAppStore, type AppStore } from '../../state'
@@ -22,6 +22,9 @@ function makeApp(): AppStore {
 let app: AppStore
 beforeEach(() => {
   app = makeApp()
+})
+afterEach(() => {
+  window.localStorage.clear()
 })
 
 describe('AppShell', () => {
@@ -49,6 +52,23 @@ describe('AppShell', () => {
     render(<AppShell app={app} />)
     await userEvent.click(screen.getByLabelText('新建事件'))
     expect(screen.getByRole('dialog', { name: '新建事件' })).toBeTruthy()
+  })
+
+  it('dragging the resize handle commits a clamped width to localStorage', () => {
+    const { container } = render(<AppShell app={app} />)
+    const handle = container.querySelector('.sidebar-resize')!
+    // drag well past the max — the committed width clamps to 460
+    fireEvent.pointerDown(handle)
+    fireEvent.pointerMove(window, { clientX: 9999 })
+    fireEvent.pointerUp(window, { clientX: 9999 })
+    expect(window.localStorage.getItem('cs.sidebarWidth')).toBe('460')
+    expect((container.querySelector('.app-shell') as HTMLElement).style.getPropertyValue('--sidebar-w')).toBe('460px')
+  })
+
+  it('restores a persisted sidebar width on mount', () => {
+    window.localStorage.setItem('cs.sidebarWidth', '320')
+    const { container } = render(<AppShell app={app} />)
+    expect((container.querySelector('.app-shell') as HTMLElement).style.getPropertyValue('--sidebar-w')).toBe('320px')
   })
 
   it('toggles the sidebar drawer via the menu button', async () => {

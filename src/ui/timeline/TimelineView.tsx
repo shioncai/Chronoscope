@@ -112,7 +112,11 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     return Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1)
   }
 
-  const onWheel = (e: React.WheelEvent) => {
+  // Native (non-passive) wheel listener: React attaches `wheel` at the root as a
+  // passive listener, so a React onWheel can't preventDefault() — it warns and
+  // lets the page scroll through the zoom. We attach our own {passive:false}
+  // listener via a ref so the latest closure (bounds/view) is always used.
+  const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
     const rect = canvasRef.current?.getBoundingClientRect()
     const localY = rect ? e.clientY - rect.top : 0
@@ -135,6 +139,15 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     }
     setView((v) => clampView(zoomView(v, frac, factor), bounds.min, bounds.max))
   }
+  const wheelRef = useRef(handleWheel)
+  wheelRef.current = handleWheel
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const listener = (e: WheelEvent) => wheelRef.current(e)
+    canvas.addEventListener('wheel', listener, { passive: false })
+    return () => canvas.removeEventListener('wheel', listener)
+  }, [])
 
   const onDoubleClick = (e: React.MouseEvent) => {
     // zoom-to-fit / reset: the overview band resets its own extent; the detail
@@ -245,7 +258,6 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
       <canvas
         ref={canvasRef}
         style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
-        onWheel={onWheel}
         onDoubleClick={onDoubleClick}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

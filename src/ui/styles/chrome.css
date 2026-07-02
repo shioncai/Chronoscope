@@ -518,6 +518,8 @@ legend {
 .module-head h2{flex:1;margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);}
 .head-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;transition:background .16s,color .16s;}
 .head-btn:hover{background:var(--hover);color:var(--text);}
+.logic-btn{height:22px;padding:0 8px;font-size:11px;font-weight:600;letter-spacing:.03em;border:1px solid var(--border-soft);border-radius:6px;color:var(--muted);background:transparent;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+.logic-btn:hover{background:var(--hover);color:var(--text);border-color:var(--border);}
 .folder-row{display:flex;align-items:center;gap:9px;height:34px;border-radius:9px;cursor:grab;color:var(--text);font-size:14px;position:relative;transition:background .16s;padding-right:10px;}
 .folder-row:hover{background:var(--hover);}
 .folder-row.active{background:var(--selected);}

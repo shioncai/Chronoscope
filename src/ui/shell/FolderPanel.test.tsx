@@ -27,6 +27,14 @@ describe('FolderPanel', () => {
     await userEvent.click(screen.getByText('历史'))
     expect(app.store.getState().filter.categoryId).toBe(id)
   })
+  it('clicking a folder clears the untagged filter', async () => {
+    const id = await app.createCategory({ name: '历史' })
+    app.setFilter({ untagged: true })
+    r()
+    await userEvent.click(screen.getByText('历史'))
+    expect(app.store.getState().filter.untagged).toBe(false)
+    expect(app.store.getState().filter.categoryId).toBe(id)
+  })
   it('deletes a folder after confirmation', async () => {
     const id = await app.createCategory({ name: '历史' })
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)

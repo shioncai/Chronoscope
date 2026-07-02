@@ -90,11 +90,6 @@
   font-size: 12px;
   color: var(--muted);
 }
-/* inline "create" rows (sidebar + editor): a text field beside an add button */
-.add-row { display: flex; gap: 6px; align-items: center; }
-.add-row input { flex: 1 1 auto; min-width: 0; }
-.add-row button { flex: 0 0 auto; }
-
 /* ---------- view area ---------- */
 .view-area { background: var(--bg); position: relative; }
 

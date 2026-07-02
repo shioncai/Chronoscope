@@ -43,7 +43,7 @@ export function FolderPanel() {
     else n.add(id)
     return n
   })
-  const pick = (id: Id) => app.setFilter({ categoryId: state.filter.categoryId === id ? null : id, uncategorized: false, trash: false })
+  const pick = (id: Id) => app.setFilter({ categoryId: state.filter.categoryId === id ? null : id, uncategorized: false, untagged: false, trash: false })
   const del = (id: Id, name: string) => {
     const ids = descendantCategoryIds(state.categories, id)
     const n = liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).length

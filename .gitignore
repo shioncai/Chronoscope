@@ -4,6 +4,9 @@
 # Local-only design docs (specs & plans kept out of the published repo)
 docs/
 
+# Local agent instructions (kept out of the published repo)
+CLAUDE.md
+
 # Local-only sample/debug data exports
 fixtures/
 

@@ -220,7 +220,11 @@ legend {
 .list-view thead th{position:sticky;top:0;text-align:left;padding:11px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap;}
 .list-view thead th button{border:0;background:transparent;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;padding:0;cursor:pointer;}
 .list-view thead th button:hover{color:var(--accent);}
-.list-view tbody tr{cursor:pointer;transition:background .14s;}
+/* Hover feedback is instant (no background transition): a paint-only highlight
+   renders as one repaint, avoiding the multi-frame shimmer that remote-desktop
+   streaming turns into a "jitter". There is no layout shift on hover (the
+   checkbox is always laid out; only its opacity changes). */
+.list-view tbody tr{cursor:pointer;}
 .list-view tbody td{padding:10px 14px;border-bottom:1px solid var(--border-soft);white-space:nowrap;}
 .list-view tbody tr:hover{background:var(--hover);}
 .list-view tbody tr.checked{background:var(--selected);}
@@ -235,7 +239,7 @@ legend {
 /* category color dot before the event title */
 .list-view .cell-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:9px;vertical-align:middle;}
 /* A 方案：勾选框平时隐藏，行悬停/勾选时浮现；表头全选常驻 */
-.list-view tbody td.col-check input{opacity:0;transition:opacity .15s;}
+.list-view tbody td.col-check input{opacity:0;}
 .list-view tbody tr:hover td.col-check input,.list-view tbody tr.checked td.col-check input{opacity:1;}
 
 /* keep the list table readable on phones */

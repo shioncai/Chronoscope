@@ -35,12 +35,13 @@ export function TopBar({ onToggleSidebar, sidebarOpen = false }: TopBarProps) {
         />
       </div>
       <nav className="view-switch">
-        <button type="button" className={state.view === 'list' ? 'active' : ''} onClick={() => app.setView('list')}>
+        <button type="button" className={state.view === 'list' ? 'active' : ''} aria-pressed={state.view === 'list'} onClick={() => app.setView('list')}>
           列表
         </button>
         <button
           type="button"
           className={state.view === 'timeline' ? 'active' : ''}
+          aria-pressed={state.view === 'timeline'}
           onClick={() => app.setView('timeline')}
         >
           时间轴

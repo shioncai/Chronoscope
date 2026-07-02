@@ -64,9 +64,9 @@ export function TimeInput({ label, value, nowYear, onChange }: TimeInputProps) {
       <legend>{label}</legend>
 
       <div className="seg" role="group" aria-label={`${label} 尺度`}>
-        <button type="button" className={fields.mode === 'civil' ? 'active' : ''}
+        <button type="button" className={fields.mode === 'civil' ? 'active' : ''} aria-pressed={fields.mode === 'civil'}
           onClick={() => update({ mode: 'civil' })}>历法日期</button>
-        <button type="button" className={fields.mode === 'scale' ? 'active' : ''}
+        <button type="button" className={fields.mode === 'scale' ? 'active' : ''} aria-pressed={fields.mode === 'scale'}
           onClick={() => update({ mode: 'scale' })}>大尺度</button>
       </div>
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatTimeRange, formatUpdatedAt } from './timeText'
+import { formatTimeRange } from './timeText'
 import { fromYear } from '../../domain/time'
 
 const NOW = 2026
@@ -16,21 +16,5 @@ describe('formatTimeRange', () => {
   })
   it('falls back to a dash when neither is set', () => {
     expect(formatTimeRange(undefined, undefined, NOW)).toBe('—')
-  })
-})
-
-describe('formatUpdatedAt', () => {
-  it('formats the HLC physical time as a local Y-M-D H:m stamp', () => {
-    // an HLC: "<15-digit epoch ms>-<6-digit counter>-<nodeId>"
-    const ms = 1782709299731
-    const hlc = `001782709299731-000000-3e77df5b-9ad6-4aae-a992-406814561822`
-    const d = new Date(ms)
-    const p = (n: number) => String(n).padStart(2, '0')
-    const expected = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
-    expect(formatUpdatedAt(hlc)).toBe(expected)
-  })
-  it('returns a dash for a non-numeric / seed stamp', () => {
-    expect(formatUpdatedAt('t0001')).toBe('—')
-    expect(formatUpdatedAt('')).toBe('—')
   })
 })

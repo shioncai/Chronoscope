@@ -8,6 +8,7 @@ import { FuzzInput, type FuzzValue } from './FuzzInput'
 import { flattenCategoryTree } from '../../state'
 import { Pill } from '../shell/Pill'
 import { AddFolderForm } from '../shell/AddFolderForm'
+import { AddTagForm } from '../shell/AddTagForm'
 
 export interface EventEditorProps {
   editingId: Id | null
@@ -34,6 +35,7 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const [fuzzEndOpen, setFuzzEndOpen] = useState(!!endFuzz)
   const [linksOpen, setLinksOpen] = useState(links.length > 0)
   const [newFolderOpen, setNewFolderOpen] = useState(false)
+  const [newTagOpen, setNewTagOpen] = useState(false)
 
   const liveTags = state.tags.filter((t) => !t.deleted)
 
@@ -151,7 +153,19 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
           {liveTags.map((t) => (
             <Pill key={t.id} label={t.name} active={tagIds.includes(t.id)} onToggle={() => toggleTag(t.id)} />
           ))}
+          <button type="button" className="pill add" aria-expanded={newTagOpen} onClick={() => setNewTagOpen((o) => !o)}>
+            ＋ 新标签
+          </button>
         </div>
+        {newTagOpen && (
+          <AddTagForm
+            onCreated={(id) => {
+              setTagIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+              setNewTagOpen(false)
+            }}
+            onCancel={() => setNewTagOpen(false)}
+          />
+        )}
       </section>
 
       <section className="ee-sec">

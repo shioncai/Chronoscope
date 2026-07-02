@@ -5,7 +5,6 @@ import {
   categoryEventCounts,
   visibleEvents,
   flattenCategoryTree,
-  assignableParents,
   untaggedCount,
   deletedCount,
 } from './selectors'
@@ -150,13 +149,6 @@ describe('flattenCategoryTree', () => {
       ['b', 1],
       ['c', 0],
     ])
-  })
-})
-
-describe('assignableParents', () => {
-  it('excludes the category itself and all its descendants', () => {
-    const cats = [cat({ id: 'a' }), cat({ id: 'b', parentId: 'a' }), cat({ id: 'c', parentId: 'b' }), cat({ id: 'd' })]
-    expect(assignableParents(cats, 'a').map((e) => e.category.id)).toEqual(['d'])
   })
 })
 

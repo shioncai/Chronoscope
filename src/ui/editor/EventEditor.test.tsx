@@ -141,4 +141,18 @@ describe('EventEditor', () => {
     await userEvent.click(screen.getByRole('button', { name: '恢复' }))
     expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
   })
+
+  it('creates a tag inline and applies it to the event on save', async () => {
+    renderEditor(null)
+    await userEvent.click(screen.getByRole('button', { name: '＋ 新标签' }))
+    await userEvent.type(screen.getByLabelText('标签名称'), '旅行')
+    await userEvent.click(screen.getByRole('button', { name: '创建' }))
+    await userEvent.type(screen.getByLabelText('标题'), 'x')
+    await userEvent.type(screen.getByLabelText('起点 年'), '2000')
+    await userEvent.click(screen.getByRole('button', { name: '保存' }))
+    const created = app.store.getState().tags.find((t) => t.name === '旅行')!
+    const e = app.store.getState().events.find((ev) => ev.title === 'x')!
+    expect(created).toBeTruthy()
+    expect(e.tagIds).toContain(created.id)
+  })
 })

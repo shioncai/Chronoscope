@@ -133,13 +133,6 @@ export function flattenCategoryTree(categories: Category[]): { category: Categor
   return out
 }
 
-// Valid new parents for `id`: every live category except `id` itself and its
-// descendants (moving into one of those would create a cycle).
-export function assignableParents(categories: Category[], id: Id): { category: Category; depth: number }[] {
-  const excluded = descendantCategoryIds(categories, id)
-  return flattenCategoryTree(categories).filter((e) => !excluded.has(e.category.id))
-}
-
 export function untaggedCount(state: AppState): number {
   return state.events.filter((e) => !e.deleted && e.tagIds.length === 0).length
 }

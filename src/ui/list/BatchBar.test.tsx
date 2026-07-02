@@ -35,17 +35,19 @@ const renderBar = () =>
   )
 
 describe('BatchBar', () => {
-  it('renders nothing when nothing is checked', () => {
-    const { container } = renderBar()
-    expect(container.firstChild).toBeNull()
+  it('does not render when nothing is checked', () => {
+    renderBar()
+    expect(screen.queryByText(/已选/)).toBeNull()
   })
 
   it('shows the selected count when items are checked', async () => {
-    await app.createEvent({ title: 'a' })
-    await app.createEvent({ title: 'b' })
-    app.setChecked(['id1', 'id2'])
-    renderBar()
-    expect(screen.getByText('已选 2 项')).toBeTruthy()
+    const id = await app.createEvent({ title: 'x' })
+    app.toggleChecked(id)
+    const { container } = renderBar()
+    // the count text is split across a text node and a <b>{n}</b> node (for
+    // the CSS to bold just the number), so check the rendered textContent
+    // rather than screen.getByText (which only reads direct text-node children).
+    expect(container.querySelector('.bb-count')?.textContent).toBe('已选 1 项')
   })
 
   it('moves checked events to a folder via the menu', async () => {
@@ -115,7 +117,7 @@ describe('BatchBar', () => {
     await app.createEvent({ title: 'a' })
     app.setChecked(['id1'])
     renderBar()
-    await userEvent.click(screen.getByRole('button', { name: '取消' }))
+    await userEvent.click(screen.getByRole('button', { name: '取消选择' }))
     expect(app.store.getState().checkedIds).toEqual([])
   })
 })

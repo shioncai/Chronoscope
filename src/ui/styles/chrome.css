@@ -304,30 +304,21 @@ legend {
 .fuzz-input input[type='number'] { width: 84px; }
 .fuzz-input .fuzz-asym { display: flex; align-items: center; gap: 4px; color: var(--muted); }
 
-/* ---------- list-view batch action bar ---------- */
-.batch-bar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-.batch-bar .count { color: var(--muted); }
-.batch-bar .menu-anchor { position: relative; display: inline-flex; }
-/* drop the menus as popovers anchored under their trigger (override the
-   inline .move-menu margins it uses inside the sidebar) */
-.batch-bar .menu-anchor .move-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin: 4px 0 0;
-  z-index: 10;
-  min-width: 9em;
-}
+/* ---------- list-view batch action bar (floating, bottom-center) ---------- */
+.list-pane{position:relative;}
+.batch-bar{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;align-items:center;gap:5px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);z-index:9;animation:slideUp .24s cubic-bezier(.34,1.56,.64,1);}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.batch-bar .bb-count{font-size:13px;color:var(--muted);padding:0 8px;white-space:nowrap;}
+.batch-bar .bb-count b{color:var(--text);}
+.batch-bar .bb-sep{width:1px;height:22px;background:var(--border);margin:0 3px;}
+.batch-bar .bb-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer;transition:background .15s,color .15s;}
+.batch-bar .bb-btn:hover{background:var(--hover);}
+.batch-bar .bb-btn.danger{color:var(--danger);}
+.batch-bar .bb-btn.danger:hover{background:var(--danger);color:#fff;}
+.batch-bar .bb-cancel{width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;}
+.batch-bar .bb-cancel:hover{background:var(--hover);color:var(--text);}
+.batch-bar .menu-anchor{position:relative;display:inline-flex;}
+.batch-bar .menu-anchor .move-menu{position:absolute;bottom:100%;left:0;margin:0 0 8px;z-index:10;min-width:9em;}
 .tag-menu .empty { padding: 4px 6px; color: var(--muted); font-size: 13px; }
 
 /* ---------- pill component & inline form styles ---------- */

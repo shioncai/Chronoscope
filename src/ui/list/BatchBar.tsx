@@ -49,27 +49,53 @@ export function BatchBar() {
 
   return (
     <div className="batch-bar">
-      <span className="count">已选 {ids.length} 项</span>
+      <span className="bb-count">
+        已选 <b>{ids.length}</b> 项
+      </span>
+      <span className="bb-sep" />
       <span className="menu-anchor">
-        <button type="button" aria-haspopup="menu" aria-expanded={open === 'folder'} onClick={() => toggle('folder')}>
+        <button
+          type="button"
+          className="bb-btn"
+          aria-haspopup="menu"
+          aria-expanded={open === 'folder'}
+          onClick={() => toggle('folder')}
+        >
           移动到文件夹 ▾
         </button>
         {open === 'folder' && <MoveMenu targets={folders} topLabel="未分类" onMove={move} />}
       </span>
       <span className="menu-anchor">
-        <button type="button" aria-haspopup="menu" aria-expanded={open === 'addTag'} onClick={() => toggle('addTag')}>
+        <button
+          type="button"
+          className="bb-btn"
+          aria-haspopup="menu"
+          aria-expanded={open === 'addTag'}
+          onClick={() => toggle('addTag')}
+        >
           添加标签 ▾
         </button>
         {open === 'addTag' && <TagMenu tags={allTags} onPick={addTag} />}
       </span>
       <span className="menu-anchor">
-        <button type="button" aria-haspopup="menu" aria-expanded={open === 'removeTag'} onClick={() => toggle('removeTag')}>
+        <button
+          type="button"
+          className="bb-btn"
+          aria-haspopup="menu"
+          aria-expanded={open === 'removeTag'}
+          onClick={() => toggle('removeTag')}
+        >
           移除标签 ▾
         </button>
         {open === 'removeTag' && <TagMenu tags={removableTags} onPick={removeTag} />}
       </span>
-      <button type="button" onClick={del}>删除</button>
-      <button type="button" onClick={() => app.setChecked([])}>取消</button>
+      <button type="button" className="bb-btn danger" onClick={del}>
+        删除
+      </button>
+      <span className="bb-sep" />
+      <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
+        ✕
+      </button>
     </div>
   )
 }

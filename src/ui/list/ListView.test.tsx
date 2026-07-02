@@ -99,10 +99,13 @@ describe('ListView', () => {
 
   it('shows the BatchBar only when something is checked', async () => {
     await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
-    renderList()
+    const { container } = renderList()
     expect(screen.queryByText(/已选/)).toBeNull()
     await userEvent.click(screen.getByLabelText('选择「x」'))
-    expect(screen.getByText('已选 1 项')).toBeTruthy()
+    // the count text is split across a text node and a <b>{n}</b> node (for
+    // the CSS to bold just the number), so check textContent rather than
+    // screen.getByText (which only reads direct text-node children).
+    expect(container.querySelector('.bb-count')?.textContent).toBe('已选 1 项')
   })
 
   it('trash mode hides checkboxes and the BatchBar', async () => {

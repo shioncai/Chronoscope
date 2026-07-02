@@ -115,9 +115,18 @@ export function drawScene(
       ctx.stroke()
     }
 
-    // title
+    // title — normally to the right of the glyph, but flipped to the left when
+    // it would overflow the right edge (e.g. the deep-time cluster jammed
+    // against "现在"), so it stays on-canvas instead of being clipped.
     ctx.fillStyle = colors.text
-    ctx.fillText(g.title, g.xEnd + 6, y + 8)
+    if (g.xEnd + 6 + ctx.measureText(g.title).width <= scene.width) {
+      ctx.textAlign = 'left'
+      ctx.fillText(g.title, g.xEnd + 6, y + 8)
+    } else {
+      ctx.textAlign = 'right'
+      ctx.fillText(g.title, g.xStart - 6, y + 8)
+      ctx.textAlign = 'left'
+    }
   }
 
   // overview band — surface, then a faint deep-time→now temperature wash

@@ -33,6 +33,10 @@ export function FolderPanel() {
   const [custom, setCustom] = useState<string[]>(() => loadCustomColors(window.localStorage))
   const [dragId, setDragId] = useState<Id | null>(null)
   const [drop, setDrop] = useState<{ id: Id; mode: 'before' | 'after' | 'into' } | null>(null)
+  // hovering the empty strip below the last row = "make this a top-level folder,
+  // appended at the end" — otherwise a subfolder can only be promoted by dropping
+  // it onto an existing top-level row, which isn't obvious.
+  const [tailOver, setTailOver] = useState(false)
   const [renaming, setRenaming] = useState<Id | null>(null)
   const [renameVal, setRenameVal] = useState('')
 
@@ -69,7 +73,13 @@ export function FolderPanel() {
       const { parentId, beforeId } = computeDropTarget(state.categories, dragId, drop.id, drop.mode)
       void app.moveCategory(dragId, parentId, beforeId)
     }
-    setDragId(null); setDrop(null)
+    setDragId(null); setDrop(null); setTailOver(false)
+  }
+
+  // drop onto the tail strip → promote to a top-level folder at the end
+  const onTailDrop = () => {
+    if (dragId) void app.moveCategory(dragId, null, null)
+    setDragId(null); setDrop(null); setTailOver(false)
   }
 
   return (
@@ -83,7 +93,8 @@ export function FolderPanel() {
         <AddFolderForm defaultParentId={state.filter.categoryId ?? null}
           onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />
       )}
-      <div className="folder-list" onDragEnd={() => { setDragId(null); setDrop(null) }}>
+      <div className={dragId != null ? 'folder-list dragging' : 'folder-list'}
+        onDragEnd={() => { setDragId(null); setDrop(null); setTailOver(false) }}>
         {rows.map((row) => {
           const c = byId.get(row.id)!
           const cls = ['folder-row']
@@ -101,6 +112,7 @@ export function FolderPanel() {
                 const y = e.clientY - r.top
                 const mode = y < r.height * 0.3 ? 'before' : y > r.height * 0.7 ? 'after' : 'into'
                 setDrop({ id: row.id, mode })
+                setTailOver(false)
               }}
               onDrop={onDrop}>
               {row.hasChildren ? (
@@ -148,6 +160,18 @@ export function FolderPanel() {
             </div>
           )
         })}
+        <div
+          className={tailOver ? 'folder-tail over' : 'folder-tail'}
+          aria-hidden="true"
+          onDragOver={(e) => {
+            if (dragId == null) return
+            e.preventDefault()
+            setDrop(null)
+            setTailOver(true)
+          }}
+          onDragLeave={() => setTailOver(false)}
+          onDrop={onTailDrop}
+        />
       </div>
     </section>
   )

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FolderPanel } from './FolderPanel'
 import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
@@ -59,6 +59,18 @@ describe('FolderPanel', () => {
     expect(screen.getByText('古代史')).toBeTruthy()
     await userEvent.click(screen.getByLabelText('折叠「历史」'))
     expect(screen.queryByText('古代史')).toBeNull()
+  })
+
+  it('promotes a subfolder to top level when dropped on the tail strip', async () => {
+    const parent = await app.createCategory({ name: '历史' })
+    const child = await app.createCategory({ name: '近代史', parentId: parent })
+    const { container } = r()
+    const childRow = [...container.querySelectorAll('.folder-row')].find((el) => el.textContent?.includes('近代史'))!
+    const tail = container.querySelector('.folder-tail')!
+    fireEvent.dragStart(childRow)
+    fireEvent.dragOver(tail)
+    fireEvent.drop(tail)
+    await waitFor(() => expect(app.store.getState().categories.find((c) => c.id === child)?.parentId).toBeNull())
   })
 
   it('renames a folder via the rename control', async () => {

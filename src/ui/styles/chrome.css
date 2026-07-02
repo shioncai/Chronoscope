@@ -421,4 +421,10 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .folder-row.drop-into{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent);}
 .folder-row.drop-before::before{content:"";position:absolute;left:8px;right:8px;top:-1px;height:2px;background:var(--accent);border-radius:2px;}
 .folder-row.drop-after::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--accent);border-radius:2px;}
+/* drop strip below the last row: collapsed until a drag is in progress, then a
+   hittable zone that promotes the dragged folder to top level (appended). */
+.folder-tail{height:0;position:relative;}
+.folder-list.dragging .folder-tail{height:22px;}
+.folder-tail.over{background:var(--accent-soft);border-radius:9px;}
+.folder-tail.over::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:2px;background:var(--accent);border-radius:2px;}
 .dot-picker{position:absolute;left:24px;top:34px;z-index:5;}

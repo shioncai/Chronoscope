@@ -45,12 +45,20 @@ describe('ListView', () => {
     expect(screen.getByText('1969年')).toBeTruthy()
   })
 
-  it('calls onEdit with the row id when a row is clicked', async () => {
+  it('clicking the row body opens the editor', async () => {
     const id = await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
     const onEdit = vi.fn()
     renderList(onEdit)
     await userEvent.click(screen.getByText('x'))
     expect(onEdit).toHaveBeenCalledWith(id)
+  })
+
+  it('renders the new column headers', async () => {
+    await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    renderList()
+    for (const h of ['标题', '时间', '文件夹', '标签', '备注']) {
+      expect(screen.getByRole('button', { name: new RegExp(h) })).toBeTruthy()
+    }
   })
 
   it('toggles sort when a header is clicked', async () => {
@@ -70,12 +78,12 @@ describe('ListView', () => {
     expect(screen.getByText('2026年')).toBeTruthy() // year fallback
   })
 
-  it('checking a row updates checkedIds without opening the editor', async () => {
-    await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+  it('checkbox toggles checked without opening the editor', async () => {
+    const id = await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
     const onEdit = vi.fn()
     renderList(onEdit)
     await userEvent.click(screen.getByLabelText('选择「x」'))
-    expect(app.store.getState().checkedIds).toEqual(['id1'])
+    expect(app.store.getState().checkedIds).toContain(id)
     expect(onEdit).not.toHaveBeenCalled()
   })
 
@@ -95,5 +103,16 @@ describe('ListView', () => {
     expect(screen.queryByText(/已选/)).toBeNull()
     await userEvent.click(screen.getByLabelText('选择「x」'))
     expect(screen.getByText('已选 1 项')).toBeTruthy()
+  })
+
+  it('trash mode hides checkboxes and the BatchBar', async () => {
+    const id = await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    await app.deleteEvent(id)
+    app.setFilter({ trash: true })
+    renderList()
+    expect(screen.getByText('x')).toBeTruthy()
+    expect(screen.queryByLabelText('全选')).toBeNull()
+    expect(screen.queryByLabelText('选择「x」')).toBeNull()
+    expect(screen.queryByText(/已选/)).toBeNull()
   })
 })

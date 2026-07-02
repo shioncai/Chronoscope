@@ -222,8 +222,11 @@ legend {
 
 /* ---------- list view ---------- */
 .list-view{width:100%;border-collapse:collapse;font-size:14px;}
-.list-view thead th{position:sticky;top:0;text-align:left;padding:11px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap;}
-.list-view thead th button{border:0;background:transparent;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;padding:0;cursor:pointer;}
+.list-view thead th{position:sticky;top:0;text-align:left;padding:0;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap;}
+/* the button fills the whole header cell so a click anywhere in the column
+   header sorts, not only on the label text */
+.list-view thead th button{display:block;width:100%;box-sizing:border-box;text-align:left;border:0;background:transparent;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;padding:11px 14px;cursor:pointer;}
+.list-view thead th.col-check{padding-top:11px;padding-bottom:11px;}
 .list-view thead th button:hover{color:var(--accent);}
 .list-view tbody tr{cursor:pointer;transition:background .14s;}
 .list-view tbody td{padding:10px 14px;border-bottom:1px solid var(--border-soft);white-space:nowrap;}

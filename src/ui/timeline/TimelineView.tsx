@@ -140,7 +140,9 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     setView((v) => clampView(zoomView(v, frac, factor), bounds.min, bounds.max))
   }
   const wheelRef = useRef(handleWheel)
-  wheelRef.current = handleWheel
+  useEffect(() => {
+    wheelRef.current = handleWheel // keep the latest closure without re-attaching
+  })
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return

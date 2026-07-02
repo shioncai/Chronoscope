@@ -63,6 +63,7 @@ export function FuzzInput({ label, value, onChange }: FuzzInputProps) {
       <label className="fuzz-asym">
         <input
           type="checkbox"
+          className="cb-native"
           aria-label={`${label} 不对称`}
           checked={fields.asymmetric}
           onChange={(e) =>

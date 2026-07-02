@@ -17,7 +17,7 @@
 .search-box input::placeholder{color:var(--faint);}
 .search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
 .view-switch{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
-.view-switch button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;transition:color .2s,background .25s;}
+.view-switch button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:color .2s,background .25s;}
 .view-switch button.active{background:var(--accent);color:var(--on-accent);}
 @media (max-width:640px){.topbar .title{display:none;}.search-box{flex:1 1 auto;}}
 

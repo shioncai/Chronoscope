@@ -142,15 +142,37 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
 
     async restoreEvents(ids) {
       const idSet = new Set(ids)
-      const changed = store
-        .getState()
-        .events.filter((e) => e.deleted && idSet.has(e.id))
+      const s0 = store.getState()
+      const changed = s0.events
+        .filter((e) => e.deleted && idSet.has(e.id))
         .map((e) => touch(e, { deleted: false }, clock))
       for (const e of changed) await db.events.put(e)
+
+      // Also revive the folder chain each restored event is filed under, so it
+      // reappears at its original path instead of being orphaned beneath a
+      // still-deleted folder (mirror of deleteCategory's cascade, in reverse).
+      const catById = new Map(s0.categories.map((c) => [c.id, c]))
+      const reviveIds = new Set<Id>()
+      const seen = new Set<Id>()
+      for (const e of changed) {
+        let cid = e.categoryId
+        while (cid != null && !seen.has(cid)) {
+          seen.add(cid)
+          const c = catById.get(cid)
+          if (!c) break
+          if (c.deleted) reviveIds.add(cid)
+          cid = c.parentId
+        }
+      }
+      const revivedCats = [...reviveIds].map((id) => touch(catById.get(id)!, { deleted: false }, clock))
+      for (const c of revivedCats) await db.categories.put(c)
+
       store.setState((st) => {
         let evs = st.events
         for (const e of changed) evs = upsert(evs, e)
-        return { ...st, events: evs, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
+        let cats = st.categories
+        for (const c of revivedCats) cats = upsert(cats, c)
+        return { ...st, events: evs, categories: cats, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
       })
     },
 

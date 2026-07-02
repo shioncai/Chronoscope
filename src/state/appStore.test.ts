@@ -275,6 +275,20 @@ describe('appStore', () => {
     expect(app.store.getState().checkedIds).toEqual([])
   })
 
+  it('restoreEvents also restores the deleted folder chain of a restored event', async () => {
+    const parent = await app.createCategory({ name: '历史' })
+    const child = await app.createCategory({ name: '近代', parentId: parent })
+    const e = await app.createEvent({ title: 'a', categoryId: child })
+    await app.deleteCategory(parent) // cascades: parent + child + event all tombstoned
+    expect(app.store.getState().categories.find((c) => c.id === parent)?.deleted).toBe(true)
+    await app.restoreEvents([e])
+    const s = app.store.getState()
+    expect(s.events.find((x) => x.id === e)?.deleted).toBe(false)
+    expect(s.categories.find((c) => c.id === child)?.deleted).toBe(false) // owning folder
+    expect(s.categories.find((c) => c.id === parent)?.deleted).toBe(false) // ancestor chain
+    expect((await db.categories.get(parent))?.deleted).toBe(false) // persisted, not just in-memory
+  })
+
   it('purgeEvents permanently removes events from state and the repository', async () => {
     await app.createEvent({ title: 'a' }) // id1
     await app.deleteEvent('id1')

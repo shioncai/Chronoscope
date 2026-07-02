@@ -131,10 +131,24 @@ textarea { width: 100%; min-height: 72px; resize: vertical; }
 input[type='checkbox'] { width: auto; padding: 0; }
 
 /* ---------- event editor ---------- */
-.event-editor { display: flex; flex-direction: column; gap: 14px; }
-.event-editor > label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
-.event-editor > label > input,
-.event-editor > label > select,
+.event-editor{display:flex;flex-direction:column;gap:20px;}
+.event-editor .sr-only-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.event-editor .title-field input{width:100%;height:44px;padding:0 4px;font-size:17px;font-weight:500;background:transparent;border:0;border-bottom:2px solid var(--border);color:var(--text);outline:none;transition:border-color .18s;}
+.event-editor .title-field input:focus{border-color:var(--accent);}
+.event-editor .ee-sec{display:flex;flex-direction:column;gap:11px;}
+.event-editor .sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+.event-editor .timeblock{display:flex;flex-direction:column;gap:10px;padding:13px;background:var(--field);border:1px solid var(--border-soft);border-radius:11px;}
+.event-editor .block-head .bh-title{font-size:13px;font-weight:600;}
+.event-editor .block-head .bh-opt{font-size:11px;color:var(--faint);margin-left:6px;}
+.event-editor .disc{align-self:flex-start;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12.5px;padding:3px 2px;cursor:pointer;transition:color .15s;}
+.event-editor .disc:hover{color:var(--accent);}
+.event-editor .cat-row{display:flex;gap:8px;}
+.event-editor .cat-row select{flex:1;}
+.event-editor .ghost{border:1px solid var(--border);background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:0 12px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;}
+.event-editor .ghost:hover{color:var(--accent);border-color:var(--accent);}
+.event-editor .linklist{display:flex;flex-direction:column;gap:2px;}
+.event-editor .linkitem{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13.5px;}
+.event-editor .linkitem:hover{background:var(--hover);}
 .event-editor textarea { width: 100%; }
 
 fieldset { margin: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
@@ -144,15 +158,6 @@ legend {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
-}
-/* tag / link checkbox fieldsets (not the time-input fieldset) lay their
-   options out inline */
-.event-editor > fieldset:not(.time-input) label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 12px;
-  font-size: 14px;
 }
 
 .time-input { display: flex; flex-direction: column; gap: 8px; }
@@ -178,6 +183,7 @@ legend {
 }
 
 .event-editor .actions { display: flex; gap: 8px; margin-top: 4px; }
+.event-editor .actions .primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
 .event-editor .actions .danger { margin-left: auto; border-color: var(--danger); color: var(--danger); }
 .event-editor .actions .danger:hover { background: var(--danger); color: var(--surface); }
 

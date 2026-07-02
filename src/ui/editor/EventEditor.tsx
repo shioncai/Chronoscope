@@ -6,7 +6,8 @@ import { withFuzz, type TimePoint } from '../../domain/time'
 import type { Id } from '../../domain/model'
 import { FuzzInput, type FuzzValue } from './FuzzInput'
 import { flattenCategoryTree } from '../../state'
-import { nextPresetColor } from '../categoryColors'
+import { Pill } from '../shell/Pill'
+import { AddFolderForm } from '../shell/AddFolderForm'
 
 export interface EventEditorProps {
   editingId: Id | null
@@ -28,11 +29,12 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const [startFuzz, setStartFuzz] = useState<FuzzValue | undefined>(existing?.start?.fuzz)
   const [endFuzz, setEndFuzz] = useState<FuzzValue | undefined>(existing?.end?.fuzz)
   const [errors, setErrors] = useState<string[]>([])
-  const [newCatName, setNewCatName] = useState('')
-  const [newCatParent, setNewCatParent] = useState<Id | ''>('')
-  const [newTagName, setNewTagName] = useState('')
 
-  const liveCategories = state.categories.filter((c) => !c.deleted)
+  const [fuzzStartOpen, setFuzzStartOpen] = useState(!!startFuzz)
+  const [fuzzEndOpen, setFuzzEndOpen] = useState(!!endFuzz)
+  const [linksOpen, setLinksOpen] = useState(links.length > 0)
+  const [newFolderOpen, setNewFolderOpen] = useState(false)
+
   const liveTags = state.tags.filter((t) => !t.deleted)
 
   const toggleTag = (id: Id) =>
@@ -41,26 +43,6 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const linkCandidates = state.events.filter((e) => !e.deleted && e.id !== editingId)
   const toggleLink = (id: Id) =>
     setLinks((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-
-  const addCategory = async () => {
-    const name = newCatName.trim()
-    if (!name) return
-    const id = await app.createCategory({
-      name,
-      parentId: newCatParent || null,
-      color: nextPresetColor(liveCategories.length),
-    })
-    setCategoryId(id)
-    setNewCatName('')
-    setNewCatParent('')
-  }
-  const addTag = async () => {
-    const name = newTagName.trim()
-    if (!name) return
-    const id = await app.createTag({ name })
-    setTagIds((prev) => [...prev, id])
-    setNewTagName('')
-  }
 
   const save = async () => {
     const result = validateEvent({ title, start: start ?? undefined, end: end ?? undefined })
@@ -96,86 +78,99 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
           ))}
         </ul>
       )}
-      <label>
-        标题
-        <input value={title} onChange={(e) => setTitle(e.target.value)} />
-      </label>
 
-      <TimeInput label="起点" value={start} nowYear={state.nowYear} onChange={setStart} />
-      <FuzzInput label="起点" value={startFuzz} onChange={setStartFuzz} />
-      <TimeInput label="终点" value={end} nowYear={state.nowYear} onChange={setEnd} />
-      <FuzzInput label="终点" value={endFuzz} onChange={setEndFuzz} />
-
-      <label>
-        备注
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={4} />
-      </label>
-
-      <label>
-        分类
-        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value as Id | '')}>
-          <option value="">未分类</option>
-          {liveCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="add-row">
-        <input
-          aria-label="新建分类"
-          value={newCatName}
-          onChange={(e) => setNewCatName(e.target.value)}
-          placeholder="新建分类"
-        />
-        <select aria-label="父分类" value={newCatParent} onChange={(e) => setNewCatParent(e.target.value as Id | '')}>
-          <option value="">顶级</option>
-          {flattenCategoryTree(state.categories).map((t) => (
-            <option key={t.category.id} value={t.category.id}>
-              {'　'.repeat(t.depth) + t.category.name}
-            </option>
-          ))}
-        </select>
-        <button type="button" onClick={addCategory}>
-          添加
-        </button>
+      <div className="title-field">
+        <input aria-label="标题" value={title} placeholder="事件标题…" onChange={(e) => setTitle(e.target.value)} />
       </div>
 
-      <fieldset>
-        <legend>标签</legend>
-        {liveTags.map((t) => (
-          <label key={t.id}>
-            <input type="checkbox" checked={tagIds.includes(t.id)} onChange={() => toggleTag(t.id)} />
-            {t.name}
-          </label>
-        ))}
-        <div className="add-row">
-          <input
-            aria-label="新建标签"
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-            placeholder="新建标签"
-          />
-          <button type="button" onClick={addTag}>
-            添加
+      <section className="ee-sec">
+        <div className="sec-label">时间</div>
+        <div className="timeblock">
+          <div className="block-head">
+            <span className="bh-title">起点</span>
+          </div>
+          <TimeInput label="起点" value={start} nowYear={state.nowYear} onChange={setStart} />
+          <button type="button" className="disc" aria-expanded={fuzzStartOpen} onClick={() => setFuzzStartOpen((o) => !o)}>
+            ± 误差范围
+          </button>
+          {fuzzStartOpen && <FuzzInput label="起点" value={startFuzz} onChange={setStartFuzz} />}
+        </div>
+        <div className="timeblock">
+          <div className="block-head">
+            <span className="bh-title">终点</span>
+            <span className="bh-opt">· 留空表示这是一个时间点</span>
+          </div>
+          <TimeInput label="终点" value={end} nowYear={state.nowYear} onChange={setEnd} />
+          <button type="button" className="disc" aria-expanded={fuzzEndOpen} onClick={() => setFuzzEndOpen((o) => !o)}>
+            ± 误差范围
+          </button>
+          {fuzzEndOpen && <FuzzInput label="终点" value={endFuzz} onChange={setEndFuzz} />}
+        </div>
+      </section>
+
+      <section className="ee-sec">
+        <div className="sec-label">归类</div>
+        <div className="cat-row">
+          <select aria-label="文件夹" value={categoryId} onChange={(e) => setCategoryId(e.target.value as Id | '')}>
+            <option value="">未分类</option>
+            {flattenCategoryTree(state.categories).map((t) => (
+              <option key={t.category.id} value={t.category.id}>
+                {'　'.repeat(t.depth) + t.category.name}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="ghost" onClick={() => setNewFolderOpen((o) => !o)}>
+            ＋ 新建文件夹
           </button>
         </div>
-      </fieldset>
+        {newFolderOpen && (
+          <AddFolderForm
+            defaultParentId={categoryId || null}
+            onCreated={(id) => {
+              setCategoryId(id)
+              setNewFolderOpen(false)
+            }}
+            onCancel={() => setNewFolderOpen(false)}
+          />
+        )}
+        <div className="pills">
+          {liveTags.map((t) => (
+            <Pill key={t.id} label={t.name} active={tagIds.includes(t.id)} onToggle={() => toggleTag(t.id)} />
+          ))}
+        </div>
+      </section>
 
-      <fieldset>
-        <legend>关联</legend>
-        {linkCandidates.length === 0 && <p className="muted">暂无可关联的事件</p>}
-        {linkCandidates.map((e) => (
-          <label key={e.id}>
-            <input type="checkbox" checked={links.includes(e.id)} onChange={() => toggleLink(e.id)} />
-            {e.title}
-          </label>
-        ))}
-      </fieldset>
+      <section className="ee-sec">
+        <div className="sec-label">更多</div>
+        <label className="sr-only-label" htmlFor="ee-note">
+          备注
+        </label>
+        <textarea
+          id="ee-note"
+          aria-label="备注"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={4}
+          placeholder="备注（支持 Markdown）…"
+        />
+        <button type="button" className="disc" aria-expanded={linksOpen} onClick={() => setLinksOpen((o) => !o)}>
+          ＋ 关联其他事件
+        </button>
+        {linksOpen && (
+          <div className="linklist">
+            {linkCandidates.length === 0 && <p className="muted">暂无可关联的事件</p>}
+            {linkCandidates.map((e) => (
+              <label key={e.id} className="linkitem">
+                <input type="checkbox" checked={links.includes(e.id)} onChange={() => toggleLink(e.id)} />
+                {e.title}
+              </label>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="actions">
-        <button type="button" onClick={save}>
+        <button type="button" className="primary" onClick={save}>
           保存
         </button>
         <button type="button" onClick={onClose}>

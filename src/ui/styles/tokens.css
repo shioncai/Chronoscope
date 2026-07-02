@@ -95,7 +95,9 @@ html, body, #root { height: 100%; }
 .event-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .event-card h3 { margin: 0; }
 .event-card .time { color: var(--muted); margin: 4px 0; }
-.event-card ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+/* Chip rows (tags/links) are direct children of the card; the `>` keeps this
+   off Markdown-generated lists nested inside `.markdown`, which need bullets. */
+.event-card > ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .event-card .links button { cursor: pointer; }
 
 /* a11y baseline (spec §9): visible keyboard focus + honor reduced-motion. */

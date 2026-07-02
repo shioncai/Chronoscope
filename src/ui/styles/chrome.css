@@ -279,6 +279,13 @@ legend {
 .event-card .markdown { font-size: 14px; line-height: 1.5; }
 .event-card .markdown :first-child { margin-top: 0; }
 .event-card .markdown :last-child { margin-bottom: 0; }
+.event-card .markdown ul, .event-card .markdown ol { margin: 6px 0; padding-left: 1.4em; }
+.event-card .markdown li { display: list-item; }
+.event-card .markdown ul { list-style: disc; }
+.event-card .markdown ol { list-style: decimal; }
+.event-card .markdown code { font-family: var(--font-mono); font-size: 0.9em; }
+.event-card .markdown table { border-collapse: collapse; margin: 6px 0; }
+.event-card .markdown th, .event-card .markdown td { border: 1px solid var(--border); padding: 2px 6px; }
 .event-card .actions { margin-top: 10px; }
 
 /* ---------- collapsible sidebar ---------- */

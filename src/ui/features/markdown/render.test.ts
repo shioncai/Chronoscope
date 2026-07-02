@@ -10,6 +10,12 @@ describe('renderMarkdown', () => {
   it('renders links', () => {
     expect(renderMarkdown('[x](https://example.com)')).toContain('href="https://example.com"')
   })
+  it('renders GFM strikethrough', () => {
+    expect(renderMarkdown('~~gone~~')).toContain('<del>gone</del>')
+  })
+  it('renders GFM tables', () => {
+    expect(renderMarkdown('| a | b |\n| - | - |\n| 1 | 2 |')).toContain('<table>')
+  })
   it('does not emit live raw HTML', () => {
     expect(renderMarkdown('<script>alert(1)</script>')).not.toContain('<script')
   })

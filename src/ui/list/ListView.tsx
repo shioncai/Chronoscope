@@ -2,6 +2,7 @@ import { useAppStore, useAppState, visibleEvents } from '../../state'
 import type { Sort } from '../../state'
 import { formatTimeRange } from './timeText'
 import { BatchBar } from './BatchBar'
+import { markdownToText } from '../features/markdown/text'
 import type { Id } from '../../domain/model'
 
 export interface ListViewProps {
@@ -105,7 +106,7 @@ export function ListView({ onEdit }: ListViewProps) {
               <td className="mono">{formatTimeRange(e.start, e.end, state.nowYear)}</td>
               <td>{catName(e.categoryId)}</td>
               <td>{tagNames(e.tagIds)}</td>
-              <td className="mono col-note">{e.note.slice(0, 60)}</td>
+              <td className="mono col-note">{markdownToText(e.note).slice(0, 60)}</td>
             </tr>
           ))}
         </tbody>

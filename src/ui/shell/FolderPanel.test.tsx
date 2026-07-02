@@ -60,4 +60,14 @@ describe('FolderPanel', () => {
     await userEvent.click(screen.getByLabelText('折叠「历史」'))
     expect(screen.queryByText('古代史')).toBeNull()
   })
+
+  it('renames a folder via the rename control', async () => {
+    const id = await app.createCategory({ name: '历史' })
+    r()
+    await userEvent.click(screen.getByLabelText('重命名文件夹「历史」'))
+    const input = screen.getByLabelText('重命名「历史」')
+    await userEvent.clear(input)
+    await userEvent.type(input, '近代史{Enter}')
+    expect(app.store.getState().categories.find((c) => c.id === id)?.name).toBe('近代史')
+  })
 })

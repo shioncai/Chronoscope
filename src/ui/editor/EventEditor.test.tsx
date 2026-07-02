@@ -131,4 +131,14 @@ describe('EventEditor', () => {
     await userEvent.click(screen.getByRole('button', { name: /关联其他事件/ }))
     expect(screen.getByText('其它')).toBeTruthy()
   })
+
+  it('offers restore (not save) for a deleted event and restores it', async () => {
+    const id = await app.createEvent({ title: '已删', start: { year: 1, precision: 'year' } })
+    await app.deleteEvent(id)
+    renderEditor(id)
+    expect(screen.queryByRole('button', { name: '保存' })).toBeNull()
+    expect(screen.getByRole('button', { name: '永久删除' })).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: '恢复' }))
+    expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
+  })
 })

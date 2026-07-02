@@ -17,6 +17,9 @@ export interface Repository<T extends { id: Id }> {
   get(id: Id): Promise<T | undefined>
   put(record: T): Promise<void>
   bulkPut(records: T[]): Promise<void>
+  // Hard delete (used only by the recycle bin's "永久删除" — soft delete is a
+  // `deleted` flag written via `put`).
+  delete(id: Id): Promise<void>
 }
 
 export interface Database {

@@ -9,13 +9,38 @@ type OpenMenu = 'folder' | 'addTag' | 'removeTag' | null
 // Batch action bar for the list view's checkbox selection. Reads the
 // selection from the store and calls the store's batch ops directly
 // (same pattern as the Sidebar). Renders nothing when nothing is checked.
-export function BatchBar() {
+export function BatchBar({ trash = false }: { trash?: boolean }) {
   const app = useAppStore()
   const state = useAppState()
   const ids = state.checkedIds
   const [open, setOpen] = useState<OpenMenu>(null)
 
   if (ids.length === 0) return null
+
+  // Recycle-bin selection: restore / permanent-delete instead of move/tag/delete.
+  if (trash) {
+    const purge = () => {
+      if (window.confirm(`永久删除选中的 ${ids.length} 个事件？此操作不可撤销。`)) void app.purgeEvents(ids)
+    }
+    return (
+      <div className="batch-bar">
+        <span className="bb-count">
+          已选 <b>{ids.length}</b> 项
+        </span>
+        <span className="bb-sep" />
+        <button type="button" className="bb-btn" onClick={() => void app.restoreEvents(ids)}>
+          恢复
+        </button>
+        <button type="button" className="bb-btn danger" onClick={purge}>
+          永久删除
+        </button>
+        <span className="bb-sep" />
+        <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
+          ✕
+        </button>
+      </div>
+    )
+  }
 
   const toggle = (m: Exclude<OpenMenu, null>) => setOpen((cur) => (cur === m ? null : m))
 

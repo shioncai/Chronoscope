@@ -69,6 +69,20 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
     onClose()
   }
 
+  // A deleted event opened from the recycle bin: offer restore / permanent delete
+  // instead of save / delete.
+  const isDeleted = !!existing?.deleted
+  const restore = async () => {
+    if (editingId) await app.restoreEvents([editingId])
+    onClose()
+  }
+  const purge = async () => {
+    if (editingId && window.confirm('永久删除此事件？此操作不可撤销。')) {
+      await app.purgeEvents([editingId])
+      onClose()
+    }
+  }
+
   return (
     <div className="event-editor" role="dialog" aria-label={editingId ? '编辑事件' : '新建事件'}>
       {errors.length > 0 && (
@@ -170,16 +184,32 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
       </section>
 
       <div className="actions">
-        <button type="button" className="primary" onClick={save}>
-          保存
-        </button>
-        <button type="button" onClick={onClose}>
-          取消
-        </button>
-        {editingId && (
-          <button type="button" className="danger" onClick={remove}>
-            删除
-          </button>
+        {isDeleted ? (
+          <>
+            <button type="button" className="primary" onClick={restore}>
+              恢复
+            </button>
+            <button type="button" onClick={onClose}>
+              取消
+            </button>
+            <button type="button" className="danger" onClick={purge}>
+              永久删除
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="primary" onClick={save}>
+              保存
+            </button>
+            <button type="button" onClick={onClose}>
+              取消
+            </button>
+            {editingId && (
+              <button type="button" className="danger" onClick={remove}>
+                删除
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

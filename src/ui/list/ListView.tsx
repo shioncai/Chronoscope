@@ -25,6 +25,7 @@ export function ListView({ onEdit }: ListViewProps) {
   const allChecked = rows.length > 0 && rows.every((e) => checked.has(e.id))
   const someChecked = rows.some((e) => checked.has(e.id))
   const catName = (id: Id | null) => state.categories.find((c) => c.id === id)?.name ?? '—'
+  const catColor = (id: Id | null) => state.categories.find((c) => c.id === id && !c.deleted)?.color ?? 'var(--faint)'
   const tagNames = (ids: Id[]) =>
     ids.map((id) => state.tags.find((t) => t.id === id)?.name).filter(Boolean).join(' ') || '—'
 
@@ -44,23 +45,21 @@ export function ListView({ onEdit }: ListViewProps) {
 
   return (
     <div className="list-pane">
-      {!trash && <BatchBar />}
+      <BatchBar trash={trash} />
       <table className="list-view">
         <thead>
           <tr>
-            {!trash && (
-              <th className="col-check">
-                <input
-                  type="checkbox"
-                  aria-label="全选"
-                  checked={allChecked}
-                  ref={(el) => {
-                    if (el) el.indeterminate = someChecked && !allChecked
-                  }}
-                  onChange={toggleAll}
-                />
-              </th>
-            )}
+            <th className="col-check">
+              <input
+                type="checkbox"
+                aria-label="全选"
+                checked={allChecked}
+                ref={(el) => {
+                  if (el) el.indeterminate = someChecked && !allChecked
+                }}
+                onChange={toggleAll}
+              />
+            </th>
             {COLUMNS.map((c) => (
               <th key={c.key}>
                 <button type="button" onClick={() => clickHeader(c.key)}>
@@ -76,7 +75,7 @@ export function ListView({ onEdit }: ListViewProps) {
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td colSpan={trash ? 5 : 6} className="empty">
+              <td colSpan={6} className="empty">
                 {trash ? '回收站为空' : '暂无事件'}
               </td>
             </tr>
@@ -90,18 +89,19 @@ export function ListView({ onEdit }: ListViewProps) {
                 onEdit(e.id)
               }}
             >
-              {!trash && (
-                <td className="col-check">
-                  <input
-                    type="checkbox"
-                    aria-label={`选择「${e.title}」`}
-                    checked={checked.has(e.id)}
-                    onChange={() => app.toggleChecked(e.id)}
-                    onClick={(ev) => ev.stopPropagation()}
-                  />
-                </td>
-              )}
-              <td>{e.title}</td>
+              <td className="col-check">
+                <input
+                  type="checkbox"
+                  aria-label={`选择「${e.title}」`}
+                  checked={checked.has(e.id)}
+                  onChange={() => app.toggleChecked(e.id)}
+                  onClick={(ev) => ev.stopPropagation()}
+                />
+              </td>
+              <td>
+                <span className="cell-dot" style={{ background: catColor(e.categoryId) }} aria-hidden="true" />
+                {e.title}
+              </td>
               <td className="mono">{formatTimeRange(e.start, e.end, state.nowYear)}</td>
               <td>{catName(e.categoryId)}</td>
               <td>{tagNames(e.tagIds)}</td>

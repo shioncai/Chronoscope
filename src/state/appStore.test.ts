@@ -264,4 +264,22 @@ describe('appStore', () => {
     await app.deleteEvents([])
     expect(app.store.getState().checkedIds).toEqual([])
   })
+
+  it('restoreEvents un-tombstones deleted events and drops them from checkedIds', async () => {
+    await app.createEvent({ title: 'a' }) // id1
+    await app.deleteEvent('id1')
+    expect(app.store.getState().events.find((e) => e.id === 'id1')?.deleted).toBe(true)
+    app.setChecked(['id1'])
+    await app.restoreEvents(['id1'])
+    expect(app.store.getState().events.find((e) => e.id === 'id1')?.deleted).toBe(false)
+    expect(app.store.getState().checkedIds).toEqual([])
+  })
+
+  it('purgeEvents permanently removes events from state and the repository', async () => {
+    await app.createEvent({ title: 'a' }) // id1
+    await app.deleteEvent('id1')
+    await app.purgeEvents(['id1'])
+    expect(app.store.getState().events.find((e) => e.id === 'id1')).toBeUndefined()
+    expect(await db.events.get('id1')).toBeUndefined()
+  })
 })

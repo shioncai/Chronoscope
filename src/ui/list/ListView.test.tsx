@@ -108,14 +108,36 @@ describe('ListView', () => {
     expect(container.querySelector('.bb-count')?.textContent).toBe('已选 1 项')
   })
 
-  it('trash mode hides checkboxes and the BatchBar', async () => {
+  it('trash mode lists deleted events with checkboxes for restore', async () => {
     const id = await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
     await app.deleteEvent(id)
     app.setFilter({ trash: true })
     renderList()
     expect(screen.getByText('x')).toBeTruthy()
-    expect(screen.queryByLabelText('全选')).toBeNull()
-    expect(screen.queryByLabelText('选择「x」')).toBeNull()
-    expect(screen.queryByText(/已选/)).toBeNull()
+    // recycle bin is selectable so events can be restored/purged
+    expect(screen.getByLabelText('全选')).toBeTruthy()
+    expect(screen.getByLabelText('选择「x」')).toBeTruthy()
+  })
+
+  it('trash mode shows restore + permanent-delete actions when an event is checked', async () => {
+    const id = await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    await app.deleteEvent(id)
+    app.setFilter({ trash: true })
+    app.toggleChecked(id)
+    renderList()
+    expect(screen.getByRole('button', { name: '恢复' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '永久删除' })).toBeTruthy()
+    // the normal move/tag/delete actions are not offered in the recycle bin
+    expect(screen.queryByText(/移动到文件夹/)).toBeNull()
+  })
+
+  it('restoring from the recycle bin un-deletes the event', async () => {
+    const id = await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    await app.deleteEvent(id)
+    app.setFilter({ trash: true })
+    app.toggleChecked(id)
+    renderList()
+    await userEvent.click(screen.getByRole('button', { name: '恢复' }))
+    expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
   })
 })

@@ -28,6 +28,9 @@ export interface AppStore {
   updateEvent(id: Id, changes: Partial<EventRecord>): Promise<void>
   deleteEvent(id: Id): Promise<void>
   deleteEvents(ids: Id[]): Promise<void>
+  // Recycle bin: restore un-tombstones (soft), purge hard-deletes permanently.
+  restoreEvents(ids: Id[]): Promise<void>
+  purgeEvents(ids: Id[]): Promise<void>
   setEventsCategory(ids: Id[], categoryId: Id | null): Promise<void>
   addTagToEvents(ids: Id[], tagId: Id): Promise<void>
   removeTagFromEvents(ids: Id[], tagId: Id): Promise<void>
@@ -135,6 +138,31 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
           selectedId: st.selectedId != null && gone.has(st.selectedId) ? null : st.selectedId,
         }
       })
+    },
+
+    async restoreEvents(ids) {
+      const idSet = new Set(ids)
+      const changed = store
+        .getState()
+        .events.filter((e) => e.deleted && idSet.has(e.id))
+        .map((e) => touch(e, { deleted: false }, clock))
+      for (const e of changed) await db.events.put(e)
+      store.setState((st) => {
+        let evs = st.events
+        for (const e of changed) evs = upsert(evs, e)
+        return { ...st, events: evs, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
+      })
+    },
+
+    async purgeEvents(ids) {
+      const idSet = new Set(ids)
+      for (const id of idSet) await db.events.delete(id)
+      store.setState((st) => ({
+        ...st,
+        events: st.events.filter((e) => !idSet.has(e.id)),
+        checkedIds: st.checkedIds.filter((x) => !idSet.has(x)),
+        selectedId: st.selectedId != null && idSet.has(st.selectedId) ? null : st.selectedId,
+      }))
     },
 
     async setEventsCategory(ids, categoryId) {

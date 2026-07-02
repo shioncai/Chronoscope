@@ -33,6 +33,17 @@ export function FolderPanel() {
   const [custom, setCustom] = useState<string[]>(() => loadCustomColors(window.localStorage))
   const [dragId, setDragId] = useState<Id | null>(null)
   const [drop, setDrop] = useState<{ id: Id; mode: 'before' | 'after' | 'into' } | null>(null)
+  const [renaming, setRenaming] = useState<Id | null>(null)
+  const [renameVal, setRenameVal] = useState('')
+
+  const startRename = (id: Id, name: string) => { setColorFor(null); setRenameVal(name); setRenaming(id) }
+  const commitRename = () => {
+    if (renaming) {
+      const n = renameVal.trim()
+      if (n) void app.updateCategory(renaming, { name: n })
+    }
+    setRenaming(null)
+  }
 
   const rows = flattenVisible(tree, collapsed)
   const byId = new Map(live.map((c) => [c.id, c]))
@@ -101,8 +112,29 @@ export function FolderPanel() {
               ) : <span className="twisty-spacer" />}
               <button type="button" className="color-dot" style={{ background: c.color }}
                 aria-label={`设置「${c.name}」颜色`} onClick={() => setColorFor((cur) => cur === row.id ? null : row.id)} />
-              <button type="button" className="label" onClick={() => pick(row.id)}>{c.name}</button>
+              {renaming === row.id ? (
+                <input
+                  className="rename-input"
+                  aria-label={`重命名「${c.name}」`}
+                  value={renameVal}
+                  autoFocus
+                  draggable={false}
+                  onChange={(e) => setRenameVal(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onDragStart={(e) => e.preventDefault()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitRename()
+                    else if (e.key === 'Escape') setRenaming(null)
+                  }}
+                  onBlur={commitRename}
+                />
+              ) : (
+                <button type="button" className="label" onClick={() => pick(row.id)}
+                  onDoubleClick={() => startRename(row.id, c.name)} title="双击重命名">{c.name}</button>
+              )}
               <span className="count">{counts.get(row.id) ?? 0}</span>
+              <button type="button" className="rename" aria-label={`重命名文件夹「${c.name}」`}
+                onClick={() => startRename(row.id, c.name)}>✎</button>
               <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={() => del(row.id, c.name)}>×</button>
               {colorFor === row.id && (
                 <div className="dot-picker">

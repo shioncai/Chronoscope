@@ -234,8 +234,11 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     drag.current = null
   }
 
+  // Resolve against the same `events` the scene rendered (visibleEvents), so a
+  // selected glyph in the recycle-bin (trash) view — where events are deleted —
+  // still surfaces its detail card instead of resolving to null.
   const selectedEvent =
-    state.selectedId != null ? state.events.find((e) => e.id === state.selectedId && !e.deleted) ?? null : null
+    state.selectedId != null ? events.find((e) => e.id === state.selectedId) ?? null : null
 
   return (
     <div ref={wrapRef} className="timeline-view" style={{ position: 'relative', width: '100%', height: '100%' }}>

@@ -87,11 +87,14 @@ function ShellBody() {
           ) : (
             <TimelineView onEdit={(id) => setEditor(id)} />
           )}
-          <button type="button" className="fab" aria-label="新建事件" onClick={() => setEditor('new')}>
-            <span aria-hidden="true">＋</span>
-          </button>
         </main>
         {sidebarOpen && <div className="drawer-backdrop" onClick={() => setSidebarOpen(false)} />}
+        {/* FAB lives on the non-scrolling .body (not inside .view-area), so its
+            position is identical in both views and it never scrolls with the
+            list or shifts with the list's scrollbar. */}
+        <button type="button" className="fab" aria-label="新建事件" onClick={() => setEditor('new')}>
+          <span aria-hidden="true">＋</span>
+        </button>
       </div>
       {editor !== null && (
         <div className="modal-overlay" onClick={() => setEditor(null)}>

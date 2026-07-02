@@ -167,12 +167,28 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       const revivedCats = [...reviveIds].map((id) => touch(catById.get(id)!, { deleted: false }, clock))
       for (const c of revivedCats) await db.categories.put(c)
 
+      // Likewise revive any soft-deleted tags the restored events reference, so
+      // their tags reappear in the sidebar instead of being orphaned (same
+      // "restore the event's full context" rule as the folder chain).
+      const tagById = new Map(s0.tags.map((t) => [t.id, t]))
+      const reviveTagIds = new Set<Id>()
+      for (const e of changed) {
+        for (const tid of e.tagIds) {
+          const tag = tagById.get(tid)
+          if (tag && tag.deleted) reviveTagIds.add(tid)
+        }
+      }
+      const revivedTags = [...reviveTagIds].map((id) => touch(tagById.get(id)!, { deleted: false }, clock))
+      for (const t of revivedTags) await db.tags.put(t)
+
       store.setState((st) => {
         let evs = st.events
         for (const e of changed) evs = upsert(evs, e)
         let cats = st.categories
         for (const c of revivedCats) cats = upsert(cats, c)
-        return { ...st, events: evs, categories: cats, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
+        let tags = st.tags
+        for (const t of revivedTags) tags = upsert(tags, t)
+        return { ...st, events: evs, categories: cats, tags, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
       })
     },
 

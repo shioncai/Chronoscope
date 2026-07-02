@@ -289,6 +289,28 @@ describe('appStore', () => {
     expect((await db.categories.get(parent))?.deleted).toBe(false) // persisted, not just in-memory
   })
 
+  it('restoreEvents also revives a soft-deleted tag the restored event references', async () => {
+    const t = await app.createTag({ name: '重要' })
+    const e = await app.createEvent({ title: 'a', tagIds: [t] })
+    await app.deleteEvent(e) // event → recycle bin
+    await app.deleteTag(t) // tag has 0 live users now → user cleans it up
+    expect(app.store.getState().tags.find((x) => x.id === t)?.deleted).toBe(true)
+    await app.restoreEvents([e])
+    const s = app.store.getState()
+    expect(s.events.find((x) => x.id === e)?.deleted).toBe(false)
+    expect(s.tags.find((x) => x.id === t)?.deleted).toBe(false) // tag revived with the event
+    expect((await db.tags.get(t))?.deleted).toBe(false) // persisted, not just in-memory
+  })
+
+  it('deleting the only event using a tag keeps the tag (shows count 0, not removed)', async () => {
+    const t = await app.createTag({ name: '孤标签' })
+    const e = await app.createEvent({ title: 'a', tagIds: [t] })
+    await app.deleteEvent(e)
+    const s = app.store.getState()
+    expect(s.tags.find((x) => x.id === t)?.deleted).toBe(false) // tag persists, mirrors a folder at count 0
+    expect(s.events.filter((ev) => !ev.deleted && ev.tagIds.includes(t)).length).toBe(0)
+  })
+
   it('purgeEvents permanently removes events from state and the repository', async () => {
     await app.createEvent({ title: 'a' }) // id1
     await app.deleteEvent('id1')

@@ -48,10 +48,16 @@ describe('TimeInput (structured)', () => {
     expect(screen.getByText('2026-06-21 15:30')).toBeTruthy()
   })
 
+  it('switches to 大尺度 via the segmented control', async () => {
+    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: '大尺度' }))
+    expect(screen.getByLabelText('起点 单位')).toBeTruthy()
+  })
+
   it('scale: 大尺度 + 十亿年 + 距今 emits a Ga point', async () => {
     const onChange = vi.fn()
     render(<TimeInput label="起点" value={null} nowYear={2026} onChange={onChange} />)
-    await userEvent.selectOptions(screen.getByLabelText('起点 尺度'), 'scale')
+    await userEvent.click(screen.getByRole('button', { name: '大尺度' }))
     await userEvent.selectOptions(screen.getByLabelText('起点 单位'), 'Ga')
     await userEvent.type(screen.getByLabelText('起点 距今'), '3.8')
     expect(onChange).toHaveBeenLastCalledWith(fromYear(2026 - 3.8e9, 'Ga'))

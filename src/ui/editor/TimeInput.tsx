@@ -63,15 +63,14 @@ export function TimeInput({ label, value, nowYear, onChange }: TimeInputProps) {
     <fieldset className="time-input">
       <legend>{label}</legend>
 
-      <div className="structured">
-        <label>
-          {`${label} 尺度`}
-          <select value={fields.mode} onChange={(e) => update({ mode: e.target.value as TimeFields['mode'] })}>
-            <option value="civil">历法日期</option>
-            <option value="scale">大尺度</option>
-          </select>
-        </label>
+      <div className="seg" role="group" aria-label={`${label} 尺度`}>
+        <button type="button" className={fields.mode === 'civil' ? 'active' : ''}
+          onClick={() => update({ mode: 'civil' })}>历法日期</button>
+        <button type="button" className={fields.mode === 'scale' ? 'active' : ''}
+          onClick={() => update({ mode: 'scale' })}>大尺度</button>
+      </div>
 
+      <div className="structured animin" key={fields.mode}>
         {fields.mode === 'scale' && (
           <label>
             {`${label} 单位`}

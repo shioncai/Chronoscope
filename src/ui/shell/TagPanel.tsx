@@ -28,16 +28,18 @@ export function TagPanel() {
           onClick={() => app.setFilter({ tagMode: f.tagMode === 'or' ? 'and' : 'or' })}>
           {f.tagMode === 'or' ? 'OR' : 'AND'}
         </button>
-        <button type="button" className="head-btn" aria-label="添加标签" aria-expanded={addOpen}
-          onClick={() => setAddOpen((o) => !o)}>＋</button>
       </div>
-      {addOpen && <AddTagForm onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />}
       <div className="pills">
         {tags.map((t) => (
           <Pill key={t.id} label={t.name} count={tagCount(t.id)} active={f.tagIds.includes(t.id)}
             onToggle={() => toggle(t.id)} onDelete={() => del(t.id, t.name)} />
         ))}
+        <button type="button" className="pill add" aria-label="添加标签" aria-expanded={addOpen}
+          onClick={() => setAddOpen((o) => !o)}>
+          ＋ 新标签
+        </button>
       </div>
+      {addOpen && <AddTagForm onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />}
     </section>
   )
 }

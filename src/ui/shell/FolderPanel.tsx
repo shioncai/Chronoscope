@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
-  descendantCategoryIds, type CategoryNode,
+  descendantCategoryIds, computeDropTarget, type CategoryNode,
 } from '../../state'
 import type { Id } from '../../domain/model'
 import { CATEGORY_PRESETS, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
@@ -53,19 +53,9 @@ export function FolderPanel() {
     if (state.filter.categoryId != null && ids.has(state.filter.categoryId)) app.setFilter({ categoryId: null })
   }
 
-  // 计算落点 → (newParentId, beforeId)
-  const computeDrop = (targetId: Id, mode: 'before' | 'after' | 'into') => {
-    const target = byId.get(targetId)!
-    if (mode === 'into') return { parentId: targetId as Id | null, beforeId: null as Id | null }
-    const sibs = live.filter((c) => c.parentId === target.parentId).sort((a, b) => a.order - b.order)
-    const i = sibs.findIndex((c) => c.id === targetId)
-    if (mode === 'before') return { parentId: target.parentId, beforeId: targetId as Id | null }
-    const after = sibs[i + 1]
-    return { parentId: target.parentId, beforeId: after ? after.id : null }
-  }
   const onDrop = () => {
     if (dragId && drop) {
-      const { parentId, beforeId } = computeDrop(drop.id, drop.mode)
+      const { parentId, beforeId } = computeDropTarget(state.categories, dragId, drop.id, drop.mode)
       void app.moveCategory(dragId, parentId, beforeId)
     }
     setDragId(null); setDrop(null)

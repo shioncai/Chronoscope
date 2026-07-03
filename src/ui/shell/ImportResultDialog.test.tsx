@@ -7,12 +7,12 @@ describe('ImportResultDialog', () => {
   it('shows counts on success', () => {
     render(
       <ImportResultDialog
-        outcome={{ ok: true, summary: { addedEvents: 2, skippedEvents: 1, invalidEvents: 0, addedCategories: 1, reusedCategories: 0, addedTags: 0, reusedTags: 0 } }}
+        outcome={{ ok: true, summary: { addedEvents: 2, overwrittenEvents: 1, unchangedEvents: 0, invalidEvents: 0, addedCategories: 1, reusedCategories: 0, addedTags: 0, reusedTags: 0 } }}
         onClose={vi.fn()}
       />,
     )
     expect(screen.getByText('新增事件').closest('div')?.textContent).toContain('2')
-    expect(screen.getByText(/跳过/).closest('div')?.textContent).toContain('1')
+    expect(screen.getByText(/覆盖事件/).closest('div')?.textContent).toContain('1')
   })
 
   it('shows the error message on failure', () => {

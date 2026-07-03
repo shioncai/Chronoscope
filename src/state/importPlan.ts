@@ -1,5 +1,6 @@
 import { validateEvent, type EventRecord, type Category, type Tag, type Id } from '../domain/model'
 import type { Clock } from '../data'
+import { liveEventAt, eventKey } from './identity'
 
 interface StoreData {
   events: EventRecord[]
@@ -95,7 +96,8 @@ export function planRestore(current: StoreData, ids: Id[], clock: Clock): Restor
 
 export interface ImportSummary {
   addedEvents: number
-  skippedEvents: number
+  overwrittenEvents: number
+  unchangedEvents: number
   invalidEvents: number
   addedCategories: number
   reusedCategories: number
@@ -183,8 +185,20 @@ function resolveImportTag(
   return resolved
 }
 
+function sameAttrs(a: EventRecord, b: EventRecord): boolean {
+  const set = (xs: Id[]) => JSON.stringify([...xs].sort())
+  return (
+    a.title === b.title &&
+    a.categoryId === b.categoryId &&
+    (a.note ?? '') === (b.note ?? '') &&
+    JSON.stringify(a.start ?? null) === JSON.stringify(b.start ?? null) &&
+    JSON.stringify(a.end ?? null) === JSON.stringify(b.end ?? null) &&
+    set(a.tagIds) === set(b.tagIds) &&
+    set(a.links) === set(b.links)
+  )
+}
+
 export function planImport(current: StoreData, incoming: StoreData, clock: Clock, genId: () => string): ImportResult {
-  const eventsById = new Map(current.events.map((e) => [e.id, e]))
   const fileCatsById = new Map(incoming.categories.map((c) => [c.id, c]))
   const fileTagsById = new Map(incoming.tags.map((t) => [t.id, t]))
 
@@ -205,39 +219,92 @@ export function planImport(current: StoreData, incoming: StoreData, clock: Clock
     resolveImportTag(t.id, fileTagsById, tagWork, outTags, tagMemo, tagCounters, clock, genId)
   }
 
-  const outEvents: EventRecord[] = []
-  let addedEvents = 0
-  let skippedEvents = 0
-  let invalidEvents = 0
+  // ---- events (identity = title + resolved folder) ----
+  const liveEvents = current.events.filter((e) => !e.deleted)
+  const liveById = new Map(liveEvents.map((e) => [e.id, e]))
+  const folderOf = (fe: EventRecord): Id | null =>
+    fe.categoryId != null ? (catMemo.get(fe.categoryId) ?? null) : null
 
-  for (const fe of incoming.events) {
-    if (!validateEvent(fe).ok) {
-      invalidEvents++
-      continue
+  let invalidEvents = 0
+  const valid = incoming.events.filter((fe) => {
+    if (validateEvent(fe).ok) return true
+    invalidEvents++
+    return false
+  })
+
+  // Pass 1: assign each file event a local id — an existing live match (overwrite)
+  // or a fresh id (create). File events sharing (folder, title) collapse to one.
+  const eventIdMap = new Map<Id, Id>() // fileEventId -> localId
+  const slot = new Map<string, Id>() // `${folderId}::${title}` -> localId
+  for (const fe of valid) {
+    const folderId = folderOf(fe)
+    const key = `${folderId ?? ''}::${eventKey(fe.title)}`
+    let localId = slot.get(key)
+    if (localId === undefined) {
+      const match = liveEventAt(liveEvents, fe.title, folderId)
+      localId = match ? match.id : genId()
+      slot.set(key, localId)
     }
-    // Import and the recycle bin are independent modules: if the id already
-    // exists in the store — whether live OR tombstoned — import skips it. It
-    // never un-deletes; restoring a deleted event is the recycle bin's job.
-    if (eventsById.has(fe.id)) {
-      skippedEvents++
-      continue
+    eventIdMap.set(fe.id, localId)
+  }
+
+  // Pass 2: build records with links remapped through eventIdMap.
+  const outByLocalId = new Map<Id, EventRecord>()
+  let addedEvents = 0
+  let overwrittenEvents = 0
+  let unchangedEvents = 0
+  for (const fe of valid) {
+    const localId = eventIdMap.get(fe.id)!
+    const folderId = folderOf(fe)
+    const tagIds = [...new Set(fe.tagIds.map((t) => tagMemo.get(t)).filter((x): x is Id => x != null))]
+    const links = [...new Set(fe.links.map((l) => eventIdMap.get(l)).filter((x): x is Id => x != null))]
+    const existing = liveById.get(localId)
+    if (existing) {
+      const next: EventRecord = {
+        ...existing,
+        title: fe.title,
+        start: fe.start,
+        end: fe.end,
+        note: fe.note ?? '',
+        categoryId: folderId,
+        tagIds,
+        links,
+        updatedAt: clock.now(),
+        deleted: false,
+      }
+      if (sameAttrs(existing, next)) {
+        unchangedEvents++
+        continue
+      }
+      if (!outByLocalId.has(localId)) overwrittenEvents++
+      outByLocalId.set(localId, next)
+    } else {
+      const next: EventRecord = {
+        id: localId,
+        title: fe.title,
+        start: fe.start,
+        end: fe.end,
+        note: fe.note ?? '',
+        categoryId: folderId,
+        tagIds,
+        links,
+        createdAt: fe.createdAt ?? clock.now(),
+        updatedAt: clock.now(),
+        deleted: false,
+      }
+      if (!outByLocalId.has(localId)) addedEvents++
+      outByLocalId.set(localId, next)
     }
-    const categoryId = resolveImportCategory(fe.categoryId, fileCatsById, catWork, outCats, catMemo, catCounters, clock, genId)
-    const mapped = fe.tagIds
-      .map((t) => resolveImportTag(t, fileTagsById, tagWork, outTags, tagMemo, tagCounters, clock, genId))
-      .filter((x): x is Id => x !== undefined)
-    const tagIds = [...new Set(mapped)]
-    outEvents.push({ ...fe, categoryId, tagIds, deleted: false, updatedAt: clock.now() })
-    addedEvents++
   }
 
   return {
     categories: outCats,
     tags: outTags,
-    events: outEvents,
+    events: [...outByLocalId.values()],
     summary: {
       addedEvents,
-      skippedEvents,
+      overwrittenEvents,
+      unchangedEvents,
       invalidEvents,
       addedCategories: catCounters.added,
       reusedCategories: catCounters.reused,

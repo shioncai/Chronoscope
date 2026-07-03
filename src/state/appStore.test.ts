@@ -370,23 +370,23 @@ describe('export / import', () => {
     const text = JSON.stringify(app.exportData())
     const outcome = await app.importData(text)
     expect(outcome.ok).toBe(true)
-    if (outcome.ok) expect(outcome.summary).toMatchObject({ addedEvents: 0, skippedEvents: 1 })
+    if (outcome.ok) expect(outcome.summary).toMatchObject({ addedEvents: 0, unchangedEvents: 1 })
     const live = app.store.getState().events.filter((e) => !e.deleted)
     expect(live).toHaveLength(1) // no duplicate
   })
 
-  it('importData does not resurrect events sitting in the recycle bin', async () => {
-    // reproduce: export a batch, delete it, re-import the same file
+  it('re-imports deleted events as fresh live events, leaving the recycle bin intact', async () => {
     const e = await app.createEvent({ title: '登月', start: fromYear(1969, 'year') })
     const text = JSON.stringify(app.exportData())
-    await app.deleteEvent(e) // move to recycle bin
-    expect(app.store.getState().events.find((x) => x.id === e)?.deleted).toBe(true)
+    await app.deleteEvent(e) // → recycle bin
     const outcome = await app.importData(text)
     expect(outcome.ok).toBe(true)
-    if (outcome.ok) expect(outcome.summary.skippedEvents).toBe(1)
-    // import and the recycle bin are independent: the event stays deleted
-    expect(app.store.getState().events.find((x) => x.id === e)?.deleted).toBe(true)
-    expect(app.store.getState().events.filter((x) => !x.deleted)).toHaveLength(0)
+    if (outcome.ok) expect(outcome.summary.addedEvents).toBe(1)
+    const s = app.store.getState()
+    expect(s.events.find((x) => x.id === e)?.deleted).toBe(true) // original stays deleted
+    const live = s.events.filter((x) => !x.deleted)
+    expect(live).toHaveLength(1) // a fresh live "登月"
+    expect(live[0].id).not.toBe(e)
   })
 
   it('importData rejects a bad file without touching state', async () => {

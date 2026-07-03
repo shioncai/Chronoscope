@@ -3,7 +3,8 @@ import type { ImportOutcome, ImportSummary } from '../../state'
 
 const LABELS: { key: keyof ImportSummary; label: string }[] = [
   { key: 'addedEvents', label: '新增事件' },
-  { key: 'skippedEvents', label: '跳过（已存在）' },
+  { key: 'overwrittenEvents', label: '覆盖事件' },
+  { key: 'unchangedEvents', label: '未变（跳过）' },
   { key: 'invalidEvents', label: '忽略（无效）' },
   { key: 'addedCategories', label: '新增文件夹' },
   { key: 'reusedCategories', label: '复用文件夹' },

@@ -79,108 +79,99 @@ describe('planRestore', () => {
 const empty = { events: [], categories: [], tags: [] }
 
 describe('planImport', () => {
-  it('rebuilds folders, tags and events into an empty store', () => {
+  it('creates events with fresh ids into an empty store', () => {
     const { clock, genId } = fixtures()
     const incoming = {
       categories: [cat('fp', '历史'), cat('fc', '近代', 'fp')],
       tags: [tag('ft', '重要')],
-      events: [ev('e1', { categoryId: 'fc', tagIds: ['ft'] })],
+      events: [ev('fe1', { title: '登月', categoryId: 'fc', tagIds: ['ft'] })],
     }
     const r = planImport(empty, incoming, clock, genId)
-    expect(r.summary.addedCategories).toBe(2)
-    expect(r.summary.addedTags).toBe(1)
     expect(r.summary.addedEvents).toBe(1)
-    const child = r.categories.find((c) => c.name === '近代')!
-    const parent = r.categories.find((c) => c.name === '历史')!
-    expect(child.parentId).toBe(parent.id)
-    const outEvent = r.events[0]
-    expect(outEvent.id).toBe('e1') // event id preserved
-    expect(outEvent.categoryId).toBe(child.id)
-    expect(outEvent.tagIds).toEqual([r.tags[0].id])
+    const out = r.events[0]
+    expect(out.id).not.toBe('fe1') // fresh local id (identity is name+folder, not id)
+    expect(out.title).toBe('登月')
+    expect(out.categoryId).toBe(r.categories.find((c) => c.name === '近代')!.id)
+    expect(out.tagIds).toEqual([r.tags[0].id])
   })
 
-  it('is idempotent: re-importing current data adds nothing', () => {
+  it('overwrites a live event with the same title+folder in place', () => {
     const { clock, genId } = fixtures()
     const current = {
-      categories: [cat('c', '历史')],
-      tags: [tag('t', '重要')],
-      events: [ev('e1', { categoryId: 'c', tagIds: ['t'] })],
-    }
-    // "file" is exactly the current data (same ids)
-    const r = planImport(current, current, clock, genId)
-    expect(r.summary).toMatchObject({ addedEvents: 0, skippedEvents: 1, addedCategories: 0, reusedCategories: 1, addedTags: 0, reusedTags: 1 })
-    expect(r.events).toHaveLength(0) // nothing to write
-    expect(r.categories).toHaveLength(0)
-    expect(r.tags).toHaveLength(0)
-  })
-
-  it('reuses an existing same-name folder, existing color wins, no duplicate', () => {
-    const { clock, genId } = fixtures()
-    const current = { categories: [cat('local', '历史', null, { color: '#0000ff' })], tags: [], events: [] }
-    const incoming = {
-      categories: [cat('file', '历史', null, { color: '#ff0000' })],
+      categories: [cat('f', '历史')],
       tags: [],
-      events: [ev('e1', { categoryId: 'file' })],
+      events: [ev('local', { title: '登月', categoryId: 'f', note: 'old', start: fromYear(1969, 'year') })],
+    }
+    const incoming = {
+      categories: [cat('ff', '历史')],
+      tags: [],
+      events: [ev('file', { title: '登月', categoryId: 'ff', note: 'new', start: fromYear(1969, 'year') })],
     }
     const r = planImport(current, incoming, clock, genId)
-    expect(r.summary.reusedCategories).toBe(1)
-    expect(r.summary.addedCategories).toBe(0)
-    expect(r.categories).toHaveLength(0) // reused the live folder, created nothing
-    expect(r.events[0].categoryId).toBe('local') // homed into existing folder (its #0000ff color untouched)
+    expect(r.summary.overwrittenEvents).toBe(1)
+    expect(r.summary.addedEvents).toBe(0)
+    const out = r.events.find((e) => e.title === '登月')!
+    expect(out.id).toBe('local') // kept existing id
+    expect(out.note).toBe('new') // file attributes win on overwrite
   })
 
-  it('skips events whose id already exists live', () => {
+  it('leaves an identical live event unchanged (idempotent)', () => {
     const { clock, genId } = fixtures()
-    const current = { categories: [], tags: [], events: [ev('e1', { title: 'local' })] }
-    const incoming = { categories: [], tags: [], events: [ev('e1', { title: 'from-file' })] }
+    const current = {
+      categories: [cat('f', '历史')],
+      tags: [],
+      events: [ev('local', { title: '登月', categoryId: 'f', start: fromYear(1969, 'year') })],
+    }
+    const incoming = {
+      categories: [cat('ff', '历史')],
+      tags: [],
+      events: [ev('file', { title: '登月', categoryId: 'ff', start: fromYear(1969, 'year') })],
+    }
     const r = planImport(current, incoming, clock, genId)
-    expect(r.summary.skippedEvents).toBe(1)
-    expect(r.events).toHaveLength(0)
+    expect(r.summary).toMatchObject({ addedEvents: 0, overwrittenEvents: 0, unchangedEvents: 1 })
+    expect(r.events).toHaveLength(0) // nothing written
   })
 
-  it('skips (never revives) an event whose id sits in the recycle bin', () => {
+  it('ignores the recycle bin: a deleted same-name event does not block a fresh create', () => {
     const { clock, genId } = fixtures()
-    const current = { categories: [], tags: [], events: [ev('e1', { title: 'local', deleted: true })] }
-    const incoming = { categories: [], tags: [], events: [ev('e1', { title: 'from-file' })] }
+    const current = {
+      categories: [cat('f', '历史')],
+      tags: [],
+      events: [ev('gone', { title: '登月', categoryId: 'f', deleted: true })],
+    }
+    const incoming = {
+      categories: [cat('ff', '历史')],
+      tags: [],
+      events: [ev('file', { title: '登月', categoryId: 'ff' })],
+    }
     const r = planImport(current, incoming, clock, genId)
-    // import and the recycle bin are independent: import never un-deletes
-    expect(r.summary.skippedEvents).toBe(1)
-    expect(r.events).toHaveLength(0) // the tombstone is left untouched
+    expect(r.summary.addedEvents).toBe(1) // created live; the tombstone is untouched
+    const out = r.events.find((e) => !e.deleted)!
+    expect(out.id).not.toBe('gone')
   })
 
-  it('preserves inter-event links (ids kept)', () => {
+  it('remaps inter-event links to local ids', () => {
     const { clock, genId } = fixtures()
     const incoming = {
       categories: [], tags: [],
-      events: [ev('a', { links: ['b'] }), ev('b', { links: ['a'] })],
+      events: [ev('a', { title: 'A', links: ['b'] }), ev('b', { title: 'B', links: ['a'] })],
     }
     const r = planImport(empty, incoming, clock, genId)
-    const a = r.events.find((e) => e.id === 'a')!
-    const b = r.events.find((e) => e.id === 'b')!
-    expect(a.links).toEqual(['b'])
-    expect(b.links).toEqual(['a'])
+    const a = r.events.find((e) => e.title === 'A')!
+    const b = r.events.find((e) => e.title === 'B')!
+    expect(a.links).toEqual([b.id])
+    expect(b.links).toEqual([a.id])
+    expect(a.links[0]).not.toBe('b') // remapped, not the file id
   })
 
   it('drops invalid events and counts them', () => {
     const { clock, genId } = fixtures()
     const incoming = {
       categories: [], tags: [],
-      events: [
-        ev('ok'),
-        { ...ev('noTitle'), title: '' },
-        { ...ev('noTime'), start: undefined, end: undefined },
-      ],
+      events: [ev('ok', { title: 'ok' }), { ...ev('bad', { title: '' }) }, { ...ev('bad2'), start: undefined, end: undefined }],
     }
     const r = planImport(empty, incoming, clock, genId)
     expect(r.summary.addedEvents).toBe(1)
     expect(r.summary.invalidEvents).toBe(2)
-  })
-
-  it('keeps empty folders and unused tags from the file', () => {
-    const { clock, genId } = fixtures()
-    const incoming = { categories: [cat('c', '空夹')], tags: [tag('t', '没用过')], events: [] }
-    const r = planImport(empty, incoming, clock, genId)
-    expect(r.categories.map((c) => c.name)).toEqual(['空夹'])
-    expect(r.tags.map((t) => t.name)).toEqual(['没用过'])
   })
 })

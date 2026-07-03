@@ -142,6 +142,18 @@ describe('EventEditor', () => {
     expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
   })
 
+  it('blocks saving a new event whose title already exists in the same folder', async () => {
+    const f = await app.createCategory({ name: '历史' })
+    await app.createEvent({ title: '登月', categoryId: f, start: { year: 1969, precision: 'year' } })
+    renderEditor(null)
+    await userEvent.type(screen.getByLabelText('标题'), '登月')
+    await userEvent.selectOptions(screen.getByLabelText('文件夹'), f)
+    await userEvent.type(screen.getByLabelText('起点 年'), '1970')
+    await userEvent.click(screen.getByRole('button', { name: '保存' }))
+    expect(screen.getByText(/该文件夹下已存在同名事件/)).toBeTruthy()
+    expect(app.store.getState().events.filter((e) => !e.deleted)).toHaveLength(1)
+  })
+
   it('creates a tag inline and applies it to the event on save', async () => {
     renderEditor(null)
     await userEvent.click(screen.getByRole('button', { name: '＋ 新标签' }))

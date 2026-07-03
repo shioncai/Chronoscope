@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { TimeInput } from './TimeInput'
-import { useAppStore, useAppState } from '../../state'
+import { useAppStore, useAppState, liveEventAt } from '../../state'
 import { validateEvent } from '../../domain/model'
 import { withFuzz, type TimePoint } from '../../domain/time'
 import type { Id } from '../../domain/model'
@@ -52,12 +52,17 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
       setErrors(result.errors)
       return
     }
+    const targetCat = categoryId === '' ? null : categoryId
+    if (liveEventAt(state.events, title, targetCat, editingId ?? undefined)) {
+      setErrors(['该文件夹下已存在同名事件'])
+      return
+    }
     const fields = {
       title,
       start: start ? withFuzz(start, startFuzz) : undefined,
       end: end ? withFuzz(end, endFuzz) : undefined,
       note,
-      categoryId: categoryId === '' ? null : categoryId,
+      categoryId: targetCat,
       tagIds,
       links,
     }

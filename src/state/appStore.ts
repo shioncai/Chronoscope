@@ -11,7 +11,8 @@ import type { LinearView } from '../domain/time'
 import { createStore, type Store } from './store'
 import { descendantCategoryIds } from './selectors'
 import { reorderedCategories } from './categoryOrder'
-import { planRestore } from './importPlan'
+import { planRestore, planImport, type ImportSummary } from './importPlan'
+import { buildTransferFile, parseTransferFile, type TransferFile } from './transfer'
 import { initialAppState, type AppState, type Filter, type Sort, type Theme, type View } from './types'
 
 export interface AppStoreDeps {
@@ -22,9 +23,15 @@ export interface AppStoreDeps {
   genId?: () => string
 }
 
+export type ImportOutcome =
+  | { ok: true; summary: ImportSummary }
+  | { ok: false; error: string }
+
 export interface AppStore {
   store: Store<AppState>
   load(): Promise<void>
+  exportData(): TransferFile
+  importData(text: string): Promise<ImportOutcome>
   createEvent(fields: NewEventFields): Promise<Id>
   updateEvent(id: Id, changes: Partial<EventRecord>): Promise<void>
   deleteEvent(id: Id): Promise<void>
@@ -91,6 +98,39 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
   return {
     store,
     load,
+
+    exportData() {
+      const s = store.getState()
+      return buildTransferFile(
+        { events: s.events, categories: s.categories, tags: s.tags },
+        new Date().toISOString(),
+      )
+    },
+
+    async importData(text) {
+      const parsed = parseTransferFile(text)
+      if (!parsed.ok) return { ok: false, error: parsed.error }
+      const s = store.getState()
+      const plan = planImport(
+        { events: s.events, categories: s.categories, tags: s.tags },
+        parsed.file.data,
+        clock,
+        genId,
+      )
+      for (const c of plan.categories) await db.categories.put(c)
+      for (const t of plan.tags) await db.tags.put(t)
+      for (const e of plan.events) await db.events.put(e)
+      store.setState((st) => {
+        let cats = st.categories
+        for (const c of plan.categories) cats = upsert(cats, c)
+        let tags = st.tags
+        for (const t of plan.tags) tags = upsert(tags, t)
+        let evs = st.events
+        for (const e of plan.events) evs = upsert(evs, e)
+        return { ...st, categories: cats, tags, events: evs }
+      })
+      return { ok: true, summary: plan.summary }
+    },
 
     async createEvent(fields) {
       const record = newEvent(fields, clock, genId)

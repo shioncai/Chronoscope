@@ -333,3 +333,54 @@ describe('appStore', () => {
     expect(await db.events.get('id1')).toBeUndefined()
   })
 })
+
+describe('export / import', () => {
+  it('exportData wraps live data and excludes the recycle bin', async () => {
+    const c = await app.createCategory({ name: '历史' })
+    await app.createEvent({ title: 'keep', categoryId: c, start: fromYear(1900, 'year') })
+    const del = await app.createEvent({ title: 'gone', start: fromYear(1800, 'year') })
+    await app.deleteEvent(del)
+    const file = app.exportData()
+    expect(file.app).toBe('chronoscope')
+    expect(file.data.events.map((e) => e.title)).toEqual(['keep'])
+    expect(file.data.categories.map((c) => c.name)).toEqual(['历史'])
+  })
+
+  it('importData merges a file into a fresh store and reports a summary', async () => {
+    // build a file from a separate source store
+    const src = makeDb()
+    const srcApp = createAppStore({ db: src, clock: { now: () => `s${Math.random()}` }, nowYear: 2026, theme: 'day', genId: () => `s${Math.random()}` })
+    const cid = await srcApp.createCategory({ name: '历史' })
+    await srcApp.createEvent({ title: '登月', categoryId: cid, start: fromYear(1969, 'year') })
+    const text = JSON.stringify(srcApp.exportData())
+
+    const outcome = await app.importData(text)
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) expect(outcome.summary.addedEvents).toBe(1)
+    const s = app.store.getState()
+    expect(s.events.some((e) => e.title === '登月' && !e.deleted)).toBe(true)
+    expect(s.categories.some((c) => c.name === '历史' && !c.deleted)).toBe(true)
+    // persisted to the repo, not just memory
+    expect((await db.events.getAll()).some((e) => e.title === '登月')).toBe(true)
+  })
+
+  it('importData round-trips this store idempotently', async () => {
+    const c = await app.createCategory({ name: '历史' })
+    await app.createEvent({ title: '登月', categoryId: c, start: fromYear(1969, 'year') })
+    const text = JSON.stringify(app.exportData())
+    const outcome = await app.importData(text)
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) expect(outcome.summary).toMatchObject({ addedEvents: 0, skippedEvents: 1 })
+    const live = app.store.getState().events.filter((e) => !e.deleted)
+    expect(live).toHaveLength(1) // no duplicate
+  })
+
+  it('importData rejects a bad file without touching state', async () => {
+    await app.createEvent({ title: 'x', start: fromYear(2000, 'year') })
+    const before = app.store.getState().events.length
+    const outcome = await app.importData('{garbage')
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error).toContain('损坏')
+    expect(app.store.getState().events.length).toBe(before)
+  })
+})

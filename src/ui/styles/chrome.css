@@ -105,6 +105,12 @@
 .fab:hover span{transform:rotate(90deg);}
 .fab:active{transform:scale(.97);transition-duration:.08s;}
 
+/* ---------- timeline display-zoom stepper (sits above the FAB) ---------- */
+.tl-zoom{position:absolute;right:28px;bottom:124px;z-index:8;display:flex;flex-direction:column;align-items:stretch;width:36px;border-radius:18px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--fab-shadow);overflow:hidden;}
+.tl-zoom button{border:0;background:transparent;color:var(--text);font-size:16px;line-height:1;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.tl-zoom button:hover{background:var(--accent-soft);}
+.tl-zoom .tl-zoom-readout{font-size:10px;color:var(--muted);border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);cursor:pointer;}
+
 /* ---------- buttons & form controls ---------- */
 button {
   font: inherit;

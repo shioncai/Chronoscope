@@ -66,4 +66,21 @@ describe('TimelineView', () => {
     const s = app.store.getState()
     expect(s.timelineView !== null || s.timelineOverview !== null).toBe(true)
   })
+  it('the + button raises the store scale by one step', () => {
+    renderTimeline()
+    expect(app.store.getState().timelineScale).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    expect(app.store.getState().timelineScale).toBeCloseTo(1.25, 6)
+  })
+  it('the − button never drops below 1×', () => {
+    renderTimeline()
+    fireEvent.click(screen.getByRole('button', { name: '缩小' }))
+    expect(app.store.getState().timelineScale).toBe(1)
+  })
+  it('clicking the readout resets scale to 1×', () => {
+    app.setTimelineScale(2.25)
+    renderTimeline()
+    fireEvent.click(screen.getByRole('button', { name: '重置缩放' }))
+    expect(app.store.getState().timelineScale).toBe(1)
+  })
 })

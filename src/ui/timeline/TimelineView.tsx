@@ -33,6 +33,8 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
   const state = useAppState()
   const events = useMemo(() => visibleEvents(state), [state])
   const nowYear = state.nowYear
+  const scale = state.timelineScale
+  const clampScale = (s: number) => Math.min(2.5, Math.max(1, Math.round(s * 4) / 4))
 
   const categoryColors = useMemo(() => {
     const m = new Map<Id, string>()
@@ -91,15 +93,15 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     const dpr = window.devicePixelRatio || 1
     canvas.width = size.w * dpr
     canvas.height = size.h * dpr
-    const scene = buildScene({ events, view, overview, nowYear, width: size.w, selectedId: state.selectedId, categoryColors })
-    const layout = computeLayout(size.h)
+    const scene = buildScene({ events, view, overview, nowYear, width: size.w, selectedId: state.selectedId, categoryColors, scale })
+    const layout = computeLayout(size.h, scale)
     sceneRef.current = scene
     layoutRef.current = layout
     const ctx = canvas.getContext('2d')
     if (!ctx) return // jsdom / unsupported: scene is still computed, just not painted
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     drawScene(ctx, scene, readColors(canvas), layout)
-  }, [events, view, overview, nowYear, size, state.selectedId, state.theme, categoryColors])
+  }, [events, view, overview, nowYear, size, state.selectedId, state.theme, categoryColors, scale])
 
   // pointer interactions
   const drag = useRef<{ x: number; mode: 'pan' | 'lens' | 'overviewPan'; moved: boolean } | null>(null)
@@ -278,6 +280,13 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
           onSelectLink={(id) => app.select(id)}
         />
       )}
+      <div className="tl-zoom" role="group" aria-label="时间轴显示缩放">
+        <button type="button" aria-label="放大" onClick={() => app.setTimelineScale((s) => clampScale(s + 0.25))}>＋</button>
+        <button type="button" aria-label="重置缩放" className="tl-zoom-readout" onClick={() => app.setTimelineScale(1)}>
+          {scale.toFixed(2).replace(/\.?0+$/, '')}×
+        </button>
+        <button type="button" aria-label="缩小" onClick={() => app.setTimelineScale((s) => clampScale(s - 0.25))}>－</button>
+      </div>
     </div>
   )
 }

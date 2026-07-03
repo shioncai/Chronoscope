@@ -40,3 +40,46 @@ export function truncateToWidth(text: string, maxPx: number, fontSizePx: number)
   }
   return out + '…'
 }
+
+export interface LabelPlacement {
+  text: string // display text, possibly truncated; '' when dropped
+  side: 'left' | 'right' | 'none'
+  x: number // draw anchor: right→textAlign 'left' start; left→textAlign 'right' end
+  occLeft: number // occupied interval (core + label) for row packing
+  occRight: number
+}
+
+// Choose a side for a glyph's label so it never crosses either viewport edge,
+// truncating (…) onto the roomier side when the full label fits neither, and
+// returning the occupied interval the row packer reserves.
+export function placeLabel(args: {
+  coreLeft: number
+  coreRight: number
+  text: string
+  fontSizePx: number
+  canvasWidth: number
+}): LabelPlacement {
+  const { coreLeft, coreRight, text, fontSizePx, canvasWidth } = args
+  const w = labelWidth(text, fontSizePx)
+
+  // 1. prefer right if the full label fits
+  if (coreRight + LABEL_GAP + w <= canvasWidth) {
+    return { text, side: 'right', x: coreRight + LABEL_GAP, occLeft: coreLeft, occRight: coreRight + LABEL_GAP + w }
+  }
+  // 2. else left if the full label fits without crossing the left edge
+  if (coreLeft - LABEL_GAP - w >= 0) {
+    return { text, side: 'left', x: coreLeft - LABEL_GAP, occLeft: coreLeft - LABEL_GAP - w, occRight: coreRight }
+  }
+  // 3. neither fits — truncate onto whichever side has more room
+  const rightRoom = canvasWidth - (coreRight + LABEL_GAP)
+  const leftRoom = coreLeft - LABEL_GAP
+  const dropped: LabelPlacement = { text: '', side: 'none', x: 0, occLeft: coreLeft, occRight: coreRight }
+  if (rightRoom >= leftRoom) {
+    const t = truncateToWidth(text, rightRoom, fontSizePx)
+    if (t === '') return dropped
+    return { text: t, side: 'right', x: coreRight + LABEL_GAP, occLeft: coreLeft, occRight: coreRight + LABEL_GAP + labelWidth(t, fontSizePx) }
+  }
+  const t = truncateToWidth(text, leftRoom, fontSizePx)
+  if (t === '') return dropped
+  return { text: t, side: 'left', x: coreLeft - LABEL_GAP, occLeft: coreLeft - LABEL_GAP - labelWidth(t, fontSizePx), occRight: coreRight }
+}

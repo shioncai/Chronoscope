@@ -68,6 +68,13 @@ export function viewFromLens(lens: Lens, overview: LinearView): LinearView {
   return { min: unprojectLinear(lens.f0, overview), max: unprojectLinear(lens.f1, overview) }
 }
 
+// Clamp a vertical scroll offset into the scrollable range. When the content is
+// shorter than the viewport there is nothing to scroll, so it pins to 0.
+export function clampScroll(scrollY: number, contentHeight: number, viewHeight: number): number {
+  const max = Math.max(0, contentHeight - viewHeight)
+  return Math.min(Math.max(scrollY, 0), max)
+}
+
 // Jump the detail window so its centre sits at the year under `centerFraction`
 // of the (linear) overview, keeping the current range (zoom) fixed. Used by a
 // click on the overview — an absolute "go there".

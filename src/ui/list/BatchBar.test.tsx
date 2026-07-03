@@ -136,4 +136,22 @@ describe('BatchBar', () => {
     await userEvent.click(screen.getByRole('button', { name: '确认' }))
     await waitFor(() => expect(app.store.getState().events.find((e) => e.id === del)?.deleted).toBe(false))
   })
+
+  it('moving into a folder with a live same-name event prompts, and overwrite supersedes it', async () => {
+    const f = await app.createCategory({ name: '历史' })
+    const keep = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1969, 'year') }) // existing in target
+    const mv = await app.createEvent({ title: '登月', categoryId: null, start: fromYear(1970, 'year') }) // moving in → conflict
+    app.setChecked([mv])
+    renderBar()
+    await userEvent.click(screen.getByRole('button', { name: '移动到文件夹 ▾' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '「历史」' }))
+    expect(await screen.findByText('移动冲突')).toBeTruthy()
+    await userEvent.click(screen.getByRole('radio', { name: /覆盖/ }))
+    await userEvent.click(screen.getByRole('button', { name: '确认' }))
+    await waitFor(() => {
+      const s = app.store.getState()
+      expect(s.events.find((e) => e.id === mv)?.categoryId).toBe(f) // moved
+      expect(s.events.find((e) => e.id === keep)?.deleted).toBe(true) // superseded → trash
+    })
+  })
 })

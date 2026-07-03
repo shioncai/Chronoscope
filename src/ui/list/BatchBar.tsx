@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAppStore, useAppState, flattenCategoryTree, type RestoreConflict } from '../../state'
+import { useAppStore, useAppState, flattenCategoryTree, moveConflicts, type RestoreConflict } from '../../state'
 import { MoveMenu } from '../shell/MoveMenu'
 import { TagMenu } from './TagMenu'
 import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
@@ -16,11 +16,13 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
   const ids = state.checkedIds
   const [open, setOpen] = useState<OpenMenu>(null)
   const [restoreConflicts, setRestoreConflicts] = useState<EventConflictItem[]>([])
+  const [moveCtx, setMoveCtx] = useState<{ target: Id | null; items: EventConflictItem[] } | null>(null)
 
-  // restoreEvents() drops every requested id from checkedIds regardless of
-  // whether it conflicted (the selection was "consumed"), so once a conflict
-  // dialog is pending, ids.length alone can no longer gate rendering.
-  if (ids.length === 0 && restoreConflicts.length === 0) return null
+  // restoreEvents()/deleteEvents() drop every requested id from checkedIds
+  // regardless of whether it conflicted (the selection was "consumed"), so once
+  // a conflict dialog is pending, ids.length alone can no longer gate rendering
+  // — keep the bar mounted while either a restore or a move dialog is open.
+  if (ids.length === 0 && restoreConflicts.length === 0 && !moveCtx) return null
 
   // Recycle-bin selection: restore / permanent-delete instead of move/tag/delete.
   if (trash) {
@@ -85,9 +87,33 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
   }
   const removableTags = allTags.filter((t) => present.has(t.id))
 
+  // Moving into a folder that already holds a live same-title event would
+  // create two "files" at the same (title, folder). Route those through the
+  // conflict dialog; non-colliding moves apply immediately.
   const move = (parentId: Id | null) => {
-    void app.setEventsCategory(ids, parentId)
     setOpen(null)
+    const conflicts = moveConflicts(state.events, ids, parentId)
+    if (conflicts.length === 0) {
+      void app.setEventsCategory(ids, parentId)
+      return
+    }
+    setMoveCtx({
+      target: parentId,
+      items: conflicts.map((c) => ({
+        incoming: state.events.find((e) => e.id === c.movingId)!,
+        existing: state.events.find((e) => e.id === c.existingId)!,
+      })),
+    })
+  }
+  const resolveMove = async (choices: Record<Id, 'overwrite' | 'skip'>) => {
+    const ctx = moveCtx!
+    setMoveCtx(null)
+    const conflictIds = new Set(ctx.items.map((i) => i.incoming.id))
+    const superseded = ctx.items.filter((i) => choices[i.incoming.id] === 'overwrite').map((i) => i.existing.id)
+    // move everything selected except events the user chose to skip
+    const toMove = ids.filter((id) => !conflictIds.has(id) || choices[id] !== 'skip')
+    if (superseded.length) await app.deleteEvents(superseded)
+    await app.setEventsCategory(toMove, ctx.target)
   }
   const addTag = (tagId: Id) => {
     void app.addTagToEvents(ids, tagId)
@@ -102,54 +128,64 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
   }
 
   return (
-    <div className="batch-bar">
-      <span className="bb-count">
-        已选 <b>{ids.length}</b> 项
-      </span>
-      <span className="bb-sep" />
-      <span className="menu-anchor">
-        <button
-          type="button"
-          className="bb-btn"
-          aria-haspopup="menu"
-          aria-expanded={open === 'folder'}
-          onClick={() => toggle('folder')}
-        >
-          移动到文件夹 ▾
+    <>
+      <div className="batch-bar">
+        <span className="bb-count">
+          已选 <b>{ids.length}</b> 项
+        </span>
+        <span className="bb-sep" />
+        <span className="menu-anchor">
+          <button
+            type="button"
+            className="bb-btn"
+            aria-haspopup="menu"
+            aria-expanded={open === 'folder'}
+            onClick={() => toggle('folder')}
+          >
+            移动到文件夹 ▾
+          </button>
+          {open === 'folder' && <MoveMenu targets={folders} topLabel="未分类" onMove={move} />}
+        </span>
+        <span className="menu-anchor">
+          <button
+            type="button"
+            className="bb-btn"
+            aria-haspopup="menu"
+            aria-expanded={open === 'addTag'}
+            onClick={() => toggle('addTag')}
+          >
+            添加标签 ▾
+          </button>
+          {open === 'addTag' && <TagMenu tags={allTags} onPick={addTag} />}
+        </span>
+        <span className="menu-anchor">
+          <button
+            type="button"
+            className="bb-btn"
+            aria-haspopup="menu"
+            aria-expanded={open === 'removeTag'}
+            onClick={() => toggle('removeTag')}
+          >
+            移除标签 ▾
+          </button>
+          {open === 'removeTag' && <TagMenu tags={removableTags} onPick={removeTag} />}
+        </span>
+        <button type="button" className="bb-btn danger" onClick={del}>
+          删除
         </button>
-        {open === 'folder' && <MoveMenu targets={folders} topLabel="未分类" onMove={move} />}
-      </span>
-      <span className="menu-anchor">
-        <button
-          type="button"
-          className="bb-btn"
-          aria-haspopup="menu"
-          aria-expanded={open === 'addTag'}
-          onClick={() => toggle('addTag')}
-        >
-          添加标签 ▾
+        <span className="bb-sep" />
+        <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
+          ✕
         </button>
-        {open === 'addTag' && <TagMenu tags={allTags} onPick={addTag} />}
-      </span>
-      <span className="menu-anchor">
-        <button
-          type="button"
-          className="bb-btn"
-          aria-haspopup="menu"
-          aria-expanded={open === 'removeTag'}
-          onClick={() => toggle('removeTag')}
-        >
-          移除标签 ▾
-        </button>
-        {open === 'removeTag' && <TagMenu tags={removableTags} onPick={removeTag} />}
-      </span>
-      <button type="button" className="bb-btn danger" onClick={del}>
-        删除
-      </button>
-      <span className="bb-sep" />
-      <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
-        ✕
-      </button>
-    </div>
+      </div>
+      {moveCtx && (
+        <EventConflictDialog
+          title="移动冲突"
+          conflicts={moveCtx.items}
+          onResolve={(choices) => void resolveMove(choices)}
+          onCancel={() => setMoveCtx(null)}
+        />
+      )}
+    </>
   )
 }

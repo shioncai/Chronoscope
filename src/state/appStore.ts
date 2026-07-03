@@ -11,6 +11,7 @@ import type { LinearView } from '../domain/time'
 import { createStore, type Store } from './store'
 import { descendantCategoryIds } from './selectors'
 import { reorderedCategories } from './categoryOrder'
+import { planRestore } from './importPlan'
 import { initialAppState, type AppState, type Filter, type Sort, type Theme, type View } from './types'
 
 export interface AppStoreDeps {
@@ -143,52 +144,27 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
     async restoreEvents(ids) {
       const idSet = new Set(ids)
       const s0 = store.getState()
-      const changed = s0.events
-        .filter((e) => e.deleted && idSet.has(e.id))
-        .map((e) => touch(e, { deleted: false }, clock))
-      for (const e of changed) await db.events.put(e)
-
-      // Also revive the folder chain each restored event is filed under, so it
-      // reappears at its original path instead of being orphaned beneath a
-      // still-deleted folder (mirror of deleteCategory's cascade, in reverse).
-      const catById = new Map(s0.categories.map((c) => [c.id, c]))
-      const reviveIds = new Set<Id>()
-      const seen = new Set<Id>()
-      for (const e of changed) {
-        let cid = e.categoryId
-        while (cid != null && !seen.has(cid)) {
-          seen.add(cid)
-          const c = catById.get(cid)
-          if (!c) break
-          if (c.deleted) reviveIds.add(cid)
-          cid = c.parentId
-        }
-      }
-      const revivedCats = [...reviveIds].map((id) => touch(catById.get(id)!, { deleted: false }, clock))
-      for (const c of revivedCats) await db.categories.put(c)
-
-      // Likewise revive any soft-deleted tags the restored events reference, so
-      // their tags reappear in the sidebar instead of being orphaned (same
-      // "restore the event's full context" rule as the folder chain).
-      const tagById = new Map(s0.tags.map((t) => [t.id, t]))
-      const reviveTagIds = new Set<Id>()
-      for (const e of changed) {
-        for (const tid of e.tagIds) {
-          const tag = tagById.get(tid)
-          if (tag && tag.deleted) reviveTagIds.add(tid)
-        }
-      }
-      const revivedTags = [...reviveTagIds].map((id) => touch(tagById.get(id)!, { deleted: false }, clock))
-      for (const t of revivedTags) await db.tags.put(t)
-
+      // Restore un-tombstones each event and revives its full context (folder
+      // ancestor chain + referenced tags). The planner merges by name/path
+      // against live records, so if a same-name folder/tag already exists the
+      // event re-homes into it (its color wins) instead of resurrecting a
+      // duplicate. Shared with import via src/state/importPlan.ts.
+      const plan = planRestore(
+        { events: s0.events, categories: s0.categories, tags: s0.tags },
+        ids,
+        clock,
+      )
+      for (const c of plan.categories) await db.categories.put(c)
+      for (const t of plan.tags) await db.tags.put(t)
+      for (const e of plan.events) await db.events.put(e)
       store.setState((st) => {
-        let evs = st.events
-        for (const e of changed) evs = upsert(evs, e)
         let cats = st.categories
-        for (const c of revivedCats) cats = upsert(cats, c)
+        for (const c of plan.categories) cats = upsert(cats, c)
         let tags = st.tags
-        for (const t of revivedTags) tags = upsert(tags, t)
-        return { ...st, events: evs, categories: cats, tags, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
+        for (const t of plan.tags) tags = upsert(tags, t)
+        let evs = st.events
+        for (const e of plan.events) evs = upsert(evs, e)
+        return { ...st, categories: cats, tags, events: evs, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
       })
     },
 

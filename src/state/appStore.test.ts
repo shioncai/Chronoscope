@@ -302,6 +302,20 @@ describe('appStore', () => {
     expect((await db.tags.get(t))?.deleted).toBe(false) // persisted, not just in-memory
   })
 
+  it('restoreEvents merges into an existing live same-name folder (no duplicate)', async () => {
+    const gone = await app.createCategory({ name: '历史', color: '#ff0000' }) // id1
+    const e = await app.createEvent({ title: 'a', categoryId: gone })          // id2
+    await app.deleteCategory(gone) // cascades: folder + event tombstoned
+    const live = await app.createCategory({ name: '历史', color: '#0000ff' })  // id3, new live same-name
+    await app.restoreEvents([e])
+    const s = app.store.getState()
+    // event re-homed into the live folder, adopting it (existing color wins)
+    expect(s.events.find((x) => x.id === e)?.categoryId).toBe(live)
+    // the old deleted folder stays deleted — no duplicate live "历史"
+    expect(s.categories.filter((c) => !c.deleted && c.name === '历史').map((c) => c.id)).toEqual([live])
+    expect(s.categories.find((c) => c.id === gone)?.deleted).toBe(true)
+  })
+
   it('deleting the only event using a tag keeps the tag (shows count 0, not removed)', async () => {
     const t = await app.createTag({ name: '孤标签' })
     const e = await app.createEvent({ title: 'a', tagIds: [t] })

@@ -8,10 +8,15 @@ interface StoreData {
   tags: Tag[]
 }
 
+export interface RestoreConflict {
+  eventId: Id
+  existingId: Id
+}
 export interface RestorePlan {
   categories: Category[]
   tags: Tag[]
   events: EventRecord[]
+  conflicts: RestoreConflict[]
 }
 
 // A LIVE category with `name` directly under `parentId` in the working tree.
@@ -74,7 +79,12 @@ function resolveRestoreTag(
   return revived.id
 }
 
-export function planRestore(current: StoreData, ids: Id[], clock: Clock): RestorePlan {
+export function planRestore(
+  current: StoreData,
+  ids: Id[],
+  clock: Clock,
+  resolutions: Record<Id, 'overwrite' | 'skip'> = {},
+): RestorePlan {
   const idSet = new Set(ids)
   const allCatsById = new Map(current.categories.map((c) => [c.id, c]))
   const allTagsById = new Map(current.tags.map((t) => [t.id, t]))
@@ -83,15 +93,34 @@ export function planRestore(current: StoreData, ids: Id[], clock: Clock): Restor
   const outCats: Category[] = []
   const outTags: Tag[] = []
   const catMemo = new Map<Id, Id>()
+  const liveEvents = current.events.filter((e) => !e.deleted)
 
   const events: EventRecord[] = []
+  const conflicts: RestoreConflict[] = []
+  const superseded = new Set<Id>()
+  const claimed = new Set<string>() // (folder,title) already restored in this batch
+
   for (const e of current.events) {
     if (!e.deleted || !idSet.has(e.id)) continue
     const categoryId = resolveRestoreCategory(e.categoryId, allCatsById, catWork, outCats, catMemo, clock)
+    const key = `${categoryId ?? ''}::${eventKey(e.title)}`
+    if (claimed.has(key)) continue // another restored event already took this slot
+    const x = liveEventAt(liveEvents, e.title, categoryId)
+    if (x && !superseded.has(x.id)) {
+      const decision = resolutions[e.id]
+      if (decision === undefined) {
+        conflicts.push({ eventId: e.id, existingId: x.id })
+        continue
+      }
+      if (decision === 'skip') continue
+      superseded.add(x.id)
+      events.push({ ...x, deleted: true, updatedAt: clock.now() })
+    }
     const tagIds = e.tagIds.map((t) => resolveRestoreTag(t, allTagsById, tagWork, outTags, clock))
     events.push({ ...e, categoryId, tagIds, deleted: false, updatedAt: clock.now() })
+    claimed.add(key)
   }
-  return { categories: outCats, tags: outTags, events }
+  return { categories: outCats, tags: outTags, events, conflicts }
 }
 
 export interface ImportSummary {

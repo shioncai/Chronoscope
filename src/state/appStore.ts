@@ -11,7 +11,7 @@ import type { LinearView } from '../domain/time'
 import { createStore, type Store } from './store'
 import { descendantCategoryIds } from './selectors'
 import { reorderedCategories } from './categoryOrder'
-import { planRestore, planImport, type ImportSummary } from './importPlan'
+import { planRestore, planImport, type ImportSummary, type RestoreConflict } from './importPlan'
 import { buildTransferFile, parseTransferFile, type TransferFile } from './transfer'
 import { initialAppState, type AppState, type Filter, type Sort, type Theme, type View } from './types'
 
@@ -37,7 +37,7 @@ export interface AppStore {
   deleteEvent(id: Id): Promise<void>
   deleteEvents(ids: Id[]): Promise<void>
   // Recycle bin: restore un-tombstones (soft), purge hard-deletes permanently.
-  restoreEvents(ids: Id[]): Promise<void>
+  restoreEvents(ids: Id[], resolutions?: Record<Id, 'overwrite' | 'skip'>): Promise<{ conflicts: RestoreConflict[] }>
   purgeEvents(ids: Id[]): Promise<void>
   setEventsCategory(ids: Id[], categoryId: Id | null): Promise<void>
   addTagToEvents(ids: Id[], tagId: Id): Promise<void>
@@ -181,18 +181,22 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       })
     },
 
-    async restoreEvents(ids) {
+    async restoreEvents(ids, resolutions = {}) {
       const idSet = new Set(ids)
       const s0 = store.getState()
       // Restore un-tombstones each event and revives its full context (folder
       // ancestor chain + referenced tags). The planner merges by name/path
       // against live records, so if a same-name folder/tag already exists the
       // event re-homes into it (its color wins) instead of resurrecting a
-      // duplicate. Shared with import via src/state/importPlan.ts.
+      // duplicate. If the target folder already holds a live same-title event,
+      // the event is held back as a conflict unless resolved via `resolutions`
+      // ('overwrite' soft-deletes the existing one, 'skip' leaves it deleted).
+      // Shared with import via src/state/importPlan.ts.
       const plan = planRestore(
         { events: s0.events, categories: s0.categories, tags: s0.tags },
         ids,
         clock,
+        resolutions,
       )
       for (const c of plan.categories) await db.categories.put(c)
       for (const t of plan.tags) await db.tags.put(t)
@@ -206,6 +210,7 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
         for (const e of plan.events) evs = upsert(evs, e)
         return { ...st, categories: cats, tags, events: evs, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
       })
+      return { conflicts: plan.conflicts }
     },
 
     async purgeEvents(ids) {

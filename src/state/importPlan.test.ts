@@ -74,6 +74,51 @@ describe('planRestore', () => {
     expect(plan.tags.map((t) => t.id)).toEqual(['t'])
     expect(plan.tags[0].deleted).toBe(false)
   })
+
+  it('reports a conflict when the target folder already has a live same-name event', () => {
+    const { clock } = fixtures()
+    const current = {
+      categories: [cat('f', '历史')],
+      tags: [],
+      events: [
+        ev('live', { title: '登月', categoryId: 'f' }),
+        ev('del', { title: '登月', categoryId: 'f', deleted: true }),
+      ],
+    }
+    const plan = planRestore(current, ['del'], clock)
+    expect(plan.conflicts).toEqual([{ eventId: 'del', existingId: 'live' }])
+    expect(plan.events).toHaveLength(0) // held back until resolved
+  })
+
+  it('overwrite resolution restores the event and sends the existing one to the recycle bin', () => {
+    const { clock } = fixtures()
+    const current = {
+      categories: [cat('f', '历史')],
+      tags: [],
+      events: [
+        ev('live', { title: '登月', categoryId: 'f' }),
+        ev('del', { title: '登月', categoryId: 'f', deleted: true }),
+      ],
+    }
+    const plan = planRestore(current, ['del'], clock, { del: 'overwrite' })
+    const restored = plan.events.find((e) => e.id === 'del')!
+    const superseded = plan.events.find((e) => e.id === 'live')!
+    expect(restored.deleted).toBe(false)
+    expect(superseded.deleted).toBe(true) // previous live event soft-deleted
+    expect(plan.conflicts).toEqual([])
+  })
+
+  it('skip resolution leaves the event deleted', () => {
+    const { clock } = fixtures()
+    const current = {
+      categories: [cat('f', '历史')],
+      tags: [],
+      events: [ev('live', { title: '登月', categoryId: 'f' }), ev('del', { title: '登月', categoryId: 'f', deleted: true })],
+    }
+    const plan = planRestore(current, ['del'], clock, { del: 'skip' })
+    expect(plan.events).toHaveLength(0)
+    expect(plan.conflicts).toEqual([])
+  })
 })
 
 const empty = { events: [], categories: [], tags: [] }

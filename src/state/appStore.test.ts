@@ -316,6 +316,22 @@ describe('appStore', () => {
     expect(s.categories.find((c) => c.id === gone)?.deleted).toBe(true)
   })
 
+  it('restoreEvents returns a conflict when a live same-name event occupies the folder', async () => {
+    const f = await app.createCategory({ name: '历史' })
+    const del = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1969, 'year') })
+    await app.deleteEvent(del)
+    await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1970, 'year') }) // new live same name
+    const { conflicts } = await app.restoreEvents([del])
+    expect(conflicts).toHaveLength(1)
+    expect(app.store.getState().events.find((e) => e.id === del)?.deleted).toBe(true) // still deleted
+
+    const { conflicts: c2 } = await app.restoreEvents([del], { [del]: 'overwrite' })
+    expect(c2).toHaveLength(0)
+    const s = app.store.getState()
+    expect(s.events.find((e) => e.id === del)?.deleted).toBe(false) // restored
+    expect(s.events.filter((e) => !e.deleted && e.title === '登月' && e.categoryId === f)).toHaveLength(1)
+  })
+
   it('deleting the only event using a tag keeps the tag (shows count 0, not removed)', async () => {
     const t = await app.createTag({ name: '孤标签' })
     const e = await app.createEvent({ title: 'a', tagIds: [t] })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildTransferFile } from './transfer'
+import { buildTransferFile, parseTransferFile } from './transfer'
 import type { EventRecord, Category, Tag } from '../domain/model'
 import { fromYear } from '../domain/time'
 
@@ -36,5 +36,53 @@ describe('buildTransferFile', () => {
     )
     expect(file.data.categories).toHaveLength(1)
     expect(file.data.tags).toHaveLength(1)
+  })
+})
+
+describe('parseTransferFile', () => {
+  const good = JSON.stringify({
+    app: 'chronoscope', version: 1, exportedAt: 'now',
+    data: { events: [], categories: [], tags: [] },
+  })
+
+  it('accepts a well-formed file', () => {
+    const r = parseTransferFile(good)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.file.data.events).toEqual([])
+  })
+
+  it('rejects invalid JSON', () => {
+    const r = parseTransferFile('{not json')
+    expect(r).toEqual({ ok: false, error: '文件已损坏或不是有效的 JSON' })
+  })
+
+  it('rejects a foreign file (wrong app)', () => {
+    const r = parseTransferFile(JSON.stringify({ app: 'other', version: 1, data: {} }))
+    expect(r).toEqual({ ok: false, error: '这不是 Chronoscope 导出文件' })
+  })
+
+  it('rejects an unsupported version', () => {
+    const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 2, data: {} }))
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toContain('不支持的文件版本')
+  })
+
+  it('rejects missing data arrays', () => {
+    const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 1, data: { events: [] } }))
+    expect(r).toEqual({ ok: false, error: '文件内容不完整或已损坏' })
+  })
+
+  it('round-trips buildTransferFile output', () => {
+    const built = buildTransferFile(
+      { events: [ev('e1')], categories: [cat('c1', 'A')], tags: [tag('t1', 'x')] },
+      'now',
+    )
+    const r = parseTransferFile(JSON.stringify(built))
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.file.data.events[0].id).toBe('e1')
+      expect(r.file.data.categories[0].name).toBe('A')
+      expect(r.file.data.tags[0].name).toBe('x')
+    }
   })
 })

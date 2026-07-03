@@ -18,18 +18,24 @@ export interface TimelineLayout {
   rowHeight: number
   overviewTop: number
   overviewHeight: number
+  fontSize: number
+  dotRadius: number
+  barHeight: number
 }
 
 const OVERVIEW_HEIGHT = 48
 
-export function computeLayout(height: number): TimelineLayout {
+export function computeLayout(height: number, scale = 1): TimelineLayout {
   return {
     height,
-    tickLabelH: 18,
-    glyphTop: 24,
-    rowHeight: 16,
+    tickLabelH: 18 * scale,
+    glyphTop: 24 * scale,
+    rowHeight: 16 * scale,
     overviewTop: height - OVERVIEW_HEIGHT,
     overviewHeight: OVERVIEW_HEIGHT,
+    fontSize: 11 * scale,
+    dotRadius: 4 * scale,
+    barHeight: 8 * scale,
   }
 }
 
@@ -57,11 +63,12 @@ export function drawScene(
   scene: TimelineScene,
   colors: TimelineColors,
   layout: TimelineLayout,
+  scrollY = 0,
 ): void {
   ctx.clearRect(0, 0, scene.width, layout.height)
   ctx.fillStyle = colors.bg
   ctx.fillRect(0, 0, scene.width, layout.height)
-  ctx.font = '11px ui-monospace, monospace'
+  ctx.font = `${layout.fontSize}px ui-monospace, monospace`
   ctx.lineWidth = 1
 
   // ticks (vertical guides + labels) across the detail area
@@ -73,33 +80,36 @@ export function drawScene(
     ctx.lineTo(t.x, detailBottom)
     ctx.stroke()
     ctx.fillStyle = colors.muted
-    ctx.fillText(t.label, t.x + 3, 12)
+    ctx.fillText(t.label, t.x + 3, layout.fontSize)
   }
 
-  // glyphs
+  // glyphs (offset by the vertical scroll position). uncategorized glyphs (no
+  // category color) fall back to muted gray — the same neutral as the 未分类
+  // folder's dot. The side/truncation of each label is already decided in the
+  // scene, so it never crosses either edge; skip a dropped label.
   for (const g of scene.detail.glyphs) {
-    const y = layout.glyphTop + g.row * layout.rowHeight
-    // uncategorized glyphs (no category color) fall back to muted gray — the
-    // same neutral as the 未分类 folder's dot
+    const y = layout.glyphTop + g.row * layout.rowHeight - scrollY
     const color = g.selected ? colors.now : (g.color ?? colors.muted)
+    const r = layout.dotRadius
+    const bh = layout.barHeight
 
     // fuzzy whiskers — horizontal lines first (the core will sit on top)
     ctx.strokeStyle = colors.muted
     for (const w of g.whiskers) {
       if (w.hi <= w.lo) continue
       ctx.beginPath()
-      ctx.moveTo(w.lo, y + 4)
-      ctx.lineTo(w.hi, y + 4)
+      ctx.moveTo(w.lo, y + r)
+      ctx.lineTo(w.hi, y + r)
       ctx.stroke()
     }
 
     // core glyph
     ctx.fillStyle = color
     if (g.kind === 'span') {
-      ctx.fillRect(g.xStart, y, Math.max(2, g.xEnd - g.xStart), 8)
+      ctx.fillRect(g.xStart, y, Math.max(2, g.xEnd - g.xStart), bh)
     } else {
       ctx.beginPath()
-      ctx.arc(g.xStart, y + 4, 4, 0, Math.PI * 2)
+      ctx.arc(g.xStart, y + r, r, 0, Math.PI * 2)
       ctx.fill()
     }
 
@@ -108,23 +118,18 @@ export function drawScene(
     for (const w of g.whiskers) {
       if (w.hi <= w.lo) continue
       ctx.beginPath()
-      ctx.moveTo(w.lo, y - 3)
-      ctx.lineTo(w.lo, y + 11)
-      ctx.moveTo(w.hi, y - 3)
-      ctx.lineTo(w.hi, y + 11)
+      ctx.moveTo(w.lo, y - (r - 1))
+      ctx.lineTo(w.lo, y + bh + (r - 1))
+      ctx.moveTo(w.hi, y - (r - 1))
+      ctx.lineTo(w.hi, y + bh + (r - 1))
       ctx.stroke()
     }
 
-    // title — normally to the right of the glyph, but flipped to the left when
-    // it would overflow the right edge (e.g. the deep-time cluster jammed
-    // against "现在"), so it stays on-canvas instead of being clipped.
-    ctx.fillStyle = colors.text
-    if (g.xEnd + 6 + ctx.measureText(g.title).width <= scene.width) {
-      ctx.textAlign = 'left'
-      ctx.fillText(g.title, g.xEnd + 6, y + 8)
-    } else {
-      ctx.textAlign = 'right'
-      ctx.fillText(g.title, g.xStart - 6, y + 8)
+    // title — scene already chose the side and (if needed) truncated it
+    if (g.label.side !== 'none' && g.label.text) {
+      ctx.fillStyle = colors.text
+      ctx.textAlign = g.label.side === 'left' ? 'right' : 'left'
+      ctx.fillText(g.label.text, g.label.x, y + bh)
       ctx.textAlign = 'left'
     }
   }

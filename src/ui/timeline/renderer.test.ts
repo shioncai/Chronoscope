@@ -7,16 +7,22 @@ const COLORS: TimelineColors = {
   border: '#333', accent: '#0aa', now: '#0ff', deepTime: '#a40',
 }
 
-// Minimal recording double for a 2D context — records method calls and
-// style assignments so we can assert what was drawn without a real canvas.
+// Minimal recording double for a 2D context — records method calls (with arg
+// arrays) and style assignments so we can assert what was drawn without a real
+// canvas.
 function fakeCtx() {
   const calls: string[] = []
   const styles: string[] = []
   const fills: string[] = []
-  const method = (name: string) => (...args: unknown[]) => calls.push(`${name}(${args.length})`)
+  const args: Record<string, unknown[][]> = {}
+  const method = (name: string) => (...a: unknown[]) => {
+    calls.push(`${name}(${a.length})`)
+    ;(args[name] ??= []).push(a)
+  }
   const ctx = {
     calls,
     styles,
+    args,
     clearRect: method('clearRect'),
     beginPath: method('beginPath'),
     moveTo: method('moveTo'),
@@ -27,12 +33,16 @@ function fakeCtx() {
     arc: method('arc'),
     fill: method('fill'),
     fillText: method('fillText'),
-    measureText: (...args: unknown[]) => {
-      calls.push(`measureText(${args.length})`)
+    save: method('save'),
+    restore: method('restore'),
+    clip: method('clip'),
+    rect: method('rect'),
+    measureText: (...a: unknown[]) => {
+      calls.push(`measureText(${a.length})`)
       return { width: 10 }
     },
-    createLinearGradient: (...args: unknown[]) => {
-      calls.push(`createLinearGradient(${args.length})`)
+    createLinearGradient: (...a: unknown[]) => {
+      calls.push(`createLinearGradient(${a.length})`)
       return { addColorStop: () => {} }
     },
     set fillStyle(v: string) { fills.push(v) },
@@ -40,11 +50,13 @@ function fakeCtx() {
     set font(_v: string) {},
     set lineWidth(_v: number) {},
     set globalAlpha(_v: number) {},
+    set textAlign(_v: string) {},
   }
   return Object.assign(ctx, { fills }) as unknown as CanvasRenderingContext2D & {
     calls: string[]
     styles: string[]
     fills: string[]
+    args: Record<string, unknown[][]>
   }
 }
 
@@ -53,8 +65,8 @@ const scene: TimelineScene = {
   detail: {
     ticks: [{ x: 100, label: '2000年' }, { x: 500, label: '2050年' }],
     glyphs: [
-      { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [{ lo: 80, hi: 120 }, { lo: 280, hi: 320 }], row: 0, selected: false, title: 'A' },
-      { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [{ lo: 480, hi: 520 }], row: 1, selected: true, title: 'B' },
+      { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [{ lo: 80, hi: 120 }, { lo: 280, hi: 320 }], row: 0, selected: false, label: { text: 'A', side: 'right', x: 326 } },
+      { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [{ lo: 480, hi: 520 }], row: 1, selected: true, label: { text: 'B', side: 'right', x: 526 } },
     ],
     rowCount: 2,
   },
@@ -94,6 +106,38 @@ describe('renderer', () => {
       expect(mixHex('#000', '#fff', 1)).toBe('#ffffff')
     })
   })
+  it('scales every pixel dimension by the magnification factor', () => {
+    const l1 = computeLayout(400, 1)
+    const l2 = computeLayout(400, 2)
+    expect(l2.rowHeight).toBeCloseTo(l1.rowHeight * 2, 6)
+    expect(l2.fontSize).toBeCloseTo(l1.fontSize * 2, 6)
+    expect(l2.dotRadius).toBeCloseTo(l1.dotRadius * 2, 6)
+    expect(l2.barHeight).toBeCloseTo(l1.barHeight * 2, 6)
+    expect(l2.glyphTop).toBeCloseTo(l1.glyphTop * 2, 6)
+    expect(l2.overviewHeight).toBe(48) // the overview band is fixed, not scaled
+  })
+  it('draws a label on the left when side is left', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: { ...scene.detail, glyphs: [{ ...scene.detail.glyphs[0], label: { text: 'L', side: 'left', x: 94 } }] },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    const texts = (ctx.args.fillText ?? []).map((a) => a[0])
+    expect(texts).toContain('L')
+  })
+  it('skips drawing a dropped label (side none)', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: { ...scene.detail, glyphs: [{ ...scene.detail.glyphs[0], label: { text: '', side: 'none', x: 0 } }] },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    const texts = (ctx.args.fillText ?? []).map((a) => a[0])
+    // ticks (2) + overview range (2) still drawn, but no glyph title
+    expect(texts).not.toContain('A')
+    expect(texts.filter((t) => t === '').length).toBe(0)
+  })
   it('draws ticks, a span rect, a point arc, labels, and the lens', () => {
     const ctx = fakeCtx()
     drawScene(ctx, scene, COLORS, computeLayout(400))
@@ -129,8 +173,8 @@ describe('renderer', () => {
       detail: {
         ...scene.detail,
         glyphs: [
-          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#abcdef', title: 'A' },
-          { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [], row: 1, selected: false, title: 'B' },
+          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#abcdef', label: { text: 'A', side: 'right', x: 306 } },
+          { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [], row: 1, selected: false, label: { text: 'B', side: 'right', x: 506 } },
         ],
       },
     }

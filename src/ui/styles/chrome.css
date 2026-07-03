@@ -220,6 +220,24 @@ legend {
 .info-card .close{margin-top:20px;width:100%;height:38px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--text);font:inherit;cursor:pointer;transition:background .15s;}
 .info-card .close:hover{background:var(--hover);}
 
+/* ---------- event conflict dialog ---------- */
+.info-card.conflict-card{width:560px;max-height:82vh;display:flex;flex-direction:column;}
+.conflict-bulk{margin-top:14px;display:flex;gap:8px;flex:none;}
+.conflict-bulk button{flex:1;height:32px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;transition:background .15s;}
+.conflict-bulk button:hover{background:var(--hover);}
+.conflict-list{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:12px;overflow:auto;flex:1 1 auto;min-height:0;}
+.conflict-item{border:1px solid var(--border-soft);border-radius:10px;padding:12px;}
+.conflict-title{font-weight:600;font-size:13.5px;color:var(--text);margin-bottom:8px;}
+.conflict-diff{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:10px;}
+.conflict-diff th{text-align:left;color:var(--muted);font-weight:500;padding:2px 8px 4px 0;}
+.conflict-diff td{padding:2px 8px 2px 0;color:var(--text);vertical-align:top;}
+.conflict-choice{display:flex;gap:16px;font-size:13px;color:var(--text);}
+.conflict-choice label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.conflict-actions{margin-top:18px;display:flex;gap:10px;flex:none;}
+.conflict-actions button{flex:1;height:38px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--text);font:inherit;cursor:pointer;transition:background .15s;}
+.conflict-actions button:hover{background:var(--hover);}
+.conflict-actions button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;}
+
 /* ---------- list view ---------- */
 .list-view{width:100%;border-collapse:collapse;font-size:14px;}
 .list-view thead th{position:sticky;top:0;text-align:left;padding:0;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap;}

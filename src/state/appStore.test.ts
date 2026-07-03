@@ -375,6 +375,20 @@ describe('export / import', () => {
     expect(live).toHaveLength(1) // no duplicate
   })
 
+  it('importData does not resurrect events sitting in the recycle bin', async () => {
+    // reproduce: export a batch, delete it, re-import the same file
+    const e = await app.createEvent({ title: '登月', start: fromYear(1969, 'year') })
+    const text = JSON.stringify(app.exportData())
+    await app.deleteEvent(e) // move to recycle bin
+    expect(app.store.getState().events.find((x) => x.id === e)?.deleted).toBe(true)
+    const outcome = await app.importData(text)
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) expect(outcome.summary.skippedEvents).toBe(1)
+    // import and the recycle bin are independent: the event stays deleted
+    expect(app.store.getState().events.find((x) => x.id === e)?.deleted).toBe(true)
+    expect(app.store.getState().events.filter((x) => !x.deleted)).toHaveLength(0)
+  })
+
   it('importData rejects a bad file without touching state', async () => {
     await app.createEvent({ title: 'x', start: fromYear(2000, 'year') })
     const before = app.store.getState().events.length

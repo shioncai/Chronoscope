@@ -138,14 +138,14 @@ describe('planImport', () => {
     expect(r.events).toHaveLength(0)
   })
 
-  it('revives an event whose id sits in the recycle bin', () => {
+  it('skips (never revives) an event whose id sits in the recycle bin', () => {
     const { clock, genId } = fixtures()
     const current = { categories: [], tags: [], events: [ev('e1', { title: 'local', deleted: true })] }
     const incoming = { categories: [], tags: [], events: [ev('e1', { title: 'from-file' })] }
     const r = planImport(current, incoming, clock, genId)
-    expect(r.summary.revivedEvents).toBe(1)
-    expect(r.events[0].deleted).toBe(false)
-    expect(r.events[0].title).toBe('local') // existing wins
+    // import and the recycle bin are independent: import never un-deletes
+    expect(r.summary.skippedEvents).toBe(1)
+    expect(r.events).toHaveLength(0) // the tombstone is left untouched
   })
 
   it('preserves inter-event links (ids kept)', () => {

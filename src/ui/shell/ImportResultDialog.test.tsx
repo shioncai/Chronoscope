@@ -7,7 +7,7 @@ describe('ImportResultDialog', () => {
   it('shows counts on success', () => {
     render(
       <ImportResultDialog
-        outcome={{ ok: true, summary: { addedEvents: 2, revivedEvents: 0, skippedEvents: 1, invalidEvents: 0, addedCategories: 1, reusedCategories: 0, addedTags: 0, reusedTags: 0 } }}
+        outcome={{ ok: true, summary: { addedEvents: 2, skippedEvents: 1, invalidEvents: 0, addedCategories: 1, reusedCategories: 0, addedTags: 0, reusedTags: 0 } }}
         onClose={vi.fn()}
       />,
     )

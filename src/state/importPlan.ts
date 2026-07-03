@@ -95,7 +95,6 @@ export function planRestore(current: StoreData, ids: Id[], clock: Clock): Restor
 
 export interface ImportSummary {
   addedEvents: number
-  revivedEvents: number
   skippedEvents: number
   invalidEvents: number
   addedCategories: number
@@ -208,7 +207,6 @@ export function planImport(current: StoreData, incoming: StoreData, clock: Clock
 
   const outEvents: EventRecord[] = []
   let addedEvents = 0
-  let revivedEvents = 0
   let skippedEvents = 0
   let invalidEvents = 0
 
@@ -217,8 +215,10 @@ export function planImport(current: StoreData, incoming: StoreData, clock: Clock
       invalidEvents++
       continue
     }
-    const existing = eventsById.get(fe.id)
-    if (existing && !existing.deleted) {
+    // Import and the recycle bin are independent modules: if the id already
+    // exists in the store — whether live OR tombstoned — import skips it. It
+    // never un-deletes; restoring a deleted event is the recycle bin's job.
+    if (eventsById.has(fe.id)) {
       skippedEvents++
       continue
     }
@@ -227,13 +227,8 @@ export function planImport(current: StoreData, incoming: StoreData, clock: Clock
       .map((t) => resolveImportTag(t, fileTagsById, tagWork, outTags, tagMemo, tagCounters, clock, genId))
       .filter((x): x is Id => x !== undefined)
     const tagIds = [...new Set(mapped)]
-    if (existing && existing.deleted) {
-      outEvents.push({ ...existing, categoryId, tagIds, deleted: false, updatedAt: clock.now() })
-      revivedEvents++
-    } else {
-      outEvents.push({ ...fe, categoryId, tagIds, deleted: false, updatedAt: clock.now() })
-      addedEvents++
-    }
+    outEvents.push({ ...fe, categoryId, tagIds, deleted: false, updatedAt: clock.now() })
+    addedEvents++
   }
 
   return {
@@ -242,7 +237,6 @@ export function planImport(current: StoreData, incoming: StoreData, clock: Clock
     events: outEvents,
     summary: {
       addedEvents,
-      revivedEvents,
       skippedEvents,
       invalidEvents,
       addedCategories: catCounters.added,

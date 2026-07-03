@@ -190,7 +190,8 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       // event re-homes into it (its color wins) instead of resurrecting a
       // duplicate. If the target folder already holds a live same-title event,
       // the event is held back as a conflict unless resolved via `resolutions`
-      // ('overwrite' soft-deletes the existing one, 'skip' leaves it deleted).
+      // ('overwrite' permanently removes the existing one — the restored event
+      // wins completely; 'skip' leaves the restored event deleted).
       // Shared with import via src/state/importPlan.ts.
       const plan = planRestore(
         { events: s0.events, categories: s0.categories, tags: s0.tags },
@@ -201,14 +202,23 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       for (const c of plan.categories) await db.categories.put(c)
       for (const t of plan.tags) await db.tags.put(t)
       for (const e of plan.events) await db.events.put(e)
+      for (const id of plan.purge) await db.events.delete(id)
+      const purged = new Set(plan.purge)
       store.setState((st) => {
         let cats = st.categories
         for (const c of plan.categories) cats = upsert(cats, c)
         let tags = st.tags
         for (const t of plan.tags) tags = upsert(tags, t)
-        let evs = st.events
+        let evs = st.events.filter((e) => !purged.has(e.id))
         for (const e of plan.events) evs = upsert(evs, e)
-        return { ...st, categories: cats, tags, events: evs, checkedIds: st.checkedIds.filter((x) => !idSet.has(x)) }
+        return {
+          ...st,
+          categories: cats,
+          tags,
+          events: evs,
+          checkedIds: st.checkedIds.filter((x) => !idSet.has(x) && !purged.has(x)),
+          selectedId: st.selectedId != null && purged.has(st.selectedId) ? null : st.selectedId,
+        }
       })
       return { conflicts: plan.conflicts }
     },

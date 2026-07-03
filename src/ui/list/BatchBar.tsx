@@ -121,10 +121,12 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
     const superseded = ctx.items.filter((i) => choices[i.incoming.id] === 'overwrite').map((i) => i.existing.id)
     // move everything selected except events the user chose to skip
     const toMove = ids.filter((id) => !conflictIds.has(id) || choices[id] !== 'skip')
-    if (superseded.length) await app.deleteEvents(superseded)
+    // 'overwrite': the moved event wins completely; the existing occupant is
+    // permanently removed (not sent to the recycle bin).
+    if (superseded.length) await app.purgeEvents(superseded)
     // Final dedupe guard: two same-title movers, or a mover vs a same-title
     // occupant that stays, must not both land. Superseded occupants free their
-    // title (they're headed to trash), so overwrite replacements can move in.
+    // title (they're permanently removed), so overwrite replacements can move in.
     await app.setEventsCategory(
       dedupeTargetMovers(state.events, toMove, ctx.target, new Set(superseded)),
       ctx.target,

@@ -90,7 +90,7 @@ describe('planRestore', () => {
     expect(plan.events).toHaveLength(0) // held back until resolved
   })
 
-  it('overwrite resolution restores the event and sends the existing one to the recycle bin', () => {
+  it('overwrite resolution restores the event and permanently removes the existing one', () => {
     const { clock } = fixtures()
     const current = {
       categories: [cat('f', '历史')],
@@ -102,9 +102,9 @@ describe('planRestore', () => {
     }
     const plan = planRestore(current, ['del'], clock, { del: 'overwrite' })
     const restored = plan.events.find((e) => e.id === 'del')!
-    const superseded = plan.events.find((e) => e.id === 'live')!
-    expect(restored.deleted).toBe(false)
-    expect(superseded.deleted).toBe(true) // previous live event soft-deleted
+    expect(restored.deleted).toBe(false) // the restored event wins completely
+    expect(plan.events.some((e) => e.id === 'live')).toBe(false) // existing not soft-deleted…
+    expect(plan.purge).toEqual(['live']) // …it is permanently removed
     expect(plan.conflicts).toEqual([])
   })
 

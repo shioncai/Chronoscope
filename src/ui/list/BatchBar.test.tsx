@@ -137,9 +137,9 @@ describe('BatchBar', () => {
     await waitFor(() => expect(app.store.getState().events.find((e) => e.id === del)?.deleted).toBe(false))
   })
 
-  it('moving into a folder with a live same-name event prompts, and overwrite supersedes it', async () => {
+  it('moving into a folder with a live same-name event prompts, and overwrite permanently removes the occupant', async () => {
     const f = await app.createCategory({ name: '历史' })
-    const keep = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1969, 'year') }) // existing in target
+    const occupant = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1969, 'year') }) // existing in target
     const mv = await app.createEvent({ title: '登月', categoryId: null, start: fromYear(1970, 'year') }) // moving in → conflict
     app.setChecked([mv])
     renderBar()
@@ -150,8 +150,8 @@ describe('BatchBar', () => {
     await userEvent.click(screen.getByRole('button', { name: '确认' }))
     await waitFor(() => {
       const s = app.store.getState()
-      expect(s.events.find((e) => e.id === mv)?.categoryId).toBe(f) // moved
-      expect(s.events.find((e) => e.id === keep)?.deleted).toBe(true) // superseded → trash
+      expect(s.events.find((e) => e.id === mv)?.categoryId).toBe(f) // moved event wins completely
+      expect(s.events.find((e) => e.id === occupant)).toBeUndefined() // occupant permanently removed (not to trash)
     })
   })
 

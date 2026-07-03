@@ -17,6 +17,7 @@ export interface RestorePlan {
   tags: Tag[]
   events: EventRecord[]
   conflicts: RestoreConflict[]
+  purge: Id[] // existing live events overwritten by a restore → permanently removed
 }
 
 // A LIVE category with `name` directly under `parentId` in the working tree.
@@ -97,6 +98,7 @@ export function planRestore(
 
   const events: EventRecord[] = []
   const conflicts: RestoreConflict[] = []
+  const purge: Id[] = []
   const superseded = new Set<Id>()
   const claimed = new Set<string>() // (folder,title) already restored in this batch
 
@@ -113,14 +115,16 @@ export function planRestore(
         continue
       }
       if (decision === 'skip') continue
+      // 'overwrite': the restored event wins completely; the existing live
+      // same-title event is permanently removed (not sent to the recycle bin).
       superseded.add(x.id)
-      events.push({ ...x, deleted: true, updatedAt: clock.now() })
+      purge.push(x.id)
     }
     const tagIds = e.tagIds.map((t) => resolveRestoreTag(t, allTagsById, tagWork, outTags, clock))
     events.push({ ...e, categoryId, tagIds, deleted: false, updatedAt: clock.now() })
     claimed.add(key)
   }
-  return { categories: outCats, tags: outTags, events, conflicts }
+  return { categories: outCats, tags: outTags, events, conflicts, purge }
 }
 
 export interface ImportSummary {

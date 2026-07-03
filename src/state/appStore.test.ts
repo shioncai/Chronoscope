@@ -320,7 +320,7 @@ describe('appStore', () => {
     const f = await app.createCategory({ name: '历史' })
     const del = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1969, 'year') })
     await app.deleteEvent(del)
-    await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1970, 'year') }) // new live same name
+    const live = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1970, 'year') }) // new live same name
     const { conflicts } = await app.restoreEvents([del])
     expect(conflicts).toHaveLength(1)
     expect(app.store.getState().events.find((e) => e.id === del)?.deleted).toBe(true) // still deleted
@@ -328,7 +328,9 @@ describe('appStore', () => {
     const { conflicts: c2 } = await app.restoreEvents([del], { [del]: 'overwrite' })
     expect(c2).toHaveLength(0)
     const s = app.store.getState()
-    expect(s.events.find((e) => e.id === del)?.deleted).toBe(false) // restored
+    expect(s.events.find((e) => e.id === del)?.deleted).toBe(false) // restored, wins completely
+    expect(s.events.find((e) => e.id === live)).toBeUndefined() // existing permanently removed (not to recycle bin)
+    expect(await db.events.get(live)).toBeUndefined() // gone from the repo too
     expect(s.events.filter((e) => !e.deleted && e.title === '登月' && e.categoryId === f)).toHaveLength(1)
   })
 

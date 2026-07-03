@@ -111,4 +111,21 @@ describe('FolderPanel', () => {
     await new Promise((res) => setTimeout(res, 0))
     expect(app.store.getState().categories.find((c) => c.id === dragged)?.parentId).toBeNull()
   })
+
+  it('rejects a tail-drop promotion when a live top-level folder already has that name', async () => {
+    await app.createCategory({ name: '历史' })                          // top-level 历史
+    const parent = await app.createCategory({ name: '科学' })            // some other parent
+    const child = await app.createCategory({ name: '历史', parentId: parent }) // child also named 历史
+    const { container } = r()
+    const rows = [...container.querySelectorAll('.folder-row')]
+    const childRow = rows.find(
+      (el) => el.textContent?.includes('历史') && (el as HTMLElement).style.paddingLeft === '24px',
+    )!
+    const tail = container.querySelector('.folder-tail')!
+    fireEvent.dragStart(childRow)
+    fireEvent.dragOver(tail)
+    fireEvent.drop(tail)
+    await new Promise((res) => setTimeout(res, 0))
+    expect(app.store.getState().categories.find((c) => c.id === child)?.parentId).toBe(parent)
+  })
 })

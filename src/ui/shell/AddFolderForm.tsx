@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAppStore, useAppState, flattenCategoryTree } from '../../state'
+import { useAppStore, useAppState, flattenCategoryTree, liveFolderAt } from '../../state'
 import type { Id } from '../../domain/model'
 import { CATEGORY_PRESETS, nextPresetColor, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
 import { ColorPicker } from './ColorPicker'
@@ -13,6 +13,7 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
   const defaultColor = (parent: Id | null) => colorOf(parent) ?? nextPresetColor(live.length)
 
   const [name, setName] = useState('')
+  const [error, setError] = useState('')
   const [parentId, setParentId] = useState<Id | ''>(defaultParentId ?? '')
   const [color, setColor] = useState<string>(defaultColor(defaultParentId))
   const [touchedColor, setTouchedColor] = useState(false)
@@ -29,7 +30,13 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
   const create = async () => {
     const n = name.trim()
     if (!n) return
-    const id = await app.createCategory({ name: n, parentId: parentId || null, color })
+    const parent = parentId || null
+    if (liveFolderAt(state.categories, n, parent)) {
+      setError('同一位置已存在同名文件夹')
+      return
+    }
+    setError('')
+    const id = await app.createCategory({ name: n, parentId: parent, color })
     onCreated(id)
   }
 
@@ -39,6 +46,7 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
       <label className="field"><span className="cap">名称</span>
         <input aria-label="名称" value={name} autoFocus onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') create() }} placeholder="例如：宋朝" /></label>
+      {error && <div className="errors">{error}</div>}
       <div className="parent-color">
         <label className="field"><span className="cap">父文件夹（层级）</span>
           <select aria-label="父文件夹" value={parentId} onChange={(e) => onParent(e.target.value as Id | '')}>

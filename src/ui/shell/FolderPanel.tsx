@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
-  descendantCategoryIds, computeDropTarget, type CategoryNode,
+  descendantCategoryIds, computeDropTarget, liveFolderAt, type CategoryNode,
 } from '../../state'
 import type { Id } from '../../domain/model'
 import { CATEGORY_PRESETS, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
@@ -39,14 +39,23 @@ export function FolderPanel() {
   const [tailOver, setTailOver] = useState(false)
   const [renaming, setRenaming] = useState<Id | null>(null)
   const [renameVal, setRenameVal] = useState('')
+  const [renameError, setRenameError] = useState('')
 
-  const startRename = (id: Id, name: string) => { setColorFor(null); setRenameVal(name); setRenaming(id) }
+  const startRename = (id: Id, name: string) => { setColorFor(null); setRenameVal(name); setRenaming(id); setRenameError('') }
   const commitRename = () => {
     if (renaming) {
       const n = renameVal.trim()
-      if (n) void app.updateCategory(renaming, { name: n })
+      if (n) {
+        const self = state.categories.find((c) => c.id === renaming)
+        if (self && liveFolderAt(state.categories, n, self.parentId, renaming)) {
+          setRenameError('同一位置已存在同名文件夹')
+          return
+        }
+        void app.updateCategory(renaming, { name: n })
+      }
     }
     setRenaming(null)
+    setRenameError('')
   }
 
   const rows = flattenVisible(tree, collapsed)
@@ -71,14 +80,23 @@ export function FolderPanel() {
   const onDrop = () => {
     if (dragId && drop) {
       const { parentId, beforeId } = computeDropTarget(state.categories, dragId, drop.id, drop.mode)
-      void app.moveCategory(dragId, parentId, beforeId)
+      const drag = state.categories.find((c) => c.id === dragId)
+      // 目标父级已有同名活跃文件夹 → 放弃移动
+      if (!(drag && liveFolderAt(state.categories, drag.name, parentId, dragId))) {
+        void app.moveCategory(dragId, parentId, beforeId)
+      }
     }
     setDragId(null); setDrop(null); setTailOver(false)
   }
 
   // drop onto the tail strip → promote to a top-level folder at the end
   const onTailDrop = () => {
-    if (dragId) void app.moveCategory(dragId, null, null)
+    if (dragId) {
+      const drag = state.categories.find((c) => c.id === dragId)
+      if (!(drag && liveFolderAt(state.categories, drag.name, null, dragId))) {
+        void app.moveCategory(dragId, null, null)
+      }
+    }
     setDragId(null); setDrop(null); setTailOver(false)
   }
 
@@ -102,62 +120,67 @@ export function FolderPanel() {
           if (drop?.id === row.id) cls.push(`drop-${drop.mode}`)
           if (dragId === row.id) cls.push('dragging')
           return (
-            <div key={row.id} className={cls.join(' ')} draggable
-              style={{ paddingLeft: 8 + row.depth * 16 }}
-              onDragStart={() => setDragId(row.id)}
-              onDragOver={(e) => {
-                e.preventDefault()
-                if (dragId === row.id) return
-                const r = e.currentTarget.getBoundingClientRect()
-                const y = e.clientY - r.top
-                const mode = y < r.height * 0.3 ? 'before' : y > r.height * 0.7 ? 'after' : 'into'
-                setDrop({ id: row.id, mode })
-                setTailOver(false)
-              }}
-              onDrop={onDrop}>
-              {row.hasChildren ? (
-                <button type="button" className={collapsed.has(row.id) ? 'twisty collapsed' : 'twisty'}
-                  aria-label={`${collapsed.has(row.id) ? '展开' : '折叠'}「${c.name}」`} aria-expanded={!collapsed.has(row.id)}
-                  onClick={() => toggle(row.id)}>
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,6 8,10 12,6" /></svg>
-                </button>
-              ) : <span className="twisty-spacer" />}
-              <button type="button" className="color-dot" style={{ background: c.color }}
-                aria-label={`设置「${c.name}」颜色`} onClick={() => setColorFor((cur) => cur === row.id ? null : row.id)} />
-              {renaming === row.id ? (
-                <input
-                  className="rename-input"
-                  aria-label={`重命名「${c.name}」`}
-                  value={renameVal}
-                  autoFocus
-                  draggable={false}
-                  onChange={(e) => setRenameVal(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  onDragStart={(e) => e.preventDefault()}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitRename()
-                    else if (e.key === 'Escape') setRenaming(null)
-                  }}
-                  onBlur={commitRename}
-                />
-              ) : (
-                <button type="button" className="label" onClick={() => pick(row.id)}
-                  onDoubleClick={() => startRename(row.id, c.name)} title={c.name}>{c.name}</button>
+            <Fragment key={row.id}>
+              <div className={cls.join(' ')} draggable
+                style={{ paddingLeft: 8 + row.depth * 16 }}
+                onDragStart={() => setDragId(row.id)}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  if (dragId === row.id) return
+                  const r = e.currentTarget.getBoundingClientRect()
+                  const y = e.clientY - r.top
+                  const mode = y < r.height * 0.3 ? 'before' : y > r.height * 0.7 ? 'after' : 'into'
+                  setDrop({ id: row.id, mode })
+                  setTailOver(false)
+                }}
+                onDrop={onDrop}>
+                {row.hasChildren ? (
+                  <button type="button" className={collapsed.has(row.id) ? 'twisty collapsed' : 'twisty'}
+                    aria-label={`${collapsed.has(row.id) ? '展开' : '折叠'}「${c.name}」`} aria-expanded={!collapsed.has(row.id)}
+                    onClick={() => toggle(row.id)}>
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,6 8,10 12,6" /></svg>
+                  </button>
+                ) : <span className="twisty-spacer" />}
+                <button type="button" className="color-dot" style={{ background: c.color }}
+                  aria-label={`设置「${c.name}」颜色`} onClick={() => setColorFor((cur) => cur === row.id ? null : row.id)} />
+                {renaming === row.id ? (
+                  <input
+                    className="rename-input"
+                    aria-label={`重命名「${c.name}」`}
+                    value={renameVal}
+                    autoFocus
+                    draggable={false}
+                    onChange={(e) => setRenameVal(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onDragStart={(e) => e.preventDefault()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitRename()
+                      else if (e.key === 'Escape') { setRenaming(null); setRenameError('') }
+                    }}
+                    onBlur={commitRename}
+                  />
+                ) : (
+                  <button type="button" className="label" onClick={() => pick(row.id)}
+                    onDoubleClick={() => startRename(row.id, c.name)} title={c.name}>{c.name}</button>
+                )}
+                <span className="count">{counts.get(row.id) ?? 0}</span>
+                <span className="row-actions">
+                  <button type="button" className="rename" aria-label={`重命名文件夹「${c.name}」`}
+                    onClick={() => startRename(row.id, c.name)}>✎</button>
+                  <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={() => del(row.id, c.name)}>×</button>
+                </span>
+                {colorFor === row.id && (
+                  <div className="dot-picker">
+                    <ColorPicker value={c.color} presets={CATEGORY_PRESETS} custom={custom}
+                      onPick={(hex) => { void app.updateCategory(row.id, { color: hex }); setColorFor(null) }}
+                      onAddCustom={(hex) => { const n = addToPalette(custom, hex); setCustom(n); persistCustomColors(window.localStorage, n) }} />
+                  </div>
+                )}
+              </div>
+              {renaming === row.id && renameError && (
+                <div className="errors rename-err" style={{ marginLeft: 8 + row.depth * 16 }}>{renameError}</div>
               )}
-              <span className="count">{counts.get(row.id) ?? 0}</span>
-              <span className="row-actions">
-                <button type="button" className="rename" aria-label={`重命名文件夹「${c.name}」`}
-                  onClick={() => startRename(row.id, c.name)}>✎</button>
-                <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={() => del(row.id, c.name)}>×</button>
-              </span>
-              {colorFor === row.id && (
-                <div className="dot-picker">
-                  <ColorPicker value={c.color} presets={CATEGORY_PRESETS} custom={custom}
-                    onPick={(hex) => { void app.updateCategory(row.id, { color: hex }); setColorFor(null) }}
-                    onAddCustom={(hex) => { const n = addToPalette(custom, hex); setCustom(n); persistCustomColors(window.localStorage, n) }} />
-                </div>
-              )}
-            </div>
+            </Fragment>
           )
         })}
         <div

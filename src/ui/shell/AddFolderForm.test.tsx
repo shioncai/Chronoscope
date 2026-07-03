@@ -35,4 +35,15 @@ describe('AddFolderForm', () => {
     const child = app.store.getState().categories.find((c) => c.name === '近代史')!
     expect(child.color).toBe('#5b8def')
   })
+
+  it('rejects creating a folder whose name duplicates a live sibling', async () => {
+    await app.createCategory({ name: '历史', parentId: null })
+    const onCreated = vi.fn()
+    render(<AppStoreProvider value={app}><AddFolderForm defaultParentId={null} onCreated={onCreated} onCancel={() => {}} /></AppStoreProvider>)
+    await userEvent.type(screen.getByLabelText('名称'), '历史')
+    await userEvent.click(screen.getByRole('button', { name: '创建' }))
+    expect(screen.getByText(/已存在同名文件夹/)).toBeTruthy()
+    expect(app.store.getState().categories.filter((c) => !c.deleted)).toHaveLength(1)
+    expect(onCreated).not.toHaveBeenCalled()
+  })
 })

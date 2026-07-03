@@ -82,4 +82,33 @@ describe('FolderPanel', () => {
     await userEvent.type(input, '近代史{Enter}')
     expect(app.store.getState().categories.find((c) => c.id === id)?.name).toBe('近代史')
   })
+
+  it('rejects renaming a folder onto a live sibling name', async () => {
+    await app.createCategory({ name: '历史', parentId: null })
+    const b = await app.createCategory({ name: '科学', parentId: null })
+    r()
+    await userEvent.click(screen.getByLabelText('重命名文件夹「科学」'))
+    const input = screen.getByLabelText('重命名「科学」')
+    await userEvent.clear(input)
+    await userEvent.type(input, '历史{Enter}')
+    expect(screen.getByText(/已存在同名文件夹/)).toBeTruthy()
+    await waitFor(() => expect(app.store.getState().categories.find((c) => c.id === b)?.name).toBe('科学'))
+  })
+
+  it('rejects a drag-move onto a parent that already has a live child with that name', async () => {
+    const parent = await app.createCategory({ name: '历史' })
+    await app.createCategory({ name: '近代史', parentId: parent })
+    const dragged = await app.createCategory({ name: '近代史' })
+    const { container } = r()
+    const rows = [...container.querySelectorAll('.folder-row')]
+    const dragRow = rows.find(
+      (el) => el.textContent?.includes('近代史') && (el as HTMLElement).style.paddingLeft === '8px',
+    )!
+    const parentRow = rows.find((el) => el.textContent?.includes('历史'))!
+    fireEvent.dragStart(dragRow)
+    fireEvent.dragOver(parentRow)
+    fireEvent.drop(parentRow)
+    await new Promise((res) => setTimeout(res, 0))
+    expect(app.store.getState().categories.find((c) => c.id === dragged)?.parentId).toBeNull()
+  })
 })

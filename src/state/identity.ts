@@ -39,9 +39,11 @@ function sameTime(a: EventRecord, b: EventRecord): boolean {
   )
 }
 function sameSet(a: Id[], b: Id[]): boolean {
-  if (a.length !== b.length) return false
-  const s = new Set(a)
-  return b.every((x) => s.has(x))
+  const sa = new Set(a)
+  const sb = new Set(b)
+  if (sa.size !== sb.size) return false
+  for (const x of sa) if (!sb.has(x)) return false
+  return true
 }
 
 // Which display fields differ (title + folder are equal for a real conflict).

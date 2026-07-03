@@ -48,6 +48,11 @@ describe('eventDiffFields', () => {
     const b = ev('b', { title: 'T', start: fromYear(1969, 'year'), tagIds: ['t2', 't1'] }) // set-equal
     expect(eventDiffFields(a, b)).toEqual([])
   })
+  it('detects tag/link changes even when arrays are the same length (true set equality)', () => {
+    const a = ev('a', { title: 'T', tagIds: ['t1', 't2'], links: ['e1', 'e2'] })
+    const b = ev('b', { title: 'T', tagIds: ['t1', 't1'], links: ['e1', 'e1'] })
+    expect(eventDiffFields(a, b).sort()).toEqual(['links', 'tags'])
+  })
 })
 
 describe('moveConflicts', () => {

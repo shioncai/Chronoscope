@@ -137,6 +137,14 @@ describe('appStore', () => {
     expect(app.store.getState().timelineView).toEqual({ min: 0, max: 150 })
   })
 
+  it('setTimelineScale stores a value and supports functional updates', () => {
+    expect(app.store.getState().timelineScale).toBe(1)
+    app.setTimelineScale(1.5)
+    expect(app.store.getState().timelineScale).toBe(1.5)
+    app.setTimelineScale((prev) => prev + 0.25)
+    expect(app.store.getState().timelineScale).toBe(1.75)
+  })
+
   it('setTimelineOverview supports a functional update starting from null', () => {
     expect(app.store.getState().timelineOverview).toBeNull()
     app.setTimelineOverview((prev) => (prev ? prev : { min: -10, max: 10 }))

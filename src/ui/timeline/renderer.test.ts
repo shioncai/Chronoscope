@@ -15,6 +15,8 @@ function fakeCtx() {
   const styles: string[] = []
   const fills: string[] = []
   const args: Record<string, unknown[][]> = {}
+  const textDraws: { text: string; font: string }[] = []
+  let currentFont = ''
   const method = (name: string) => (...a: unknown[]) => {
     calls.push(`${name}(${a.length})`)
     ;(args[name] ??= []).push(a)
@@ -23,6 +25,7 @@ function fakeCtx() {
     calls,
     styles,
     args,
+    textDraws,
     clearRect: method('clearRect'),
     beginPath: method('beginPath'),
     moveTo: method('moveTo'),
@@ -32,7 +35,11 @@ function fakeCtx() {
     strokeRect: method('strokeRect'),
     arc: method('arc'),
     fill: method('fill'),
-    fillText: method('fillText'),
+    fillText: (...a: unknown[]) => {
+      calls.push(`fillText(${a.length})`)
+      ;(args.fillText ??= []).push(a)
+      textDraws.push({ text: String(a[0]), font: currentFont })
+    },
     save: method('save'),
     restore: method('restore'),
     clip: method('clip'),
@@ -47,7 +54,7 @@ function fakeCtx() {
     },
     set fillStyle(v: string) { fills.push(v) },
     set strokeStyle(v: string) { styles.push(v) },
-    set font(_v: string) {},
+    set font(v: string) { currentFont = v },
     set lineWidth(_v: number) {},
     set globalAlpha(_v: number) {},
     set textAlign(_v: string) {},
@@ -57,6 +64,7 @@ function fakeCtx() {
     styles: string[]
     fills: string[]
     args: Record<string, unknown[][]>
+    textDraws: { text: string; font: string }[]
   }
 }
 
@@ -195,6 +203,15 @@ describe('renderer', () => {
     expect(ctx.calls).toContain('save(0)')
     expect(ctx.calls).toContain('clip(0)')
     expect(ctx.calls).toContain('restore(0)')
+  })
+  it('keeps the overview range labels at a fixed size regardless of magnification', () => {
+    const ctx = fakeCtx()
+    drawScene(ctx, scene, COLORS, computeLayout(400, 2.5)) // scaled content font = 27.5px
+    const start = ctx.textDraws.find((d) => d.text === scene.overview.range.start)
+    const end = ctx.textDraws.find((d) => d.text === scene.overview.range.end)
+    expect(start?.font).toContain('11px') // fixed, not the scaled content font
+    expect(start?.font).not.toContain('27.5')
+    expect(end?.font).not.toContain('27.5')
   })
   it('draws a scroll indicator only when content overflows the detail band', () => {
     const overflow: TimelineScene = { ...scene, detail: { ...scene.detail, rowCount: 100 } }

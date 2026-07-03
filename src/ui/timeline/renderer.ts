@@ -24,6 +24,10 @@ export interface TimelineLayout {
 }
 
 const OVERVIEW_HEIGHT = 48
+// The overview band is fixed-height navigator chrome, so its end labels keep a
+// fixed size instead of growing with the content magnification (which would push
+// the text above the band's top edge at high zoom).
+const OVERVIEW_LABEL_PX = 11
 
 export function computeLayout(height: number, scale = 1): TimelineLayout {
   return {
@@ -191,7 +195,10 @@ export function drawScene(
   ctx.strokeStyle = colors.now
   ctx.strokeRect(x0, layout.overviewTop, Math.max(2, x1 - x0), layout.overviewHeight)
 
-  // current overview time range — labelled at both ends of the band, on top
+  // current overview time range — labelled at both ends of the band, on top.
+  // Fixed size (see OVERVIEW_LABEL_PX) so the text stays clear of the band's top
+  // edge at any magnification.
+  ctx.font = `${OVERVIEW_LABEL_PX}px ui-monospace, monospace`
   ctx.fillStyle = colors.muted
   const ry = layout.overviewTop + 12
   ctx.fillText(scene.overview.range.start, 4, ry)

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { AppShell } from './AppShell'
 import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
+import { fromYear } from '../../domain/time'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 
 function makeApp(): AppStore {
@@ -78,5 +79,26 @@ describe('AppShell', () => {
     await userEvent.click(toggle)
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(container.querySelector('.sidebar')?.classList.contains('open')).toBe(true)
+  })
+
+  it('Escape on the restore-conflict dialog closes only that dialog, not the editor', async () => {
+    // Nested focus traps: the editor's modal (AppShell) wraps EventEditor, and
+    // EventConflictDialog opens its own trap inside it. Escape on the inner
+    // dialog must not escalate to the outer trap and tear down the editor.
+    const f = await app.createCategory({ name: '历史' })
+    const del = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1969, 'year') })
+    await app.deleteEvent(del)
+    await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1970, 'year') }) // live same-name
+    app.setFilter({ trash: true }) // recycle-bin view surfaces the deleted event
+    render(<AppShell app={app} />)
+    await userEvent.click(screen.getByText('登月')) // open the deleted event's editor
+    await userEvent.click(screen.getByRole('button', { name: '恢复' }))
+    expect(await screen.findByText('恢复冲突')).toBeTruthy()
+    await userEvent.keyboard('{Escape}')
+    // the conflict dialog dismisses…
+    expect(screen.queryByText('恢复冲突')).toBeNull()
+    // …but the editor stays open and the event is still deleted (not restored).
+    expect(screen.getByRole('dialog', { name: '编辑事件' })).toBeTruthy()
+    expect(app.store.getState().events.find((e) => e.id === del)?.deleted).toBe(true)
   })
 })

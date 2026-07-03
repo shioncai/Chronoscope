@@ -21,11 +21,16 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onEscape: (
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // stop the event from bubbling to an ancestor trap (e.g. a dialog
+        // nested inside another modal): only the innermost trap should close.
         e.preventDefault()
+        e.stopPropagation()
         escRef.current()
         return
       }
       if (e.key !== 'Tab') return
+      // likewise keep Tab handling scoped to the innermost trap.
+      e.stopPropagation()
       const focusables = items()
       if (focusables.length === 0) {
         e.preventDefault()

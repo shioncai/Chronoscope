@@ -2,8 +2,21 @@ import { describe, it, expect } from 'vitest'
 import { buildScene, eventInstant, aggregateMarkers } from './scene'
 import { ev, y } from '../../test/fixtures'
 import { withFuzz } from '../../domain/time'
+import { labelWidth } from './labels'
 
 const base = { view: { min: 2000, max: 2100 }, overview: { min: 2000, max: 2100 }, nowYear: 2026, width: 1000, selectedId: null }
+
+// helper: reconstruct a glyph's occupied [left,right] from core + label
+function occOf(
+  g: { xStart: number; xEnd: number; label: { text: string; side: string; x: number } },
+  fontPx = 11,
+): [number, number] {
+  const coreLeft = Math.min(g.xStart, g.xEnd)
+  const coreRight = Math.max(g.xStart, g.xEnd)
+  if (g.label.side === 'none' || g.label.text === '') return [coreLeft, coreRight]
+  const w = labelWidth(g.label.text, fontPx)
+  return g.label.side === 'left' ? [g.label.x - w, coreRight] : [coreLeft, g.label.x + w]
+}
 
 describe('eventInstant', () => {
   it('prefers start, falls back to end, else null', () => {
@@ -120,6 +133,77 @@ describe('buildScene', () => {
   it('leaves an uncategorized glyph color undefined', () => {
     const scene = buildScene({ ...base, events: [ev({ id: 'p', start: y(2050) })] })
     expect(scene.detail.glyphs[0].color).toBeUndefined()
+  })
+
+  it('stacks two point events with wide labels onto separate rows (real width, not fixed 80px)', () => {
+    // two points 40px apart on a 1000px axis; each label is far wider than 40px,
+    // so honest reservation must push them to different rows.
+    const scene = buildScene({
+      ...base,
+      events: [
+        ev({ id: 'a', start: y(2050), title: '前寒武纪 (Precambrian)' }),
+        ev({ id: 'b', start: y(2054), title: '元古宙 (Proterozoic)' }),
+      ],
+    })
+    const rows = scene.detail.glyphs.map((g) => g.row)
+    expect(new Set(rows).size).toBe(2)
+  })
+
+  it('keeps a start-edge long label inside the viewport', () => {
+    const scene = buildScene({
+      ...base,
+      width: 300,
+      events: [ev({ id: 'e', start: y(2001), title: '一个非常长的开头事件标题 (A Very Long Leading Title)' })],
+    })
+    const [l, r] = occOf(scene.detail.glyphs[0])
+    expect(l).toBeGreaterThanOrEqual(0)
+    expect(r).toBeLessThanOrEqual(300)
+  })
+
+  it('keeps an end-edge long label inside the viewport', () => {
+    const scene = buildScene({
+      ...base,
+      width: 300,
+      events: [ev({ id: 'e', start: y(2099), title: '一个非常长的结尾事件标题 (A Very Long Trailing Title)' })],
+    })
+    const [l, r] = occOf(scene.detail.glyphs[0])
+    expect(l).toBeGreaterThanOrEqual(0)
+    expect(r).toBeLessThanOrEqual(300)
+  })
+
+  it('never overlaps same-row labels across time-axis zoom levels', () => {
+    const events = [
+      ev({ id: 'a', start: y(2048), title: '前寒武纪 (Precambrian)' }),
+      ev({ id: 'b', start: y(2050), title: '元古宙 (Proterozoic)' }),
+      ev({ id: 'c', start: y(2052), title: '太古宙 (Archean)' }),
+      ev({ id: 'd', start: y(2054), title: '冥古宙 (Hadean)' }),
+    ]
+    for (const span of [100, 40, 10, 2]) {
+      const view = { min: 2051 - span / 2, max: 2051 + span / 2 }
+      const scene = buildScene({ ...base, view, events })
+      const byRow = new Map<number, [number, number][]>()
+      for (const g of scene.detail.glyphs) {
+        const arr = byRow.get(g.row) ?? []
+        arr.push(occOf(g))
+        byRow.set(g.row, arr)
+      }
+      for (const arr of byRow.values()) {
+        arr.sort((p, q) => p[0] - q[0])
+        for (let i = 1; i < arr.length; i++) {
+          expect(arr[i][0]).toBeGreaterThanOrEqual(arr[i - 1][1] - 1e-6) // no overlap within a row
+        }
+      }
+    }
+  })
+
+  it('reserves more horizontal room (more rows) as display scale grows', () => {
+    const events = [
+      ev({ id: 'a', start: y(2050), title: '前寒武纪 (Precambrian)' }),
+      ev({ id: 'b', start: y(2058), title: '元古宙 (Proterozoic)' }),
+    ]
+    const small = buildScene({ ...base, scale: 1, events })
+    const big = buildScene({ ...base, scale: 2.5, events })
+    expect(big.detail.rowCount).toBeGreaterThanOrEqual(small.detail.rowCount)
   })
 })
 

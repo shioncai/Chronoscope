@@ -99,11 +99,19 @@
 .view-area { background: var(--bg); position: relative; }
 
 /* ---------- floating new-event button ---------- */
-.fab{position:absolute;right:28px;bottom:60px;width:56px;height:56px;border:0;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--fab-shadow);transition:transform .24s cubic-bezier(.2,.7,.3,1),box-shadow .24s ease,filter .24s ease;z-index:8;}
+.fab{position:absolute;right:22px;bottom:60px;width:48px;height:48px;border:0;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:23px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--fab-shadow);transition:transform .24s cubic-bezier(.2,.7,.3,1),box-shadow .24s ease,filter .24s ease;z-index:8;}
 .fab span{display:block;transition:transform .34s cubic-bezier(.2,.7,.3,1);}
 .fab:hover{transform:translateY(-2px) scale(1.04);filter:brightness(1.06);}
 .fab:hover span{transform:rotate(90deg);}
 .fab:active{transform:scale(.97);transition-duration:.08s;}
+
+/* ---------- timeline display-zoom stepper (sits above the FAB) ---------- */
+/* center X = 28 + 36/2 = 46px from the right edge — matches the FAB's center
+   (22 + 48/2 = 46), so the stepper and FAB stack on one vertical axis */
+.tl-zoom{position:absolute;right:28px;bottom:116px;z-index:8;display:flex;flex-direction:column;align-items:stretch;width:36px;border-radius:18px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--fab-shadow);overflow:hidden;}
+.tl-zoom button{border:0;background:transparent;color:var(--text);font-size:16px;line-height:1;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.tl-zoom button:hover{background:var(--accent-soft);}
+.tl-zoom .tl-zoom-readout{font-size:10px;color:var(--muted);border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);cursor:pointer;}
 
 /* ---------- buttons & form controls ---------- */
 button {

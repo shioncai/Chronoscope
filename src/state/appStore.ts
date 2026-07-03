@@ -58,6 +58,7 @@ export interface AppStore {
   setTheme(theme: Theme): void
   setTimelineView(updater: LinearView | ((prev: LinearView | null) => LinearView)): void
   setTimelineOverview(updater: LinearView | ((prev: LinearView | null) => LinearView)): void
+  setTimelineScale(updater: number | ((prev: number) => number)): void
 }
 
 // replace the record with matching id, or append if new
@@ -403,6 +404,12 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       store.setState((s) => ({
         ...s,
         timelineOverview: typeof updater === 'function' ? updater(s.timelineOverview) : updater,
+      }))
+    },
+    setTimelineScale(updater) {
+      store.setState((s) => ({
+        ...s,
+        timelineScale: typeof updater === 'function' ? updater(s.timelineScale) : updater,
       }))
     },
   }

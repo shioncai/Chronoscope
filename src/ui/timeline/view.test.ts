@@ -8,8 +8,20 @@ import {
   viewFromLens,
   viewFromLensCenter,
   panViewByLensDrag,
+  clampScroll,
   MIN_RANGE_YEARS,
 } from './view'
+
+describe('clampScroll', () => {
+  it('clamps to [0, contentHeight - viewHeight]', () => {
+    expect(clampScroll(-10, 500, 300)).toBe(0)
+    expect(clampScroll(999, 500, 300)).toBe(200)
+    expect(clampScroll(120, 500, 300)).toBe(120)
+  })
+  it('returns 0 when content fits the view', () => {
+    expect(clampScroll(50, 200, 300)).toBe(0)
+  })
+})
 
 describe('timeline view math', () => {
   it('initialView fits instants with padding', () => {

@@ -66,4 +66,32 @@ describe('TimelineView', () => {
     const s = app.store.getState()
     expect(s.timelineView !== null || s.timelineOverview !== null).toBe(true)
   })
+  it('the + button raises the store scale by one step', () => {
+    renderTimeline()
+    expect(app.store.getState().timelineScale).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    expect(app.store.getState().timelineScale).toBeCloseTo(1.25, 6)
+  })
+  it('the − button never drops below 1×', () => {
+    renderTimeline()
+    fireEvent.click(screen.getByRole('button', { name: '缩小' }))
+    expect(app.store.getState().timelineScale).toBe(1)
+  })
+  it('clicking the readout resets scale to 1×', () => {
+    app.setTimelineScale(2.25)
+    renderTimeline()
+    fireEvent.click(screen.getByRole('button', { name: '重置缩放' }))
+    expect(app.store.getState().timelineScale).toBe(1)
+  })
+  it('does not throw on a vertical drag gesture', () => {
+    const { container } = renderTimeline()
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    canvas.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 1000, bottom: 400, width: 1000, height: 400, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
+    expect(() => {
+      fireEvent.pointerDown(canvas, { pointerId: 1, clientX: 500, clientY: 100 })
+      fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 505, clientY: 160 })
+      fireEvent.pointerUp(canvas, { pointerId: 1, clientX: 505, clientY: 160 })
+    }).not.toThrow()
+  })
 })

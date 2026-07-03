@@ -10,6 +10,7 @@ import {
 } from '../../domain/time'
 import { packRows } from './packing'
 import { lensFromView } from './view'
+import { placeLabel, BASE_FONT_PX } from './labels'
 
 export interface SceneTick {
   x: number
@@ -25,7 +26,7 @@ export interface SceneGlyph {
   row: number
   selected: boolean
   color?: string
-  title: string
+  label: { text: string; side: 'left' | 'right' | 'none'; x: number }
 }
 
 export interface SceneMarker {
@@ -57,9 +58,11 @@ export interface BuildSceneInput {
   // live category id → color; a glyph's color is its event's category color
   // (undefined when the event is uncategorized or the category is missing).
   categoryColors?: Map<Id, string>
+  // display magnification (1 = normal). Widens labels so packing reserves the
+  // scaled width; the renderer scales the matching pixel sizes.
+  scale?: number
 }
 
-const LABEL_GAP = 80
 const MARKER_BUCKET_PX = 6
 const MIN_LENS_PX = 2 // keep the lens visible even when it degenerates at a band edge
 
@@ -97,6 +100,8 @@ function rangeLabel(year: number, nowYear: number): string {
 export function buildScene(input: BuildSceneInput): TimelineScene {
   const { events, view, overview, nowYear, width, selectedId } = input
   const categoryColors = input.categoryColors ?? new Map<Id, string>()
+  const scale = input.scale ?? 1
+  const fontSizePx = BASE_FONT_PX * scale
   const xOf = (year: number) => projectLinear(year, view) * width
 
   // Thin ticks to a minimum pixel gap so their (left-aligned) labels never
@@ -145,6 +150,7 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
     const right = Math.max(xEnd, whi)
     if (right < 0 || left > width) continue
     const color = e.categoryId != null ? categoryColors.get(e.categoryId) : undefined
+    const placed = placeLabel({ coreLeft: left, coreRight: right, text: e.title, fontSizePx, canvasWidth: width })
     raws.push({
       eventId: e.id,
       kind,
@@ -153,9 +159,9 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
       whiskers,
       selected: e.id === selectedId,
       color,
-      title: e.title,
-      left,
-      right: right + LABEL_GAP,
+      label: { text: placed.text, side: placed.side, x: placed.x },
+      left: placed.occLeft,
+      right: placed.occRight,
     })
   }
 
@@ -169,7 +175,7 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
     row: p.row,
     selected: p.selected,
     color: p.color,
-    title: p.title,
+    label: p.label,
   }))
   const rowCount = glyphs.reduce((m, g) => Math.max(m, g.row + 1), 0)
 

@@ -87,6 +87,15 @@ export function drawScene(
   // category color) fall back to muted gray — the same neutral as the 未分类
   // folder's dot. The side/truncation of each label is already decided in the
   // scene, so it never crosses either edge; skip a dropped label.
+  //
+  // Clip glyph drawing to the detail band so scrolled-out rows never paint over
+  // the fixed tick strip or the overview band.
+  const glyphBandTop = layout.tickLabelH
+  const glyphBandBottom = layout.overviewTop - 4
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(0, glyphBandTop, scene.width, glyphBandBottom - glyphBandTop)
+  ctx.clip()
   for (const g of scene.detail.glyphs) {
     const y = layout.glyphTop + g.row * layout.rowHeight - scrollY
     const color = g.selected ? colors.now : (g.color ?? colors.muted)
@@ -132,6 +141,21 @@ export function drawScene(
       ctx.fillText(g.label.text, g.label.x, y + bh)
       ctx.textAlign = 'left'
     }
+  }
+  ctx.restore()
+
+  // scroll indicator: a faint thumb on the right when the rows overflow the band
+  const visibleH = layout.overviewTop - layout.glyphTop
+  const contentH = scene.detail.rowCount * layout.rowHeight
+  if (contentH > visibleH) {
+    const trackH = visibleH
+    const thumbH = Math.max(20, (trackH * visibleH) / contentH)
+    const maxScroll = contentH - visibleH
+    const thumbY = layout.glyphTop + (trackH - thumbH) * (maxScroll > 0 ? Math.min(1, scrollY / maxScroll) : 0)
+    ctx.globalAlpha = 0.35
+    ctx.fillStyle = colors.muted
+    ctx.fillRect(scene.width - 4, thumbY, 3, thumbH)
+    ctx.globalAlpha = 1
   }
 
   // overview band — surface, then a faint deep-time→now temperature wash

@@ -182,4 +182,27 @@ describe('renderer', () => {
     expect(ctx.fills).toContain('#abcdef') // categorized glyph uses its color
     expect(ctx.fills).toContain(COLORS.muted) // uncategorized glyph falls back to muted gray
   })
+  it('offsets glyph drawing by the scroll position', () => {
+    const a = fakeCtx(); drawScene(a, scene, COLORS, computeLayout(400), 0)
+    const b = fakeCtx(); drawScene(b, scene, COLORS, computeLayout(400), 40)
+    // the point glyph (arc) y-center shifts up by exactly the scroll delta
+    const arcY = (c: ReturnType<typeof fakeCtx>) => (c.args.arc ?? [])[0][1] as number
+    expect(arcY(a) - arcY(b)).toBeCloseTo(40, 6)
+  })
+  it('clips glyph drawing to the detail band', () => {
+    const ctx = fakeCtx()
+    drawScene(ctx, scene, COLORS, computeLayout(400))
+    expect(ctx.calls).toContain('save(0)')
+    expect(ctx.calls).toContain('clip(0)')
+    expect(ctx.calls).toContain('restore(0)')
+  })
+  it('draws a scroll indicator only when content overflows the detail band', () => {
+    const overflow: TimelineScene = { ...scene, detail: { ...scene.detail, rowCount: 100 } }
+    const noOverflow: TimelineScene = { ...scene, detail: { ...scene.detail, rowCount: 2 } }
+    const fillRects = (s: TimelineScene) => {
+      const c = fakeCtx(); drawScene(c, s, COLORS, computeLayout(400))
+      return c.calls.filter((x) => x.startsWith('fillRect(')).length
+    }
+    expect(fillRects(overflow)).toBe(fillRects(noOverflow) + 1) // one extra fillRect = the thumb
+  })
 })

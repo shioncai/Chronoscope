@@ -154,4 +154,25 @@ describe('BatchBar', () => {
       expect(s.events.find((e) => e.id === keep)?.deleted).toBe(true) // superseded → trash
     })
   })
+
+  it('moving two same-name events into one folder keeps only the first (auto-skips the dup)', async () => {
+    const target = await app.createCategory({ name: '目标' })
+    const a = await app.createCategory({ name: 'A' })
+    const b = await app.createCategory({ name: 'B' })
+    const e1 = await app.createEvent({ title: '登月', categoryId: a, start: fromYear(1969, 'year') })
+    const e2 = await app.createEvent({ title: '登月', categoryId: b, start: fromYear(1970, 'year') })
+    app.setChecked([e1, e2])
+    renderBar()
+    await userEvent.click(screen.getByRole('button', { name: '移动到文件夹 ▾' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '「目标」' }))
+    await waitFor(() => {
+      const s = app.store.getState()
+      const inTarget = s.events.filter((e) => !e.deleted && e.categoryId === target)
+      expect(inTarget).toHaveLength(1) // exactly one lands
+      expect(inTarget[0].id).toBe(e1) // keep-first
+      const other = s.events.find((e) => e.id === e2)
+      expect(other?.categoryId).toBe(b) // the dup stayed put
+      expect(other?.deleted).toBe(false) // and was not deleted
+    })
+  })
 })

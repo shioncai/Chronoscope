@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { liveEventAt, liveFolderAt, eventDiffFields, moveConflicts } from './identity'
+import { liveEventAt, liveFolderAt, eventDiffFields, moveConflicts, dedupeTargetMovers } from './identity'
 import type { EventRecord, Category } from '../domain/model'
 import { fromYear } from '../domain/time'
 
@@ -68,5 +68,33 @@ describe('moveConflicts', () => {
   it('ignores a no-op move (already in target)', () => {
     const events = [ev('m', { title: 'T', categoryId: 'f1' })]
     expect(moveConflicts(events, ['m'], 'f1')).toEqual([])
+  })
+})
+
+describe('dedupeTargetMovers', () => {
+  it('keeps the first of two same-title movers into an empty target, skips the rest', () => {
+    const events = [
+      ev('m', { title: '登月', categoryId: 'a' }),
+      ev('n', { title: '登月', categoryId: 'b' }),
+    ]
+    expect(dedupeTargetMovers(events, ['m', 'n'], 'f1')).toEqual(['m'])
+  })
+  it('skips a mover colliding with a staying occupant already in the target', () => {
+    const events = [
+      ev('x', { title: '登月', categoryId: 'f1' }), // stays in target, not moving
+      ev('m', { title: '登月', categoryId: 'a' }),  // would duplicate → skip
+    ]
+    expect(dedupeTargetMovers(events, ['m'], 'f1')).toEqual([])
+  })
+  it('includes a mover colliding with a SUPERSEDED occupant (its title is freed)', () => {
+    const events = [
+      ev('x', { title: '登月', categoryId: 'f1' }), // being overwritten
+      ev('m', { title: '登月', categoryId: 'a' }),  // moves in as its replacement
+    ]
+    expect(dedupeTargetMovers(events, ['m'], 'f1', new Set(['x']))).toEqual(['m'])
+  })
+  it('drops a no-op mover already in the target', () => {
+    const events = [ev('m', { title: 'T', categoryId: 'f1' })]
+    expect(dedupeTargetMovers(events, ['m'], 'f1')).toEqual([])
   })
 })

@@ -62,7 +62,8 @@ export interface MoveConflict {
 }
 
 // Selected events that would collide with a live same-title event already in
-// the target folder. (Intra-batch same-title dups are handled at apply time.)
+// the target folder. (Intra-batch same-title dups are handled at apply time
+// by dedupeTargetMovers.)
 export function moveConflicts(events: EventRecord[], ids: Id[], targetId: Id | null): MoveConflict[] {
   const idSet = new Set(ids)
   const out: MoveConflict[] = []
@@ -73,4 +74,34 @@ export function moveConflicts(events: EventRecord[], ids: Id[], targetId: Id | n
     if (existing && !idSet.has(existing.id)) out.push({ movingId: id, existingId: existing.id })
   }
   return out
+}
+
+// The subset of moveIds that can move into targetId without duplicating a
+// title already living there (or another accepted mover). Keep the first for
+// each title, skip the rest. `supersededIds` = occupants being sent to trash
+// (an overwrite), which free up their title. This is the last line of defense
+// for the (title, folder) uniqueness invariant: moveConflicts only flags a
+// mover against an occupant NOT in the selection, so two same-title movers into
+// an empty folder — or a mover colliding with a same-title occupant that is
+// itself selected — slip past it and must be auto-skipped here.
+export function dedupeTargetMovers(
+  events: EventRecord[],
+  moveIds: Id[],
+  targetId: Id | null,
+  supersededIds: Set<Id> = new Set(),
+): Id[] {
+  const claimed = new Set<string>()
+  for (const e of events) {
+    if (!e.deleted && e.categoryId === targetId && !supersededIds.has(e.id)) claimed.add(eventKey(e.title))
+  }
+  const result: Id[] = []
+  for (const id of moveIds) {
+    const e = events.find((x) => x.id === id)
+    if (!e || e.deleted || e.categoryId === targetId) continue // missing / already there
+    const key = eventKey(e.title)
+    if (claimed.has(key)) continue // would duplicate a claimed title → auto-skip
+    claimed.add(key)
+    result.push(id)
+  }
+  return result
 }

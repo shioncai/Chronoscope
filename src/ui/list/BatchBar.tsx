@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { useAppStore, useAppState, flattenCategoryTree, moveConflicts, type RestoreConflict } from '../../state'
+import {
+  useAppStore,
+  useAppState,
+  flattenCategoryTree,
+  moveConflicts,
+  dedupeTargetMovers,
+  type RestoreConflict,
+} from '../../state'
 import { MoveMenu } from '../shell/MoveMenu'
 import { TagMenu } from './TagMenu'
 import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
@@ -94,7 +101,9 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
     setOpen(null)
     const conflicts = moveConflicts(state.events, ids, parentId)
     if (conflicts.length === 0) {
-      void app.setEventsCategory(ids, parentId)
+      // Even with no cross-selection conflict, two same-title movers could still
+      // collide with each other in the target — dedupe (keep-first) before applying.
+      void app.setEventsCategory(dedupeTargetMovers(state.events, ids, parentId), parentId)
       return
     }
     setMoveCtx({
@@ -113,7 +122,13 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
     // move everything selected except events the user chose to skip
     const toMove = ids.filter((id) => !conflictIds.has(id) || choices[id] !== 'skip')
     if (superseded.length) await app.deleteEvents(superseded)
-    await app.setEventsCategory(toMove, ctx.target)
+    // Final dedupe guard: two same-title movers, or a mover vs a same-title
+    // occupant that stays, must not both land. Superseded occupants free their
+    // title (they're headed to trash), so overwrite replacements can move in.
+    await app.setEventsCategory(
+      dedupeTargetMovers(state.events, toMove, ctx.target, new Set(superseded)),
+      ctx.target,
+    )
   }
   const addTag = (tagId: Id) => {
     void app.addTagToEvents(ids, tagId)

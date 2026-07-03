@@ -83,4 +83,15 @@ describe('TimelineView', () => {
     fireEvent.click(screen.getByRole('button', { name: '重置缩放' }))
     expect(app.store.getState().timelineScale).toBe(1)
   })
+  it('does not throw on a vertical drag gesture', () => {
+    const { container } = renderTimeline()
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    canvas.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 1000, bottom: 400, width: 1000, height: 400, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
+    expect(() => {
+      fireEvent.pointerDown(canvas, { pointerId: 1, clientX: 500, clientY: 100 })
+      fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 505, clientY: 160 })
+      fireEvent.pointerUp(canvas, { pointerId: 1, clientX: 505, clientY: 160 })
+    }).not.toThrow()
+  })
 })

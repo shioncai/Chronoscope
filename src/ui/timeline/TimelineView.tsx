@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore, useAppState, visibleEvents } from '../../state'
 import { instantOf, type LinearView } from '../../domain/time'
-import { initialView, zoomView, panView, clampView, viewFromLensCenter, panViewByLensDrag } from './view'
+import { initialView, zoomView, panView, clampView, viewFromLensCenter, panViewByLensDrag, clampScroll } from './view'
 import { spanOf, pinchScale, midpoint } from './gesture'
 import { buildScene, type TimelineScene } from './scene'
 import { drawScene, computeLayout, type TimelineColors } from './renderer'
@@ -59,6 +59,9 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
   const sceneRef = useRef<TimelineScene | null>(null)
   const layoutRef = useRef(computeLayout(0))
   const [size, setSize] = useState({ w: 0, h: 0 })
+  // Vertical scroll of the detail band, in px. Local (transient position): resets
+  // on a view switch; re-clamped when scale/size/content shrink the scroll range.
+  const [scrollY, setScrollY] = useState(0)
 
   // The detail view and the overview band's extent live in the app store, not
   // local state, so the user's zoom/pan survives switching to the list view and
@@ -100,11 +103,23 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return // jsdom / unsupported: scene is still computed, just not painted
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    drawScene(ctx, scene, readColors(canvas), layout)
-  }, [events, view, overview, nowYear, size, state.selectedId, state.theme, categoryColors, scale])
+    const contentH = scene.detail.rowCount * layout.rowHeight
+    const visibleH = layout.overviewTop - layout.glyphTop
+    drawScene(ctx, scene, readColors(canvas), layout, clampScroll(scrollY, contentH, visibleH))
+  }, [events, view, overview, nowYear, size, state.selectedId, state.theme, categoryColors, scale, scrollY])
+
+  // re-clamp the scroll offset when magnification / size / content shrink the
+  // scrollable range, so it never rests past the end
+  useEffect(() => {
+    const layout = layoutRef.current
+    const rows = sceneRef.current?.detail.rowCount ?? 0
+    const contentH = rows * layout.rowHeight
+    const visibleH = layout.overviewTop - layout.glyphTop
+    setScrollY((y) => clampScroll(y, contentH, visibleH))
+  }, [scale, size, events])
 
   // pointer interactions
-  const drag = useRef<{ x: number; mode: 'pan' | 'lens' | 'overviewPan'; moved: boolean } | null>(null)
+  const drag = useRef<{ x: number; y: number; mode: 'pan' | 'lens' | 'overviewPan'; moved: boolean } | null>(null)
   // active pointers by id → clientX, for multi-touch pinch
   const pointers = useRef(new Map<number, number>())
 
@@ -112,6 +127,15 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     const rect = canvasRef.current?.getBoundingClientRect()
     if (!rect || rect.width === 0) return 0
     return Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1)
+  }
+
+  // detail-band scroll geometry from the latest built scene + layout
+  const scrollMetrics = () => {
+    const layout = layoutRef.current
+    const rows = sceneRef.current?.detail.rowCount ?? 0
+    const contentH = rows * layout.rowHeight
+    const visibleH = layout.overviewTop - layout.glyphTop
+    return { contentH, visibleH }
   }
 
   // Native (non-passive) wheel listener: React attaches `wheel` at the root as a
@@ -179,7 +203,7 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
       const lens = sceneRef.current?.overview.lens
       mode = lens && localX >= lens.x0 - 6 && localX <= lens.x1 + 6 ? 'lens' : 'overviewPan'
     }
-    drag.current = { x: e.clientX, mode, moved: false }
+    drag.current = { x: e.clientX, y: e.clientY, mode, moved: false }
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
   }
 
@@ -188,13 +212,13 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
       const prev = [...pointers.current.values()]
       pointers.current.set(e.pointerId, e.clientX)
       const next = [...pointers.current.values()]
-      const scale = pinchScale(spanOf(prev), spanOf(next))
-      if (scale !== 1) {
+      const pinch = pinchScale(spanOf(prev), spanOf(next))
+      if (pinch !== 1) {
         const rect = canvasRef.current?.getBoundingClientRect()
         const width = rect?.width || 1
         const frac = Math.min(Math.max((midpoint(next) - (rect?.left ?? 0)) / width, 0), 1)
-        // fingers apart (scale > 1) → zoom in → factor < 1
-        setView((v) => clampView(zoomView(v, frac, 1 / scale), bounds.min, bounds.max))
+        // fingers apart (pinch > 1) → zoom in → factor < 1
+        setView((v) => clampView(zoomView(v, frac, 1 / pinch), bounds.min, bounds.max))
       }
       return
     }
@@ -203,9 +227,16 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     const rect = canvasRef.current?.getBoundingClientRect()
     const width = rect?.width || 1
     const dxFrac = (e.clientX - d.x) / width
-    if (Math.abs(e.clientX - d.x) > 3) d.moved = true
+    const dyPx = e.clientY - d.y
+    if (Math.abs(e.clientX - d.x) > 3 || Math.abs(dyPx) > 3) d.moved = true
     d.x = e.clientX
+    d.y = e.clientY
     if (d.mode === 'pan') {
+      // horizontal pans the time axis; vertical scrolls the (possibly overflowing) rows
+      if (dyPx !== 0) {
+        const { contentH, visibleH } = scrollMetrics()
+        setScrollY((yv) => clampScroll(yv - dyPx, contentH, visibleH))
+      }
       setView((v) => clampView(panView(v, -dxFrac), bounds.min, bounds.max))
     } else if (d.mode === 'overviewPan') {
       setOverview((o) => clampView(panView(o, -dxFrac), bounds.min, bounds.max))
@@ -235,8 +266,10 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
       setView((v) => clampView(viewFromLensCenter(v, centerFrac, overview), bounds.min, bounds.max))
       return
     }
+    const { contentH, visibleH } = scrollMetrics()
+    const sy = clampScroll(scrollY, contentH, visibleH)
     for (const g of scene.detail.glyphs) {
-      const gy = layout.glyphTop + g.row * layout.rowHeight
+      const gy = layout.glyphTop + g.row * layout.rowHeight - sy
       const within = x >= g.xStart - 6 && x <= Math.max(g.xEnd, g.xStart) + 6 && y >= gy - 4 && y <= gy + 12
       if (within) {
         app.select(g.eventId)

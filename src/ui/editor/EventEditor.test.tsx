@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EventEditor } from './EventEditor'
 import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
@@ -140,6 +140,21 @@ describe('EventEditor', () => {
     expect(screen.getByRole('button', { name: '永久删除' })).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: '恢复' }))
     expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
+  })
+
+  it('routes a restore conflict through the conflict dialog and resolves via overwrite', async () => {
+    const f = await app.createCategory({ name: '历史' })
+    const id = await app.createEvent({ title: '登月', categoryId: f, start: { year: 1969, precision: 'year' } })
+    await app.deleteEvent(id)
+    await app.createEvent({ title: '登月', categoryId: f, start: { year: 1970, precision: 'year' } })
+    let closed = false
+    renderEditor(id, () => (closed = true))
+    await userEvent.click(screen.getByRole('button', { name: '恢复' }))
+    expect(await screen.findByText('恢复冲突')).toBeTruthy()
+    await userEvent.click(screen.getByRole('radio', { name: /覆盖/ }))
+    await userEvent.click(screen.getByRole('button', { name: '确认' }))
+    await waitFor(() => expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false))
+    expect(closed).toBe(true)
   })
 
   it('blocks saving a new event whose title already exists in the same folder', async () => {

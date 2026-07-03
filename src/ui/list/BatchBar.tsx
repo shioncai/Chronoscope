@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useAppStore, useAppState, flattenCategoryTree } from '../../state'
+import { useAppStore, useAppState, flattenCategoryTree, type RestoreConflict } from '../../state'
 import { MoveMenu } from '../shell/MoveMenu'
 import { TagMenu } from './TagMenu'
+import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
 import type { Id } from '../../domain/model'
 
 type OpenMenu = 'folder' | 'addTag' | 'removeTag' | null
@@ -14,31 +15,59 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
   const state = useAppState()
   const ids = state.checkedIds
   const [open, setOpen] = useState<OpenMenu>(null)
+  const [restoreConflicts, setRestoreConflicts] = useState<EventConflictItem[]>([])
 
-  if (ids.length === 0) return null
+  // restoreEvents() drops every requested id from checkedIds regardless of
+  // whether it conflicted (the selection was "consumed"), so once a conflict
+  // dialog is pending, ids.length alone can no longer gate rendering.
+  if (ids.length === 0 && restoreConflicts.length === 0) return null
 
   // Recycle-bin selection: restore / permanent-delete instead of move/tag/delete.
   if (trash) {
     const purge = () => {
       if (window.confirm(`永久删除选中的 ${ids.length} 个事件？此操作不可撤销。`)) void app.purgeEvents(ids)
     }
+    const toItems = (conflicts: RestoreConflict[]): EventConflictItem[] =>
+      conflicts.map((c) => ({
+        incoming: state.events.find((e) => e.id === c.eventId)!,
+        existing: state.events.find((e) => e.id === c.existingId)!,
+      }))
+    const restore = async () => {
+      const { conflicts } = await app.restoreEvents(ids)
+      if (conflicts.length) setRestoreConflicts(toItems(conflicts))
+    }
+    const resolveRestore = async (choices: Record<Id, 'overwrite' | 'skip'>) => {
+      const ids2 = Object.keys(choices)
+      setRestoreConflicts([])
+      await app.restoreEvents(ids2, choices)
+    }
     return (
-      <div className="batch-bar">
-        <span className="bb-count">
-          已选 <b>{ids.length}</b> 项
-        </span>
-        <span className="bb-sep" />
-        <button type="button" className="bb-btn" onClick={() => void app.restoreEvents(ids)}>
-          恢复
-        </button>
-        <button type="button" className="bb-btn danger" onClick={purge}>
-          永久删除
-        </button>
-        <span className="bb-sep" />
-        <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
-          ✕
-        </button>
-      </div>
+      <>
+        <div className="batch-bar">
+          <span className="bb-count">
+            已选 <b>{ids.length}</b> 项
+          </span>
+          <span className="bb-sep" />
+          <button type="button" className="bb-btn" onClick={() => void restore()}>
+            恢复
+          </button>
+          <button type="button" className="bb-btn danger" onClick={purge}>
+            永久删除
+          </button>
+          <span className="bb-sep" />
+          <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
+            ✕
+          </button>
+        </div>
+        {restoreConflicts.length > 0 && (
+          <EventConflictDialog
+            title="恢复冲突"
+            conflicts={restoreConflicts}
+            onResolve={(choices) => void resolveRestore(choices)}
+            onCancel={() => setRestoreConflicts([])}
+          />
+        )}
+      </>
     )
   }
 

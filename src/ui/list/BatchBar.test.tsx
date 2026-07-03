@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BatchBar } from './BatchBar'
 import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
+import { fromYear } from '../../domain/time'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 
 function makeApp(): AppStore {
@@ -27,10 +28,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const renderBar = () =>
+const renderBar = (trash = false) =>
   render(
     <AppStoreProvider value={app}>
-      <BatchBar />
+      <BatchBar trash={trash} />
     </AppStoreProvider>,
   )
 
@@ -119,5 +120,20 @@ describe('BatchBar', () => {
     renderBar()
     await userEvent.click(screen.getByRole('button', { name: '取消选择' }))
     expect(app.store.getState().checkedIds).toEqual([])
+  })
+
+  it('restoring into a folder with a live same-name event prompts a conflict dialog', async () => {
+    const f = await app.createCategory({ name: '历史' })
+    const del = await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1969, 'year') })
+    await app.deleteEvent(del)
+    await app.createEvent({ title: '登月', categoryId: f, start: fromYear(1970, 'year') })
+    app.setFilter({ trash: true }) // enter recycle-bin view (the real filter flag; also clears checkedIds)
+    app.setChecked([del])
+    renderBar(true) // BatchBar reads its trash mode from the `trash` prop, as ListView passes it
+    await userEvent.click(screen.getByRole('button', { name: '恢复' }))
+    expect(await screen.findByText('恢复冲突')).toBeTruthy()
+    await userEvent.click(screen.getByRole('radio', { name: /覆盖/ }))
+    await userEvent.click(screen.getByRole('button', { name: '确认' }))
+    await waitFor(() => expect(app.store.getState().events.find((e) => e.id === del)?.deleted).toBe(false))
   })
 })

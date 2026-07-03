@@ -9,6 +9,7 @@ import { flattenCategoryTree } from '../../state'
 import { Pill } from '../shell/Pill'
 import { AddFolderForm } from '../shell/AddFolderForm'
 import { AddTagForm } from '../shell/AddTagForm'
+import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
 
 export interface EventEditorProps {
   editingId: Id | null
@@ -36,6 +37,7 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const [linksOpen, setLinksOpen] = useState(links.length > 0)
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [newTagOpen, setNewTagOpen] = useState(false)
+  const [restoreConflict, setRestoreConflict] = useState<EventConflictItem[] | null>(null)
 
   const liveTags = state.tags.filter((t) => !t.deleted)
 
@@ -80,7 +82,17 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   // instead of save / delete.
   const isDeleted = !!existing?.deleted
   const restore = async () => {
-    if (editingId) await app.restoreEvents([editingId])
+    if (!editingId) return
+    const { conflicts } = await app.restoreEvents([editingId])
+    if (conflicts.length) {
+      setRestoreConflict(
+        conflicts.map((c) => ({
+          incoming: state.events.find((e) => e.id === c.eventId)!,
+          existing: state.events.find((e) => e.id === c.existingId)!,
+        })),
+      )
+      return
+    }
     onClose()
   }
   const purge = async () => {
@@ -231,6 +243,20 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
           </>
         )}
       </div>
+      {restoreConflict && (
+        <EventConflictDialog
+          title="恢复冲突"
+          conflicts={restoreConflict}
+          onResolve={(choices) => {
+            void (async () => {
+              await app.restoreEvents(Object.keys(choices), choices)
+              setRestoreConflict(null)
+              onClose()
+            })()
+          }}
+          onCancel={() => setRestoreConflict(null)}
+        />
+      )}
     </div>
   )
 }

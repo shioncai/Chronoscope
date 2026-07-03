@@ -116,3 +116,22 @@ describe('fieldsFromTimePoint — round-trips through buildTimePoint', () => {
     )
   })
 })
+
+describe('fieldsFromTimePoint — relative magnitude survives a moving nowYear', () => {
+  // A relative point stores an ABSOLUTE year (nowYear_entry − mag·U). nowYear is
+  // recomputed from the wall clock each app load, so re-deriving the "距今"
+  // magnitude at a later nowYear leaves fp noise in the low digits
+  // (13.787 → 13.787000000000512). The magnitude must read back clean.
+  const nowBuild = 2026 + 184 / 365 // midnight Jul 4
+  const nowView = 2026 + (184 + 4.5 / 24) / 365 // ~4.5h later, next app load
+
+  it('strips fp noise when nowYear advances between entry and viewing', () => {
+    const tp = buildTimePoint(civil({ mode: 'scale', unit: 'Ga', mag: '13.787' }), nowBuild)!
+    expect(fieldsFromTimePoint(tp, nowView).mag).toBe('13.787')
+  })
+
+  it('preserves a legitimately precise magnitude (no over-rounding)', () => {
+    const tp = buildTimePoint(civil({ mode: 'scale', unit: 'Ma', mag: '66.043' }), 2026.4)!
+    expect(fieldsFromTimePoint(tp, 2026.4).mag).toBe('66.043')
+  })
+})

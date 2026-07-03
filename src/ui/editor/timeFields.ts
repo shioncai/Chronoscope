@@ -94,7 +94,12 @@ export function fieldsFromTimePoint(tp: TimePoint | null, nowYear: number): Time
     const unit = tp.precision as 'ka' | 'Ma' | 'Ga'
     f.mode = 'scale'
     f.unit = unit
-    f.mag = String((nowYear - tp.year) / UNIT_YEARS[unit])
+    // The stored year is absolute; re-deriving "距今" against a moving nowYear (and
+    // its fractional part) leaves fp noise in the low digits (13.787 →
+    // 13.787000000000512). Round to 10 significant figures — far finer than any
+    // real ka/Ma/Ga input, but below the noise floor.
+    const mag = (nowYear - tp.year) / UNIT_YEARS[unit]
+    f.mag = String(Number(mag.toPrecision(10)))
     return f
   }
 

@@ -1,15 +1,21 @@
 {
   "name": "chronoscope",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "description": "A cross-scale event timeline, from deep time to this afternoon.",
+  "author": "ShionChoy",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "electron:preview": "ELECTRON=1 vite build && electron .",
+    "electron:build": "ELECTRON=1 vite build && electron-builder --win zip",
+    "electron:dev": "ELECTRON_RENDERER_URL=http://localhost:5173 electron ."
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
@@ -29,6 +35,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -40,5 +48,15 @@
     "vite": "^8.0.12",
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.0.0"
+  },
+  "build": {
+    "appId": "com.shionchoy.chronoscope",
+    "productName": "Chronoscope",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "electron/**/*"],
+    "win": {
+      "target": ["zip"],
+      "icon": "build/icon.ico"
+    }
   }
 }

@@ -67,6 +67,27 @@ describe('appStore', () => {
     expect(persisted.start).toEqual({ ago: 538800000, precision: 'Ma' })
   })
 
+  it('migrates deep-time points when importing a v1 file', async () => {
+    const db3 = makeDb()
+    const { clock, genId } = fixtures()
+    const app3 = createAppStore({ db: db3, clock, nowYear: 2026.505466, theme: 'day', genId })
+    await app3.load()
+    const v1 = JSON.stringify({
+      app: 'chronoscope', version: 1, exportedAt: '',
+      data: {
+        events: [{
+          id: 'pha', title: '显生宙', start: { year: -538797973.494534, precision: 'Ma' },
+          note: '', categoryId: null, tagIds: [], links: [], createdAt: 't0', updatedAt: 't0', deleted: false,
+        }],
+        categories: [], tags: [],
+      },
+    })
+    const res = await app3.importData(v1)
+    expect(res.ok).toBe(true)
+    const ev = app3.store.getState().events.find((e) => e.title === '显生宙')
+    expect(ev?.start).toEqual({ ago: 538800000, precision: 'Ma' })
+  })
+
   it('updateEvent applies changes and bumps updatedAt', async () => {
     await app.createEvent({ title: 'a' })
     await app.updateEvent('id1', { title: 'b' })

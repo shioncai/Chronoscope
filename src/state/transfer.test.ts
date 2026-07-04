@@ -22,7 +22,7 @@ describe('buildTransferFile', () => {
       '2026-07-03T00:00:00.000Z',
     )
     expect(file.app).toBe('chronoscope')
-    expect(file.version).toBe(1)
+    expect(file.version).toBe(2)
     expect(file.exportedAt).toBe('2026-07-03T00:00:00.000Z')
     expect(file.data.events.map((e) => e.id)).toEqual(['e1'])
     expect(file.data.categories.map((c) => c.id)).toEqual(['c1'])
@@ -61,8 +61,18 @@ describe('parseTransferFile', () => {
     expect(r).toEqual({ ok: false, error: '这不是 Chronoscope 导出文件' })
   })
 
+  it('accepts a v1 file (migrated on import)', () => {
+    const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 1, exportedAt: '', data: { events: [], categories: [], tags: [] } }))
+    expect(r.ok).toBe(true)
+  })
+
+  it('accepts a v2 file', () => {
+    const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 2, exportedAt: '', data: { events: [], categories: [], tags: [] } }))
+    expect(r.ok).toBe(true)
+  })
+
   it('rejects an unsupported version', () => {
-    const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 2, data: {} }))
+    const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 9, data: {} }))
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.error).toContain('不支持的文件版本')
   })

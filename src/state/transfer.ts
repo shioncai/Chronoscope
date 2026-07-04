@@ -2,7 +2,7 @@ import type { EventRecord, Category, Tag } from '../domain/model'
 
 export interface TransferFile {
   app: 'chronoscope'
-  version: 1
+  version: 2
   exportedAt: string
   data: { events: EventRecord[]; categories: Category[]; tags: Tag[] }
 }
@@ -13,7 +13,7 @@ export function buildTransferFile(
 ): TransferFile {
   return {
     app: 'chronoscope',
-    version: 1,
+    version: 2,
     exportedAt,
     data: {
       events: state.events.filter((e) => !e.deleted),
@@ -39,7 +39,8 @@ export function parseTransferFile(text: string): ParseResult {
   if (obj.app !== 'chronoscope') {
     return { ok: false, error: '这不是 Chronoscope 导出文件' }
   }
-  if (obj.version !== 1) {
+  // accept v1 (legacy absolute deep-time; migrated on import) and v2 (ago offsets)
+  if (obj.version !== 1 && obj.version !== 2) {
     return { ok: false, error: `不支持的文件版本：${String(obj.version)}` }
   }
   const data = obj.data as Record<string, unknown> | undefined
@@ -50,7 +51,7 @@ export function parseTransferFile(text: string): ParseResult {
     ok: true,
     file: {
       app: 'chronoscope',
-      version: 1,
+      version: 2,
       exportedAt: typeof obj.exportedAt === 'string' ? obj.exportedAt : '',
       data: {
         events: data.events as TransferFile['data']['events'],

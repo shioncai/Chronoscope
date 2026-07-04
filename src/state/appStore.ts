@@ -119,9 +119,12 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       const parsed = parseTransferFile(text)
       if (!parsed.ok) return { ok: false, error: parsed.error }
       const s = store.getState()
+      // migrate incoming deep-time points (v1 files store absolute years);
+      // idempotent, so v2 files pass through unchanged
+      const migratedEvents = parsed.file.data.events.map((e) => migrateEventTimes(e, nowYear) ?? e)
       const plan = planImport(
         { events: s.events, categories: s.categories, tags: s.tags },
-        parsed.file.data,
+        { ...parsed.file.data, events: migratedEvents },
         clock,
         genId,
       )

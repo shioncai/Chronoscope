@@ -8,6 +8,7 @@ import {
 } from '../data'
 import type { EventRecord, Category, Tag, Id } from '../domain/model'
 import type { LinearView } from '../domain/time'
+import { migrateEventTimes } from '../domain/time'
 import { createStore, type Store } from './store'
 import { descendantCategoryIds } from './selectors'
 import { reorderedCategories } from './categoryOrder'
@@ -76,11 +77,17 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
   const store = createStore<AppState>(initialAppState(nowYear, theme))
 
   async function load(): Promise<void> {
-    const [events, categories, tags] = await Promise.all([
+    const [rawEvents, categories, tags] = await Promise.all([
       db.events.getAll(),
       db.categories.getAll(),
       db.tags.getAll(),
     ])
+    // one-time, idempotent: convert legacy absolute-stored deep-time points to
+    // ago offsets and persist the change, so exports stay clean and it happens once
+    const events = rawEvents.map((e) => migrateEventTimes(e, nowYear) ?? e)
+    for (let i = 0; i < rawEvents.length; i++) {
+      if (events[i] !== rawEvents[i]) await db.events.put(events[i])
+    }
     store.setState((s) => ({ ...s, events, categories, tags, loaded: true }))
   }
 

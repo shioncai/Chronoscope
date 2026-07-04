@@ -51,6 +51,22 @@ describe('appStore', () => {
     expect(visibleEvents(s)).toEqual([]) // but hidden by the selector
   })
 
+  it('migrates legacy absolute-stored deep-time events on load and writes them back', async () => {
+    const db2 = makeDb()
+    await db2.events.put({
+      id: 'cam', title: '寒武纪', start: { year: -538797973.4962629, precision: 'Ma' as const },
+      note: '', categoryId: null, tagIds: [], links: [], createdAt: 't0', updatedAt: 't0', deleted: false,
+    })
+    const { clock, genId } = fixtures()
+    const app2 = createAppStore({ db: db2, clock, nowYear: 2026.505466, theme: 'day', genId })
+    await app2.load()
+    const ev = app2.store.getState().events.find((e) => e.id === 'cam')!
+    expect(ev.start).toEqual({ ago: 538800000, precision: 'Ma' })
+    // persisted back to the repo so the migration is one-time and exports stay clean
+    const persisted = (await db2.events.getAll()).find((e) => e.id === 'cam')!
+    expect(persisted.start).toEqual({ ago: 538800000, precision: 'Ma' })
+  })
+
   it('updateEvent applies changes and bumps updatedAt', async () => {
     await app.createEvent({ title: 'a' })
     await app.updateEvent('id1', { title: 'b' })

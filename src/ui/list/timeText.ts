@@ -5,10 +5,9 @@ import { formatTimePoint, type TimePoint } from '../../domain/time'
 export function formatTimeRange(
   start: TimePoint | undefined,
   end: TimePoint | undefined,
-  nowYear: number,
 ): string {
-  const s = start ? formatTimePoint(start, nowYear) : ''
-  const e = end ? formatTimePoint(end, nowYear) : ''
+  const s = start ? formatTimePoint(start) : ''
+  const e = end ? formatTimePoint(end) : ''
   if (s && e) return `${s} → ${e}`
   if (s) return s
   if (e) return `→ ${e}`

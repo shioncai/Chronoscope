@@ -1,4 +1,4 @@
-import { fromYear, fromCivil, type TimePoint, type Precision } from '../../domain/time'
+import { fromYear, fromCivil, fromAgo, type TimePoint, type Precision } from '../../domain/time'
 
 // The structured time-entry form state. One `TimeFields` drives one TimeInput
 // (start or end). It is a plain value object so the build/reverse logic stays
@@ -53,12 +53,12 @@ function unsignedYear(year: number): { era: Era; value: number } {
 
 /** Build a TimePoint from the form, inferring precision from the deepest filled
  *  civil field. Returns null when there isn't enough to place a point. */
-export function buildTimePoint(f: TimeFields, nowYear: number): TimePoint | null {
+export function buildTimePoint(f: TimeFields): TimePoint | null {
   if (f.mode === 'scale') {
     if (isRelativeUnit(f.unit)) {
       const mag = intOrNull(f.mag)
       if (mag === null) return null
-      return fromYear(nowYear - mag * UNIT_YEARS[f.unit], f.unit)
+      return fromAgo(mag * UNIT_YEARS[f.unit], f.unit)
     }
     const yv = intOrNull(f.year)
     if (yv === null) return null
@@ -86,20 +86,17 @@ const CIVIL_PRECISIONS: Precision[] = ['second', 'minute', 'hour', 'day', 'month
 
 /** Reverse of buildTimePoint: seed the form from an existing TimePoint (for
  *  editing). Second precision degrades to minute (the form's finest level). */
-export function fieldsFromTimePoint(tp: TimePoint | null, nowYear: number): TimeFields {
+export function fieldsFromTimePoint(tp: TimePoint | null): TimeFields {
   const f = emptyFields()
   if (!tp) return f
 
-  if (isRelativeUnit(tp.precision as ScaleUnit) && RELATIVE_UNITS.includes(tp.precision as ScaleUnit)) {
-    const unit = tp.precision as 'ka' | 'Ma' | 'Ga'
+  if ('ago' in tp) {
+    // ago is the user's exact input, so mag reads back cleanly with no
+    // re-derivation and no fp noise to round away.
+    const unit = tp.precision
     f.mode = 'scale'
     f.unit = unit
-    // The stored year is absolute; re-deriving "距今" against a moving nowYear (and
-    // its fractional part) leaves fp noise in the low digits (13.787 →
-    // 13.787000000000512). Round to 10 significant figures — far finer than any
-    // real ka/Ma/Ga input, but below the noise floor.
-    const mag = (nowYear - tp.year) / UNIT_YEARS[unit]
-    f.mag = String(Number(mag.toPrecision(10)))
+    f.mag = String(tp.ago / UNIT_YEARS[unit])
     return f
   }
 

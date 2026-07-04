@@ -1,4 +1,4 @@
-import { type TimePoint, fromYear, fromCivil } from './timepoint'
+import { type TimePoint, fromYear, fromCivil, fromAgo } from './timepoint'
 
 export function parseTimeInput(text: string, nowYear: number): TimePoint | null {
   const t = text.trim()
@@ -24,12 +24,12 @@ export function parseTimeInput(text: string, nowYear: number): TimePoint | null 
   m = /^约?(\d+(?:\.\d+)?)亿年前$/.exec(t)
   if (m) {
     const ago = +m[1] * 1e8
-    return fromYear(nowYear - ago, ago >= 1e9 ? 'Ga' : 'Ma')
+    return fromAgo(ago, ago >= 1e9 ? 'Ga' : 'Ma')
   }
   m = /^约?(\d+(?:\.\d+)?)万年前$/.exec(t)
   if (m) {
     const ago = +m[1] * 1e4
-    return fromYear(nowYear - ago, ago >= 1e6 ? 'Ma' : 'ka')
+    return fromAgo(ago, ago >= 1e6 ? 'Ma' : 'ka')
   }
   m = /^约?(\d+)年前$/.exec(t)
   if (m) return fromYear(nowYear - +m[1], 'year')

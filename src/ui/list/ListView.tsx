@@ -103,7 +103,7 @@ export function ListView({ onEdit }: ListViewProps) {
                 <span className="cell-dot" style={{ background: catColor(e.categoryId) }} aria-hidden="true" />
                 {e.title}
               </td>
-              <td className="mono">{formatTimeRange(e.start, e.end, state.nowYear)}</td>
+              <td className="mono">{formatTimeRange(e.start, e.end)}</td>
               <td>{catName(e.categoryId)}</td>
               <td>{tagNames(e.tagIds)}</td>
               <td className="mono col-note">{markdownToText(e.note).slice(0, 60)}</td>

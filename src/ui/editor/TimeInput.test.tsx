@@ -3,17 +3,17 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TimeInput } from './TimeInput'
-import { fromYear, fromCivil } from '../../domain/time'
+import { fromYear, fromCivil, fromAgo } from '../../domain/time'
 
 describe('TimeInput (structured)', () => {
   it('has no free-text field — entry is all dropdowns + numbers', () => {
-    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={vi.fn()} />)
+    render(<TimeInput label="起点" value={null} onChange={vi.fn()} />)
     expect(screen.queryByPlaceholderText(/公元前3000年/)).toBeNull()
   })
 
   it('civil: a year alone emits year precision with a preview', async () => {
     const onChange = vi.fn()
-    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={onChange} />)
+    render(<TimeInput label="起点" value={null} onChange={onChange} />)
     await userEvent.type(screen.getByLabelText('起点 年'), '1969')
     expect(onChange).toHaveBeenLastCalledWith(fromYear(1969, 'year'))
     expect(screen.getByText('1969年')).toBeTruthy()
@@ -21,7 +21,7 @@ describe('TimeInput (structured)', () => {
 
   it('civil: 公元前 maps to BCE astronomical year', async () => {
     const onChange = vi.fn()
-    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={onChange} />)
+    render(<TimeInput label="起点" value={null} onChange={onChange} />)
     await userEvent.selectOptions(screen.getByLabelText('起点 纪元'), 'BCE')
     await userEvent.type(screen.getByLabelText('起点 年'), '3000')
     expect(onChange).toHaveBeenLastCalledWith(fromYear(-2999, 'year'))
@@ -30,7 +30,7 @@ describe('TimeInput (structured)', () => {
 
   it('civil: adding a month auto-detects month precision', async () => {
     const onChange = vi.fn()
-    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={onChange} />)
+    render(<TimeInput label="起点" value={null} onChange={onChange} />)
     await userEvent.type(screen.getByLabelText('起点 年'), '2026')
     await userEvent.selectOptions(screen.getByLabelText('起点 月'), '6')
     expect(onChange).toHaveBeenLastCalledWith(fromCivil({ y: 2026, mo: 6 }, 'month'))
@@ -38,7 +38,7 @@ describe('TimeInput (structured)', () => {
 
   it('civil: down to the minute auto-detects minute precision', async () => {
     const onChange = vi.fn()
-    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={onChange} />)
+    render(<TimeInput label="起点" value={null} onChange={onChange} />)
     await userEvent.type(screen.getByLabelText('起点 年'), '2026')
     await userEvent.selectOptions(screen.getByLabelText('起点 月'), '6')
     await userEvent.selectOptions(screen.getByLabelText('起点 日'), '21')
@@ -49,24 +49,24 @@ describe('TimeInput (structured)', () => {
   })
 
   it('switches to 大尺度 via the segmented control', async () => {
-    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={() => {}} />)
+    render(<TimeInput label="起点" value={null} onChange={() => {}} />)
     await userEvent.click(screen.getByRole('button', { name: '大尺度' }))
     expect(screen.getByLabelText('起点 单位')).toBeTruthy()
   })
 
   it('scale: 大尺度 + 十亿年 + 距今 emits a Ga point', async () => {
     const onChange = vi.fn()
-    render(<TimeInput label="起点" value={null} nowYear={2026} onChange={onChange} />)
+    render(<TimeInput label="起点" value={null} onChange={onChange} />)
     await userEvent.click(screen.getByRole('button', { name: '大尺度' }))
     await userEvent.selectOptions(screen.getByLabelText('起点 单位'), 'Ga')
     await userEvent.type(screen.getByLabelText('起点 距今'), '3.8')
-    expect(onChange).toHaveBeenLastCalledWith(fromYear(2026 - 3.8e9, 'Ga'))
+    expect(onChange).toHaveBeenLastCalledWith(fromAgo(3.8e9, 'Ga'))
     expect(screen.getByText('约38.0亿年前')).toBeTruthy()
   })
 
   it('seeds its fields from an existing value when editing', () => {
     render(
-      <TimeInput label="起点" value={fromCivil({ y: 2026, mo: 6, d: 21 }, 'day')} nowYear={2026} onChange={vi.fn()} />,
+      <TimeInput label="起点" value={fromCivil({ y: 2026, mo: 6, d: 21 }, 'day')} onChange={vi.fn()} />,
     )
     expect((screen.getByLabelText('起点 年') as HTMLInputElement).value).toBe('2026')
     expect((screen.getByLabelText('起点 月') as HTMLSelectElement).value).toBe('6')

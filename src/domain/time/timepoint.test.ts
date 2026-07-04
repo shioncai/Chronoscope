@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fromYear, fromCivil, instantOf, compareTimePoints, withFuzz } from './timepoint'
+import { fromYear, fromCivil, fromAgo, instantOf, compareTimePoints, withFuzz, PRESENT_EPOCH } from './timepoint'
 
 describe('timepoint', () => {
   it('builds from a bare year', () => {
@@ -14,9 +14,15 @@ describe('timepoint', () => {
     expect(instantOf(tp)).toBeGreaterThan(2026.4)
   })
   it('orders across scales', () => {
-    const big = fromYear(-3.8e9, 'Ga')
+    const big = fromAgo(3.8e9, 'Ga')
     const recent = fromCivil({ y: 2026, mo: 6, d: 21 }, 'day')
     expect(compareTimePoints(big, recent)).toBeLessThan(0)
+  })
+  it('places a relative point at PRESENT_EPOCH minus its ago offset', () => {
+    expect(instantOf(fromAgo(538_800_000, 'Ma'))).toBe(PRESENT_EPOCH - 538_800_000)
+  })
+  it('gives two equal-ago points the identical instant (no nowYear drift)', () => {
+    expect(instantOf(fromAgo(538_800_000, 'Ma'))).toBe(instantOf(fromAgo(538_800_000, 'Ma')))
   })
 })
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { chooseTickPrecision, generateTicks } from './ticks'
+import { instantOf, type AbsoluteTime } from './timepoint'
 import { decimalFromCivil } from './decimal'
 
 describe('chooseTickPrecision', () => {
@@ -15,8 +16,8 @@ describe('generateTicks', () => {
     const ticks = generateTicks({ min: 1995, max: 2025 })
     expect(ticks.length).toBeGreaterThanOrEqual(3)
     expect(ticks.length).toBeLessThanOrEqual(12)
-    expect(ticks[0].year).toBeGreaterThanOrEqual(1995)
-    expect(ticks[ticks.length - 1].year).toBeLessThanOrEqual(2025)
+    expect(instantOf(ticks[0])).toBeGreaterThanOrEqual(1995)
+    expect(instantOf(ticks[ticks.length - 1])).toBeLessThanOrEqual(2025)
     for (const t of ticks) expect(t.precision).toBe('decade')
   })
   it('steps month-aligned ticks with civil dates for a sub-year range', () => {
@@ -25,8 +26,9 @@ describe('generateTicks', () => {
     expect(ticks.length).toBeGreaterThanOrEqual(4)
     for (const t of ticks) {
       expect(t.precision).toBe('month')
-      expect(t.civil).toBeDefined()
-      expect(Number.isInteger(t.civil!.mo)).toBe(true)
+      const c = (t as AbsoluteTime).civil
+      expect(c).toBeDefined()
+      expect(Number.isInteger(c!.mo)).toBe(true)
     }
   })
   it('steps day-aligned ticks for a multi-day range', () => {
@@ -35,7 +37,7 @@ describe('generateTicks', () => {
     expect(ticks.length).toBeGreaterThanOrEqual(5)
     for (const t of ticks) {
       expect(t.precision).toBe('day')
-      expect(t.civil?.d).toBeGreaterThanOrEqual(1)
+      expect((t as AbsoluteTime).civil?.d).toBeGreaterThanOrEqual(1)
     }
   })
 })

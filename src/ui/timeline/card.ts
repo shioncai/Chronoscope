@@ -18,15 +18,15 @@ export interface CardLookups {
   events: EventRecord[]
 }
 
-export function formatEventTime(event: EventRecord, nowYear: number): string {
-  const fmt = (tp: TimePoint) => formatTimePoint(tp, nowYear)
+export function formatEventTime(event: EventRecord): string {
+  const fmt = (tp: TimePoint) => formatTimePoint(tp)
   if (event.start && event.end) return `${fmt(event.start)} – ${fmt(event.end)}`
   if (event.start) return fmt(event.start)
   if (event.end) return `→ ${fmt(event.end)}`
   return '—'
 }
 
-export function buildEventCard(event: EventRecord, lookups: CardLookups, nowYear: number): EventCardData {
+export function buildEventCard(event: EventRecord, lookups: CardLookups): EventCardData {
   const cat =
     event.categoryId != null
       ? lookups.categories.find((c) => c.id === event.categoryId && !c.deleted) ?? null
@@ -41,7 +41,7 @@ export function buildEventCard(event: EventRecord, lookups: CardLookups, nowYear
   return {
     id: event.id,
     title: event.title,
-    timeLabel: formatEventTime(event, nowYear),
+    timeLabel: formatEventTime(event),
     note: event.note,
     categoryName: cat?.name ?? null,
     tagNames,

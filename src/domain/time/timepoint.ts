@@ -1,22 +1,47 @@
-import type { Precision } from './precision'
+import type { Precision, AbsolutePrecision, RelativePrecision } from './precision'
 import { type CivilTime, decimalFromCivil } from './decimal'
 
-export interface TimePoint {
-  year: number
-  precision: Precision
-  civil?: CivilTime
-  fuzz?: { before: number; after: number }
+// The fixed reference for relative deep-time points (geology's "Before Present").
+// A constant (not the live clock), so instantOf stays pure and a relative point's
+// absolute position is reproducible and never drifts.
+export const PRESENT_EPOCH = 1950
+
+interface Fuzz {
+  before: number
+  after: number
 }
 
-export function fromYear(year: number, precision: Precision): TimePoint {
+export interface AbsoluteTime {
+  year: number
+  // full Precision so a pre-migration legacy `{ year, precision: 'Ma' }` is still
+  // a valid TimePoint for the migration to consume; constructors below narrow it.
+  precision: Precision
+  civil?: CivilTime
+  fuzz?: Fuzz
+}
+
+export interface RelativeTime {
+  ago: number // years before PRESENT_EPOCH
+  precision: RelativePrecision
+  fuzz?: Fuzz
+}
+
+export type TimePoint = AbsoluteTime | RelativeTime
+
+export function fromYear(year: number, precision: AbsolutePrecision): AbsoluteTime {
   return { year, precision }
 }
 
-export function fromCivil(civil: CivilTime, precision: Precision): TimePoint {
+export function fromAgo(ago: number, precision: RelativePrecision): RelativeTime {
+  return { ago, precision }
+}
+
+export function fromCivil(civil: CivilTime, precision: AbsolutePrecision): AbsoluteTime {
   return { year: decimalFromCivil(civil), precision, civil }
 }
 
 export function instantOf(tp: TimePoint): number {
+  if ('ago' in tp) return PRESENT_EPOCH - tp.ago
   return tp.civil ? decimalFromCivil(tp.civil) : tp.year
 }
 

@@ -122,7 +122,7 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
           <div className="block-head">
             <span className="bh-title">起点</span>
           </div>
-          <TimeInput label="起点" value={start} nowYear={state.nowYear} onChange={setStart} />
+          <TimeInput label="起点" value={start} onChange={setStart} />
           <button type="button" className="disc" aria-expanded={fuzzStartOpen} onClick={() => setFuzzStartOpen((o) => !o)}>
             ± 误差范围
           </button>
@@ -133,7 +133,7 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
             <span className="bh-title">终点</span>
             <span className="bh-opt">· 留空表示这是一个时间点</span>
           </div>
-          <TimeInput label="终点" value={end} nowYear={state.nowYear} onChange={setEnd} />
+          <TimeInput label="终点" value={end} onChange={setEnd} />
           <button type="button" className="disc" aria-expanded={fuzzEndOpen} onClick={() => setFuzzEndOpen((o) => !o)}>
             ± 误差范围
           </button>

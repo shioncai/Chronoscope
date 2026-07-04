@@ -7,6 +7,8 @@ import {
   instantOf,
   formatTimePoint,
   fromYear,
+  fromAgo,
+  PRESENT_EPOCH,
 } from '../../domain/time'
 import { packRows } from './packing'
 import { lensFromView } from './view'
@@ -93,8 +95,9 @@ export function eventInstant(e: EventRecord): number | null {
 // the present, a relative "约X…年前/后" deeper in time (the formatter picks the
 // 亿/万/年 unit automatically for relative precisions).
 function rangeLabel(year: number, nowYear: number): string {
-  const precision = Math.abs(nowYear - year) >= 1000 ? 'ka' : 'year'
-  return formatTimePoint(fromYear(year, precision), nowYear)
+  return Math.abs(nowYear - year) >= 1000
+    ? formatTimePoint(fromAgo(PRESENT_EPOCH - year, 'ka'))
+    : formatTimePoint(fromYear(year, 'year'))
 }
 
 export function buildScene(input: BuildSceneInput): TimelineScene {
@@ -114,7 +117,7 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
     const x = xOf(instantOf(tp))
     if (x < 0 || x > width) continue
     if (x - lastTickX < MIN_TICK_GAP) continue
-    ticks.push({ x, label: formatTimePoint(tp, nowYear) })
+    ticks.push({ x, label: formatTimePoint(tp) })
     lastTickX = x
   }
 

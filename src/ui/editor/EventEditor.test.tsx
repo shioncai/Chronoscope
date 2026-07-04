@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EventEditor } from './EventEditor'
+import { instantOf } from '../../domain/time'
 import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
@@ -48,7 +49,7 @@ describe('EventEditor', () => {
     await userEvent.click(screen.getByRole('button', { name: '保存' }))
     const events = app.store.getState().events
     expect(events.map((e) => e.title)).toEqual(['登月'])
-    expect(events[0].start?.year).toBe(1969)
+    expect(instantOf(events[0].start!)).toBe(1969)
     expect(closed).toBe(true)
   })
 

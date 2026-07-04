@@ -1,6 +1,6 @@
-import { PRECISION_ORDER, PRECISION_YEARS, type Precision } from './precision'
+import { PRECISION_ORDER, PRECISION_YEARS, isRelativePrecision, type Precision, type AbsolutePrecision } from './precision'
 import type { LinearView } from './project'
-import { type TimePoint, fromYear, fromCivil } from './timepoint'
+import { type TimePoint, fromYear, fromCivil, fromAgo, PRESENT_EPOCH } from './timepoint'
 import { type CivilTime, decimalFromCivil, civilFromDecimal } from './decimal'
 import { daysInMonth } from './gregorian'
 
@@ -63,7 +63,10 @@ export function generateTicks(view: LinearView, maxTicks = 10): TimePoint[] {
     const unit = PRECISION_YEARS[precision]
     const start = Math.ceil(view.min / unit) * unit
     for (let y = start; y <= view.max; y += unit) {
-      ticks.push(fromYear(Math.round(y / unit) * unit, precision))
+      const yr = Math.round(y / unit) * unit
+      ticks.push(
+        isRelativePrecision(precision) ? fromAgo(PRESENT_EPOCH - yr, precision) : fromYear(yr, precision),
+      )
     }
     return ticks
   }
@@ -72,7 +75,8 @@ export function generateTicks(view: LinearView, maxTicks = 10): TimePoint[] {
   let cur = truncate(civilFromDecimal(view.min), precision)
   if (decimalFromCivil(cur) < view.min) cur = nextCalendarTick(cur, precision)
   for (let guard = 0; decimalFromCivil(cur) <= view.max && guard < maxTicks * 4 + 8; guard++) {
-    ticks.push(fromCivil(cur, precision))
+    // this branch only runs for CALENDAR precisions, all of which are absolute
+    ticks.push(fromCivil(cur, precision as AbsolutePrecision))
     cur = nextCalendarTick(cur, precision)
   }
   return ticks

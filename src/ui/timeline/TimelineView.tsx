@@ -303,11 +303,11 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
       />
       {selectedEvent && (
         <EventDetailCard
-          data={buildEventCard(
-            selectedEvent,
-            { categories: state.categories, tags: state.tags, events: state.events },
-            nowYear,
-          )}
+          data={buildEventCard(selectedEvent, {
+            categories: state.categories,
+            tags: state.tags,
+            events: state.events,
+          })}
           onEdit={() => onEdit(selectedEvent.id)}
           onClose={() => app.select(null)}
           onSelectLink={(id) => app.select(id)}

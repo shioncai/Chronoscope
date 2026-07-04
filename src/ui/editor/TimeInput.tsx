@@ -12,7 +12,6 @@ import {
 export interface TimeInputProps {
   label: string
   value: TimePoint | null
-  nowYear: number
   onChange: (tp: TimePoint | null) => void
 }
 
@@ -31,8 +30,8 @@ function range(from: number, to: number): number[] {
   return out
 }
 
-export function TimeInput({ label, value, nowYear, onChange }: TimeInputProps) {
-  const [fields, setFields] = useState<TimeFields>(() => fieldsFromTimePoint(value, nowYear))
+export function TimeInput({ label, value, onChange }: TimeInputProps) {
+  const [fields, setFields] = useState<TimeFields>(() => fieldsFromTimePoint(value))
 
   const update = (patch: Partial<TimeFields>) => {
     const next = { ...fields, ...patch }
@@ -43,12 +42,12 @@ export function TimeInput({ label, value, nowYear, onChange }: TimeInputProps) {
       if (next.mo === '' || (Number(next.d) > daysInMonth(y, mo))) next.d = ''
     }
     setFields(next)
-    onChange(buildTimePoint(next, nowYear))
+    onChange(buildTimePoint(next))
   }
 
   const preview = (() => {
-    const tp = buildTimePoint(fields, nowYear)
-    return tp ? formatTimePoint(tp, nowYear) : ''
+    const tp = buildTimePoint(fields)
+    return tp ? formatTimePoint(tp) : ''
   })()
 
   const yearNum = fields.era === 'BCE' ? 1 - Number(fields.year || 0) : Number(fields.year || 0)

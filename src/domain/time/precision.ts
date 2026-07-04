@@ -31,3 +31,13 @@ export function comparePrecision(a: Precision, b: Precision): number {
 export function isFiner(a: Precision, b: Precision): boolean {
   return comparePrecision(a, b) < 0
 }
+
+// Deep-time precisions are displayed and stored *relative* to a fixed epoch (as
+// an `ago` offset); everything else is an absolute calendar value.
+export const RELATIVE_PRECISIONS = ['ka', 'Ma', 'Ga'] as const
+export type RelativePrecision = (typeof RELATIVE_PRECISIONS)[number]
+export type AbsolutePrecision = Exclude<Precision, RelativePrecision>
+
+export function isRelativePrecision(p: Precision): p is RelativePrecision {
+  return p === 'ka' || p === 'Ma' || p === 'Ga'
+}

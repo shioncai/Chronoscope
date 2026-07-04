@@ -1,7 +1,6 @@
 import { PRECISION_YEARS, type Precision } from './precision'
 import type { TimePoint } from './timepoint'
 
-const RELATIVE: Precision[] = ['ka', 'Ma', 'Ga']
 const CIVIL_REQUIRED: Precision[] = ['second', 'minute', 'hour', 'day', 'month']
 
 function pad(n: number): string {
@@ -20,9 +19,9 @@ function oneDecimal(n: number): string {
   return Number.isInteger(r) ? String(r) : r.toFixed(1)
 }
 
-export function formatTimePoint(tp: TimePoint, nowYear: number): string {
-  if (RELATIVE.includes(tp.precision)) {
-    const ago = nowYear - tp.year
+export function formatTimePoint(tp: TimePoint): string {
+  if ('ago' in tp) {
+    const ago = tp.ago
     const abs = Math.abs(ago)
     // Distances under half the precision's own unit are noise at this scale
     // (e.g. ~2026 years against a billion-year tick) → "现在", not a tiny number.

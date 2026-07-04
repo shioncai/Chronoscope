@@ -40,7 +40,7 @@ export function EventConflictDialog({
   const linkTitles = (ids: Id[]) =>
     ids.map((id) => state.events.find((e) => e.id === id)?.title).filter(Boolean).join('、') || '—'
   const fieldValue = (e: EventRecord, f: EventDiffField): string => {
-    if (f === 'time') return formatTimeRange(e.start, e.end, state.nowYear)
+    if (f === 'time') return formatTimeRange(e.start, e.end)
     if (f === 'note') return e.note || '—'
     if (f === 'tags') return tagNames(e.tagIds)
     return linkTitles(e.links)

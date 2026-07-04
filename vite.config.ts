@@ -3,8 +3,10 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // VitePWA is build/dev-only; exclude it under Vitest so the unit suite never
-// loads Workbox or a virtual SW module.
-const pwa = process.env.VITEST
+// loads Workbox or a virtual SW module. Also exclude it for the ELECTRON build:
+// the desktop shell is already fully local, so a Service Worker is redundant and
+// only risks stale-cache issues on update.
+const pwa = process.env.VITEST || process.env.ELECTRON
   ? []
   : [
       VitePWA({

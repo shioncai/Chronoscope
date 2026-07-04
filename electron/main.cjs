@@ -63,6 +63,11 @@ function createWindow() {
     backgroundColor: '#11161d',
     title: 'Chronoscope',
     icon: path.join(__dirname, '..', 'build', 'icon.ico'),
+    // Hide Electron's generic default menu (File/Edit/View/Window). It offers
+    // nothing this app needs, and its bottom edge shows a hairline of the dark
+    // window background against light-theme content. Alt still reveals it, and
+    // web editing shortcuts (copy/paste/etc.) are unaffected.
+    autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

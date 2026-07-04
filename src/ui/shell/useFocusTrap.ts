@@ -5,9 +5,12 @@ const FOCUSABLE =
 
 export function useFocusTrap<T extends HTMLElement>(active: boolean, onEscape: () => void) {
   const ref = useRef<T>(null)
-  // keep the latest onEscape without re-running the effect
+  // keep the latest onEscape in a ref (updated in an effect, not during render)
+  // so the trap effect below doesn't re-run when only the callback changes
   const escRef = useRef(onEscape)
-  escRef.current = onEscape
+  useEffect(() => {
+    escRef.current = onEscape
+  })
 
   useEffect(() => {
     if (!active) return

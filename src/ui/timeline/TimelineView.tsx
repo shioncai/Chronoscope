@@ -69,7 +69,9 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
   // they fall back to `bounds`, so they still fit the data once events load.
   // `boundsRef` feeds that fallback into the store updaters.
   const boundsRef = useRef(bounds)
-  boundsRef.current = bounds
+  useEffect(() => {
+    boundsRef.current = bounds
+  })
   const view = state.timelineView ?? bounds
   const overview = state.timelineOverview ?? bounds
   const setView = (u: LinearView | ((v: LinearView) => LinearView)) =>

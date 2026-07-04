@@ -118,18 +118,26 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
     lastTickX = x
   }
 
-  type Raw = Omit<SceneGlyph, 'row'> & { left: number; right: number }
+  type Raw = Omit<SceneGlyph, 'row'> & { left: number; right: number; tStart: number; tEnd: number }
   const raws: Raw[] = []
   for (const e of events) {
     if (!e.start && !e.end) continue
     let kind: 'point' | 'span'
     let xStart: number
     let xEnd: number
+    let tStart: number
+    let tEnd: number
     let whiskers: { lo: number; hi: number }[]
     if (e.start && e.end) {
       kind = 'span'
-      xStart = xOf(instantOf(e.start))
-      xEnd = xOf(instantOf(e.end))
+      const si = instantOf(e.start)
+      const ei = instantOf(e.end)
+      // ordering uses core instants; normalize so tStart <= tEnd even if a
+      // record happens to store end before start
+      tStart = Math.min(si, ei)
+      tEnd = Math.max(si, ei)
+      xStart = xOf(si)
+      xEnd = xOf(ei)
       whiskers = []
       const rs = fuzzRangeOf(e.start)
       if (rs.latest > rs.earliest) whiskers.push({ lo: xOf(rs.earliest), hi: xOf(rs.latest) })
@@ -138,7 +146,10 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
     } else {
       kind = 'point'
       const tp = (e.start ?? e.end)!
-      xStart = xOf(instantOf(tp))
+      const inst = instantOf(tp)
+      tStart = inst
+      tEnd = inst
+      xStart = xOf(inst)
       xEnd = xStart
       whiskers = []
       const r = fuzzRangeOf(tp)
@@ -162,6 +173,8 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
       label: { text: placed.text, side: placed.side, x: placed.x },
       left: placed.occLeft,
       right: placed.occRight,
+      tStart,
+      tEnd,
     })
   }
 

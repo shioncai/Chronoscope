@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "electron:preview": "ELECTRON=1 vite build && electron .",
-    "electron:build": "ELECTRON=1 vite build && electron-builder --win zip",
+    "electron:build": "ELECTRON=1 vite build && electron-builder --win && node scripts/pack-portable.mjs",
     "electron:dev": "ELECTRON_RENDERER_URL=http://localhost:5173 electron ."
   },
   "dependencies": {
@@ -59,11 +59,12 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "build/icon.ico"
     ],
     "win": {
       "target": [
-        "zip"
+        "dir"
       ],
       "icon": "build/icon.ico"
     }

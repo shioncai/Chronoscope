@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildScene, eventInstant, aggregateMarkers } from './scene'
 import { ev, y } from '../../test/fixtures'
-import { withFuzz } from '../../domain/time'
+import { withFuzz, migrateEventTimes } from '../../domain/time'
 import { labelWidth } from './labels'
 
 const base = { view: { min: 2000, max: 2100 }, overview: { min: 2000, max: 2100 }, nowYear: 2026, width: 1000, selectedId: null }
@@ -33,6 +33,23 @@ describe('buildScene', () => {
     expect(g.kind).toBe('point')
     expect(g.xStart).toBeCloseTo(500, 0) // (2050-2000)/100 * 1000
     expect(g.xEnd).toBeCloseTo(g.xStart, 6)
+  })
+  it('stacks 显生宙 above 寒武纪 after migrating their same-input deep-time starts', () => {
+    // The two real records both entered as "538.8 Ma ago" but stored slightly
+    // different absolute years (nowYear drift). After migration they share an ago,
+    // so the longer eon (显生宙) deterministically sits above 寒武纪.
+    const nowY = 2026.505466
+    const cam = migrateEventTimes(
+      ev({ id: 'cam', title: '寒武纪', start: { year: -538797973.4962629, precision: 'Ma' as const }, end: { year: -486847973.4962629, precision: 'Ma' as const } }),
+      nowY,
+    )!
+    const pha = migrateEventTimes(
+      ev({ id: 'pha', title: '显生宙', start: { year: -538797973.494534, precision: 'Ma' as const }, end: { year: 2026.5, precision: 'Ma' as const } }),
+      nowY,
+    )!
+    const scene = buildScene({ ...base, view: { min: -6e8, max: 2026 }, overview: { min: -6e8, max: 2026 }, events: [cam, pha] })
+    const row = (id: string) => scene.detail.glyphs.find((g) => g.eventId === id)!.row
+    expect(row('pha')).toBeLessThan(row('cam')) // 显生宙 (longer) on top
   })
   it('builds a span between start and end', () => {
     const scene = buildScene({ ...base, events: [ev({ id: 's', start: y(2025), end: y(2075) })] })

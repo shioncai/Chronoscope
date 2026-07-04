@@ -9,7 +9,7 @@ const { version } = JSON.parse(readFileSync('package.json', 'utf8'))
 const releaseDir = 'release'
 const unpacked = `${releaseDir}/win-unpacked`
 const folder = `${releaseDir}/Chronoscope`
-const zipName = `Chronoscope-${version}-win.zip`
+const zipName = `Chronoscope-v${version}-win.zip`
 
 if (!existsSync(unpacked)) {
   console.error(`Missing ${unpacked}. Run "electron-builder --win" first.`)

@@ -30,7 +30,7 @@ afterEach(() => {
 const renderSidebar = () =>
   render(
     <AppStoreProvider value={app}>
-      <Sidebar open />
+      <Sidebar open onEdit={() => {}} />
     </AppStoreProvider>,
   )
 

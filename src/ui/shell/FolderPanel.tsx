@@ -1,25 +1,47 @@
 import { Fragment, useState } from 'react'
 import {
   useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
-  descendantCategoryIds, computeDropTarget, liveFolderAt, soloFolder, isScopeEmpty, type CategoryNode,
+  descendantCategoryIds, computeDropTarget, liveFolderAt,
+  memberEventIds, folderCheckState, toggleFolder, toggleEvent, soloFolder,
+  type CategoryNode, type CheckState,
 } from '../../state'
-import type { Id } from '../../domain/model'
+import type { Id, EventRecord } from '../../domain/model'
+import { formatTimePoint, instantOf } from '../../domain/time'
 import { CATEGORY_PRESETS, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
 import { ColorPicker } from './ColorPicker'
 import { AddFolderForm } from './AddFolderForm'
 
-// 把可见树拍平成有序行，带 depth，用于拖拽落点计算
-interface FlatRow { id: Id; depth: number; parentId: Id | null; hasChildren: boolean }
-function flattenVisible(nodes: CategoryNode[], collapsed: Set<Id>, depth = 0, out: FlatRow[] = []): FlatRow[] {
+type Row =
+  | { kind: 'folder'; id: Id; depth: number; parentId: Id | null; node: CategoryNode; hasChildren: boolean }
+  | { kind: 'event'; id: Id; depth: number; event: EventRecord }
+
+const anchor = (e: EventRecord): number =>
+  e.start ? instantOf(e.start) : e.end ? instantOf(e.end) : Number.POSITIVE_INFINITY
+
+// 展开的文件夹：先递归子文件夹（手动 order），再追加其直属事件（起始时间升序）。
+function buildRows(
+  nodes: CategoryNode[], eventsByCat: Map<Id, EventRecord[]>, expanded: Set<Id>, depth = 0, out: Row[] = [],
+): Row[] {
   for (const n of nodes) {
-    const hasChildren = n.children.length > 0
-    out.push({ id: n.category.id, depth, parentId: n.category.parentId, hasChildren })
-    if (hasChildren && !collapsed.has(n.category.id)) flattenVisible(n.children, collapsed, depth + 1, out)
+    const evs = (eventsByCat.get(n.category.id) ?? []).slice().sort((a, b) => anchor(a) - anchor(b))
+    const hasChildren = n.children.length > 0 || evs.length > 0
+    out.push({ kind: 'folder', id: n.category.id, depth, parentId: n.category.parentId, node: n, hasChildren })
+    if (hasChildren && expanded.has(n.category.id)) {
+      buildRows(n.children, eventsByCat, expanded, depth + 1, out)
+      for (const e of evs) out.push({ kind: 'event', id: e.id, depth: depth + 1, event: e })
+    }
   }
   return out
 }
 
-export function FolderPanel() {
+const eventTime = (e: EventRecord): string =>
+  e.start ? formatTimePoint(e.start) : e.end ? formatTimePoint(e.end) : '—'
+
+export interface FolderPanelProps {
+  onEdit: (id: Id) => void
+}
+
+export function FolderPanel({ onEdit }: FolderPanelProps) {
   const app = useAppStore()
   const state = useAppState()
   const tree = buildCategoryTree(state.categories)
@@ -27,19 +49,44 @@ export function FolderPanel() {
   const live = state.categories.filter((c) => !c.deleted)
   const liveEvents = state.events.filter((e) => !e.deleted)
 
-  const [collapsed, setCollapsed] = useState<Set<Id>>(new Set())
+  const [expanded, setExpanded] = useState<Set<Id>>(new Set()) // 默认全折叠
   const [addOpen, setAddOpen] = useState(false)
   const [colorFor, setColorFor] = useState<Id | null>(null)
   const [custom, setCustom] = useState<string[]>(() => loadCustomColors(window.localStorage))
   const [dragId, setDragId] = useState<Id | null>(null)
   const [drop, setDrop] = useState<{ id: Id; mode: 'before' | 'after' | 'into' } | null>(null)
-  // hovering the empty strip below the last row = "make this a top-level folder,
-  // appended at the end" — otherwise a subfolder can only be promoted by dropping
-  // it onto an existing top-level row, which isn't obvious.
   const [tailOver, setTailOver] = useState(false)
   const [renaming, setRenaming] = useState<Id | null>(null)
   const [renameVal, setRenameVal] = useState('')
   const [renameError, setRenameError] = useState('')
+
+  const scope = state.filter.scope
+  const members = memberEventIds(scope, state.categories, state.events)
+  const checkedFolders = new Set(scope.folderIds)
+
+  const eventsByCat = new Map<Id, EventRecord[]>()
+  for (const e of liveEvents) {
+    if (e.categoryId == null) continue
+    const arr = eventsByCat.get(e.categoryId) ?? []
+    arr.push(e)
+    eventsByCat.set(e.categoryId, arr)
+  }
+  const rows = buildRows(tree, eventsByCat, expanded)
+  const byId = new Map(live.map((c) => [c.id, c]))
+
+  const clearModes = { uncategorized: false, untagged: false, trash: false }
+  const solo = (id: Id) => app.setFilter({ scope: soloFolder(id), ...clearModes })
+  const toggleFolderScope = (id: Id) =>
+    app.setFilter({ scope: toggleFolder(scope, id, state.categories, state.events), ...clearModes })
+  const toggleEventScope = (e: EventRecord) =>
+    app.setFilter({ scope: toggleEvent(scope, e, state.categories), ...clearModes })
+
+  const toggleExpand = (id: Id) => setExpanded((p) => {
+    const n = new Set(p)
+    if (n.has(id)) n.delete(id)
+    else n.add(id)
+    return n
+  })
 
   const startRename = (id: Id, name: string) => { setColorFor(null); setRenameVal(name); setRenaming(id); setRenameError('') }
   const commitRename = () => {
@@ -58,16 +105,6 @@ export function FolderPanel() {
     setRenameError('')
   }
 
-  const rows = flattenVisible(tree, collapsed)
-  const byId = new Map(live.map((c) => [c.id, c]))
-
-  const toggle = (id: Id) => setCollapsed((p) => {
-    const n = new Set(p)
-    if (n.has(id)) n.delete(id)
-    else n.add(id)
-    return n
-  })
-  const pick = (id: Id) => app.setFilter({ scope: soloFolder(id), uncategorized: false, untagged: false, trash: false })
   const del = (id: Id, name: string) => {
     const ids = descendantCategoryIds(state.categories, id)
     const n = liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).length
@@ -75,11 +112,10 @@ export function FolderPanel() {
     if (!window.confirm(msg)) return
     app.deleteCategory(id)
     const evGone = new Set(liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).map((e) => e.id))
-    const sc = state.filter.scope
     app.setFilter({ scope: {
-      folderIds: sc.folderIds.filter((f) => !ids.has(f)),
-      includeEvents: sc.includeEvents.filter((i) => !evGone.has(i)),
-      excludeEvents: sc.excludeEvents.filter((i) => !evGone.has(i)),
+      folderIds: scope.folderIds.filter((f) => !ids.has(f)),
+      includeEvents: scope.includeEvents.filter((i) => !evGone.has(i)),
+      excludeEvents: scope.excludeEvents.filter((i) => !evGone.has(i)),
     } })
   }
 
@@ -87,15 +123,12 @@ export function FolderPanel() {
     if (dragId && drop) {
       const { parentId, beforeId } = computeDropTarget(state.categories, dragId, drop.id, drop.mode)
       const drag = state.categories.find((c) => c.id === dragId)
-      // 目标父级已有同名活跃文件夹 → 放弃移动
       if (!(drag && liveFolderAt(state.categories, drag.name, parentId, dragId))) {
         void app.moveCategory(dragId, parentId, beforeId)
       }
     }
     setDragId(null); setDrop(null); setTailOver(false)
   }
-
-  // drop onto the tail strip → promote to a top-level folder at the end
   const onTailDrop = () => {
     if (dragId) {
       const drag = state.categories.find((c) => c.id === dragId)
@@ -106,6 +139,20 @@ export function FolderPanel() {
     setDragId(null); setDrop(null); setTailOver(false)
   }
 
+  const checkbox = (opts: { state: CheckState; label: string; onClick: () => void }) => (
+    <button type="button" role="checkbox"
+      aria-checked={opts.state === 'checked' ? true : opts.state === 'indeterminate' ? 'mixed' : false}
+      aria-label={opts.label} className={`tree-cb cb-${opts.state}`}
+      onClick={(e) => { e.stopPropagation(); opts.onClick() }}>
+      {opts.state === 'checked' && (
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="3,8 7,12 13,4" /></svg>
+      )}
+      {opts.state === 'indeterminate' && (
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="3"><line x1="4" y1="8" x2="12" y2="8" /></svg>
+      )}
+    </button>
+  )
+
   return (
     <section className="module">
       <div className="module-head">
@@ -115,23 +162,33 @@ export function FolderPanel() {
       </div>
       {addOpen && (
         <AddFolderForm defaultParentId={
-            state.filter.scope.folderIds.length === 1 && state.filter.scope.includeEvents.length === 0
-              ? state.filter.scope.folderIds[0] : null
+            scope.folderIds.length === 1 && scope.includeEvents.length === 0 ? scope.folderIds[0] : null
           }
           onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />
       )}
       <div className={dragId != null ? 'folder-list dragging' : 'folder-list'}
         onDragEnd={() => { setDragId(null); setDrop(null); setTailOver(false) }}>
         {rows.map((row) => {
+          if (row.kind === 'event') {
+            const e = row.event
+            const checked = members.has(e.id)
+            return (
+              <div key={`e-${row.id}`} className="event-row" style={{ paddingLeft: 8 + row.depth * 16 }}
+                onClick={() => { app.select(e.id); onEdit(e.id) }}>
+                <span className="twisty-spacer" />
+                {checkbox({ state: checked ? 'checked' : 'unchecked', label: `选择「${e.title}」`, onClick: () => toggleEventScope(e) })}
+                <span className="ev-label" title={e.title}>{e.title}</span>
+                <span className="ev-time mono">{eventTime(e)}</span>
+              </div>
+            )
+          }
           const c = byId.get(row.id)!
+          const fstate = folderCheckState(row.id, state.categories, state.events, members, checkedFolders)
           const cls = ['folder-row']
-          const soloed = state.filter.scope.folderIds.length === 1 && state.filter.scope.folderIds[0] === row.id
-            && isScopeEmpty({ ...state.filter.scope, folderIds: [] })
-          if (soloed) cls.push('active')
           if (drop?.id === row.id) cls.push(`drop-${drop.mode}`)
           if (dragId === row.id) cls.push('dragging')
           return (
-            <Fragment key={row.id}>
+            <Fragment key={`f-${row.id}`}>
               <div className={cls.join(' ')} draggable
                 style={{ paddingLeft: 8 + row.depth * 16 }}
                 onDragStart={() => setDragId(row.id)}
@@ -146,21 +203,17 @@ export function FolderPanel() {
                 }}
                 onDrop={onDrop}>
                 {row.hasChildren ? (
-                  <button type="button" className={collapsed.has(row.id) ? 'twisty collapsed' : 'twisty'}
-                    aria-label={`${collapsed.has(row.id) ? '展开' : '折叠'}「${c.name}」`} aria-expanded={!collapsed.has(row.id)}
-                    onClick={() => toggle(row.id)}>
+                  <button type="button" className={expanded.has(row.id) ? 'twisty' : 'twisty collapsed'}
+                    aria-label={`${expanded.has(row.id) ? '折叠' : '展开'}「${c.name}」`} aria-expanded={expanded.has(row.id)}
+                    onClick={(e) => { e.stopPropagation(); toggleExpand(row.id) }}>
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,6 8,10 12,6" /></svg>
                   </button>
                 ) : <span className="twisty-spacer" />}
+                {checkbox({ state: fstate, label: `选择文件夹「${c.name}」`, onClick: () => toggleFolderScope(row.id) })}
                 <button type="button" className="color-dot" style={{ background: c.color }}
-                  aria-label={`设置「${c.name}」颜色`} onClick={() => setColorFor((cur) => cur === row.id ? null : row.id)} />
+                  aria-label={`设置「${c.name}」颜色`} onClick={(e) => { e.stopPropagation(); setColorFor((cur) => cur === row.id ? null : row.id) }} />
                 {renaming === row.id ? (
-                  <input
-                    className="rename-input"
-                    aria-label={`重命名「${c.name}」`}
-                    value={renameVal}
-                    autoFocus
-                    draggable={false}
+                  <input className="rename-input" aria-label={`重命名「${c.name}」`} value={renameVal} autoFocus draggable={false}
                     onChange={(e) => setRenameVal(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     onDragStart={(e) => e.preventDefault()}
@@ -168,17 +221,16 @@ export function FolderPanel() {
                       if (e.key === 'Enter') commitRename()
                       else if (e.key === 'Escape') { setRenaming(null); setRenameError('') }
                     }}
-                    onBlur={commitRename}
-                  />
+                    onBlur={commitRename} />
                 ) : (
-                  <button type="button" className="label" onClick={() => pick(row.id)}
+                  <button type="button" className="label" onClick={() => solo(row.id)}
                     onDoubleClick={() => startRename(row.id, c.name)} title={c.name}>{c.name}</button>
                 )}
                 <span className="count">{counts.get(row.id) ?? 0}</span>
                 <span className="row-actions">
                   <button type="button" className="rename" aria-label={`重命名文件夹「${c.name}」`}
-                    onClick={() => startRename(row.id, c.name)}>✎</button>
-                  <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={() => del(row.id, c.name)}>×</button>
+                    onClick={(e) => { e.stopPropagation(); startRename(row.id, c.name) }}>✎</button>
+                  <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={(e) => { e.stopPropagation(); del(row.id, c.name) }}>×</button>
                 </span>
                 {colorFor === row.id && (
                   <div className="dot-picker">
@@ -194,18 +246,10 @@ export function FolderPanel() {
             </Fragment>
           )
         })}
-        <div
-          className={tailOver ? 'folder-tail over' : 'folder-tail'}
-          aria-hidden="true"
-          onDragOver={(e) => {
-            if (dragId == null) return
-            e.preventDefault()
-            setDrop(null)
-            setTailOver(true)
-          }}
+        <div className={tailOver ? 'folder-tail over' : 'folder-tail'} aria-hidden="true"
+          onDragOver={(e) => { if (dragId == null) return; e.preventDefault(); setDrop(null); setTailOver(true) }}
           onDragLeave={() => setTailOver(false)}
-          onDrop={onTailDrop}
-        />
+          onDrop={onTailDrop} />
       </div>
     </section>
   )

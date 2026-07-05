@@ -80,7 +80,7 @@ function ShellBody() {
     <div className="app-shell" ref={shellRef} style={{ '--sidebar-w': `${sidebarWidth}px` } as CSSProperties}>
       <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((o) => !o)} />
       <div className="body">
-        <Sidebar open={sidebarOpen} onResizeStart={startResize} />
+        <Sidebar open={sidebarOpen} onResizeStart={startResize} onEdit={(id) => setEditor(id)} />
         <main className="view-area">
           {state.view === 'list' ? (
             <ListView onEdit={(id) => setEditor(id)} />

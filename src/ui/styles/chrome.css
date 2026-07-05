@@ -464,3 +464,18 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .folder-tail.over{background:var(--accent-soft);border-radius:9px;}
 .folder-tail.over::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:2px;background:var(--accent);border-radius:2px;}
 .dot-picker{position:absolute;left:24px;top:34px;z-index:5;}
+/* tri-state checkbox: small, thin outline, coloured tick with no fill; the
+   unchecked box stays hidden at rest and only fades in on row hover, so a
+   scope-less tree reads as a quiet list. checked/indeterminate always show. */
+.tree-cb{flex:0 0 auto;width:15px;height:15px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1.4px solid var(--border);border-radius:4px;background:transparent;cursor:pointer;transition:opacity .15s,border-color .15s;}
+.tree-cb svg{width:10px;height:10px;color:var(--accent);}
+.cb-checked,.cb-indeterminate{border-color:var(--accent);}
+.cb-unchecked{opacity:0;}
+.folder-row:hover .cb-unchecked,.event-row:hover .cb-unchecked{opacity:1;border-color:var(--faint);}
+/* event rows: nested under their folder; checkbox + title + unit-bearing time,
+   no colour dot (folders keep the dot, so events read distinctly). */
+.event-row{display:flex;align-items:center;gap:9px;height:30px;border-radius:9px;cursor:pointer;color:var(--text);font-size:13px;transition:background .16s;padding-right:10px;}
+.event-row:hover{background:var(--hover);}
+.event-row .twisty-spacer{flex:0 0 auto;width:20px;}
+.event-row .ev-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.event-row .ev-time{flex:0 0 auto;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums;}

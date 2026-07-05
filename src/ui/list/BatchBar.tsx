@@ -3,13 +3,12 @@ import {
   useAppStore,
   useAppState,
   flattenCategoryTree,
-  moveConflicts,
-  dedupeTargetMovers,
   type RestoreConflict,
 } from '../../state'
 import { MoveMenu } from '../shell/MoveMenu'
 import { TagMenu } from './TagMenu'
 import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
+import { useEventMove } from '../shell/useEventMove'
 import type { Id } from '../../domain/model'
 
 type OpenMenu = 'folder' | 'addTag' | 'removeTag' | null
@@ -23,13 +22,13 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
   const ids = state.checkedIds
   const [open, setOpen] = useState<OpenMenu>(null)
   const [restoreConflicts, setRestoreConflicts] = useState<EventConflictItem[]>([])
-  const [moveCtx, setMoveCtx] = useState<{ target: Id | null; items: EventConflictItem[] } | null>(null)
+  const { move: moveEvents, dialog: moveDialog } = useEventMove()
 
   // restoreEvents()/deleteEvents() drop every requested id from checkedIds
   // regardless of whether it conflicted (the selection was "consumed"), so once
-  // a conflict dialog is pending, ids.length alone can no longer gate rendering
-  // — keep the bar mounted while either a restore or a move dialog is open.
-  if (ids.length === 0 && restoreConflicts.length === 0 && !moveCtx) return null
+  // a restore conflict dialog is pending, ids.length alone can no longer gate
+  // rendering — keep the bar mounted while a restore dialog is open.
+  if (ids.length === 0 && restoreConflicts.length === 0) return null
 
   // Recycle-bin selection: restore / permanent-delete instead of move/tag/delete.
   if (trash) {
@@ -95,42 +94,11 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
   const removableTags = allTags.filter((t) => present.has(t.id))
 
   // Moving into a folder that already holds a live same-title event would
-  // create two "files" at the same (title, folder). Route those through the
-  // conflict dialog; non-colliding moves apply immediately.
+  // create two "files" at the same (title, folder). useEventMove routes those
+  // through the conflict dialog; non-colliding moves apply immediately.
   const move = (parentId: Id | null) => {
     setOpen(null)
-    const conflicts = moveConflicts(state.events, ids, parentId)
-    if (conflicts.length === 0) {
-      // Even with no cross-selection conflict, two same-title movers could still
-      // collide with each other in the target — dedupe (keep-first) before applying.
-      void app.setEventsCategory(dedupeTargetMovers(state.events, ids, parentId), parentId)
-      return
-    }
-    setMoveCtx({
-      target: parentId,
-      items: conflicts.map((c) => ({
-        incoming: state.events.find((e) => e.id === c.movingId)!,
-        existing: state.events.find((e) => e.id === c.existingId)!,
-      })),
-    })
-  }
-  const resolveMove = async (choices: Record<Id, 'overwrite' | 'skip'>) => {
-    const ctx = moveCtx!
-    setMoveCtx(null)
-    const conflictIds = new Set(ctx.items.map((i) => i.incoming.id))
-    const superseded = ctx.items.filter((i) => choices[i.incoming.id] === 'overwrite').map((i) => i.existing.id)
-    // move everything selected except events the user chose to skip
-    const toMove = ids.filter((id) => !conflictIds.has(id) || choices[id] !== 'skip')
-    // 'overwrite': the moved event wins completely; the existing occupant is
-    // permanently removed (not sent to the recycle bin).
-    if (superseded.length) await app.purgeEvents(superseded)
-    // Final dedupe guard: two same-title movers, or a mover vs a same-title
-    // occupant that stays, must not both land. Superseded occupants free their
-    // title (they're permanently removed), so overwrite replacements can move in.
-    await app.setEventsCategory(
-      dedupeTargetMovers(state.events, toMove, ctx.target, new Set(superseded)),
-      ctx.target,
-    )
+    moveEvents(ids, parentId)
   }
   const addTag = (tagId: Id) => {
     void app.addTagToEvents(ids, tagId)
@@ -195,14 +163,7 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
           ✕
         </button>
       </div>
-      {moveCtx && (
-        <EventConflictDialog
-          title="移动冲突"
-          conflicts={moveCtx.items}
-          onResolve={(choices) => void resolveMove(choices)}
-          onCancel={() => setMoveCtx(null)}
-        />
-      )}
+      {moveDialog}
     </>
   )
 }

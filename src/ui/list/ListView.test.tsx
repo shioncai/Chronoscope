@@ -87,6 +87,15 @@ describe('ListView', () => {
     expect(onEdit).not.toHaveBeenCalled()
   })
 
+  it('renders selection as the shared styled checkbox control (not a native input)', async () => {
+    await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    renderList()
+    const rowCb = screen.getByRole('checkbox', { name: '选择「x」' })
+    expect(rowCb.tagName).toBe('BUTTON')
+    expect(rowCb.classList.contains('tree-cb')).toBe(true)
+    expect(screen.getByRole('checkbox', { name: '全选' }).tagName).toBe('BUTTON')
+  })
+
   it('select-all checks every visible row; clicking again clears them', async () => {
     await app.createEvent({ title: 'a', start: { year: 1, precision: 'year' } })
     await app.createEvent({ title: 'b', start: { year: 2, precision: 'year' } })

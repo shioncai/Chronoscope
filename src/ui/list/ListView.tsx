@@ -4,6 +4,7 @@ import { formatTimeRange } from './timeText'
 import { BatchBar } from './BatchBar'
 import { markdownToText } from '../features/markdown/text'
 import type { Id } from '../../domain/model'
+import { Checkbox } from '../shell/Checkbox'
 
 export interface ListViewProps {
   onEdit: (id: Id) => void
@@ -55,14 +56,10 @@ export function ListView({ onEdit }: ListViewProps) {
           <thead>
             <tr>
               <th className="col-check">
-                <input
-                  type="checkbox"
-                  aria-label="全选"
-                  checked={allChecked}
-                  ref={(el) => {
-                    if (el) el.indeterminate = someChecked && !allChecked
-                  }}
-                  onChange={toggleAll}
+                <Checkbox
+                  state={allChecked ? 'checked' : someChecked ? 'indeterminate' : 'unchecked'}
+                  label="全选"
+                  onClick={toggleAll}
                 />
               </th>
               {COLUMNS.map((c) => (
@@ -95,12 +92,10 @@ export function ListView({ onEdit }: ListViewProps) {
                 }}
               >
                 <td className="col-check">
-                  <input
-                    type="checkbox"
-                    aria-label={`选择「${e.title}」`}
-                    checked={checked.has(e.id)}
-                    onChange={() => app.toggleChecked(e.id)}
-                    onClick={(ev) => ev.stopPropagation()}
+                  <Checkbox
+                    state={checked.has(e.id) ? 'checked' : 'unchecked'}
+                    label={`选择「${e.title}」`}
+                    onClick={() => app.toggleChecked(e.id)}
                   />
                 </td>
                 <td>

@@ -177,6 +177,15 @@ describe('FolderPanel', () => {
     expect(app.store.getState().filter.scope.folderIds).toEqual([])
   })
 
+  it('clicking an event’s checkbox toggles scope without opening the editor', async () => {
+    const f = await app.createCategory({ name: '历史' })
+    await app.createEvent({ title: '工业革命', categoryId: f, start: fromYear(1760, 'year') })
+    r()
+    await userEvent.click(screen.getByLabelText('展开「历史」'))
+    await userEvent.click(screen.getByLabelText('选择「工业革命」'))
+    expect(onEdit).not.toHaveBeenCalled()
+  })
+
   it('clicking the folder name solos but does NOT expand it', async () => {
     const f = await app.createCategory({ name: '历史' })
     await app.createEvent({ title: '工业革命', categoryId: f, start: fromYear(1760, 'year') })

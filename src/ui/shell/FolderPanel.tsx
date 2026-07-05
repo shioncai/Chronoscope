@@ -190,12 +190,15 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
             return (
               <div key={`e-${row.id}`} className="event-row" draggable
                 style={{ paddingLeft: 8 + row.depth * 16 }}
-                onDragStart={(ev) => { ev.stopPropagation(); setDragId(e.id); setDragKind('event') }}
-                onClick={() => { app.select(e.id); onEdit(e.id) }}>
+                onDragStart={(ev) => { ev.stopPropagation(); setDragId(e.id); setDragKind('event') }}>
                 <span className="twisty-spacer" />
                 {checkbox({ state: checked ? 'checked' : 'unchecked', label: `选择「${e.title}」`, onClick: () => toggleEventScope(e) })}
-                <span className="ev-label" title={e.title}>{e.title}</span>
-                <span className="ev-time mono">{eventTime(e)}</span>
+                {/* 打开编辑器的点击区从事件名开始往右，避开旁边的小复选框 */}
+                <button type="button" className="ev-main" title={e.title}
+                  onClick={() => { app.select(e.id); onEdit(e.id) }}>
+                  <span className="ev-label">{e.title}</span>
+                  <span className="ev-time mono">{eventTime(e)}</span>
+                </button>
               </div>
             )
           }

@@ -363,10 +363,13 @@ legend {
 input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
 
 /* ---------- list-view batch action bar (floating, bottom-center) ---------- */
-/* .list-pane is intentionally NOT a positioning context: the floating batch bar
-   inside it anchors to .view-area (position:relative, full height) so it sits at
-   the bottom-center of the content area — like the FAB — instead of the bottom of
-   the short table. */
+/* .list-pane is the batch bar's positioning context and it must NOT scroll: an
+   abspos child of a scroll container is placed against the scrollable content box
+   and rides along with it. So .list-pane is a fixed, full-height frame and the
+   rows scroll inside .list-scroll instead — this keeps the bar pinned to the
+   bottom-center of the content area (like the FAB) as the list scrolls. */
+.list-pane{position:relative;height:100%;display:flex;flex-direction:column;overflow:hidden;}
+.list-scroll{flex:1;min-height:0;overflow:auto;}
 .batch-bar{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;flex-wrap:nowrap;align-items:center;gap:5px;padding:8px 10px;max-width:calc(100% - 24px);background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);z-index:9;animation:slideUp .24s cubic-bezier(.34,1.56,.64,1);}
 .batch-bar > *{flex:0 0 auto;}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
@@ -474,8 +477,12 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .folder-row:hover .cb-unchecked,.event-row:hover .cb-unchecked{opacity:1;border-color:var(--faint);}
 /* event rows: nested under their folder; checkbox + title + unit-bearing time,
    no colour dot (folders keep the dot, so events read distinctly). */
-.event-row{display:flex;align-items:center;gap:9px;height:30px;border-radius:9px;cursor:pointer;color:var(--text);font-size:13px;transition:background .16s;padding-right:10px;}
+.event-row{display:flex;align-items:center;gap:9px;height:30px;border-radius:9px;cursor:grab;color:var(--text);font-size:13px;transition:background .16s;padding-right:10px;}
 .event-row:hover{background:var(--hover);}
 .event-row .twisty-spacer{flex:0 0 auto;width:20px;}
+/* the editor-open hit area: fills from the title to the row's right edge, so a
+   near-miss on the small checkbox no longer opens the editor. */
+.event-row .ev-main{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:9px;padding:0;margin:0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;}
+.event-row .ev-main:hover{border-color:transparent;}
 .event-row .ev-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .event-row .ev-time{flex:0 0 auto;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums;}

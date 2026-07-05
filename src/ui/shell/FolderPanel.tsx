@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import {
   useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
   descendantCategoryIds, computeDropTarget, liveFolderAt,
@@ -10,6 +10,7 @@ import { formatTimePoint, instantOf } from '../../domain/time'
 import { CATEGORY_PRESETS, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
 import { ColorPicker } from './ColorPicker'
 import { AddFolderForm } from './AddFolderForm'
+import { useEventMove } from './useEventMove'
 
 type Row =
   | { kind: 'folder'; id: Id; depth: number; parentId: Id | null; node: CategoryNode; hasChildren: boolean }
@@ -59,6 +60,19 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   const [renaming, setRenaming] = useState<Id | null>(null)
   const [renameVal, setRenameVal] = useState('')
   const [renameError, setRenameError] = useState('')
+  // event drag-to-reparent
+  const { move: moveEvent, dialog: moveDialog } = useEventMove()
+  const [dragKind, setDragKind] = useState<'folder' | 'event' | null>(null)
+  const [dropFolderId, setDropFolderId] = useState<Id | null>(null) // 事件拖拽的落点高亮
+  const springRef = useRef<{ id: Id; timer: ReturnType<typeof setTimeout> } | null>(null)
+  const cancelSpring = () => { if (springRef.current) { clearTimeout(springRef.current.timer); springRef.current = null } }
+  // 弹簧式展开：拖着事件在折叠文件夹上停留一会儿才展开，避免路过全展开。
+  const armSpring = (id: Id) => {
+    if (springRef.current?.id === id) return
+    cancelSpring()
+    springRef.current = { id, timer: setTimeout(() => { setExpanded((p) => new Set(p).add(id)); springRef.current = null }, 600) }
+  }
+  const endDrag = () => { setDragId(null); setDrop(null); setTailOver(false); setDragKind(null); setDropFolderId(null); cancelSpring() }
 
   const scope = state.filter.scope
   const members = memberEventIds(scope, state.categories, state.events)
@@ -127,16 +141,17 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
         void app.moveCategory(dragId, parentId, beforeId)
       }
     }
-    setDragId(null); setDrop(null); setTailOver(false)
+    endDrag()
   }
   const onTailDrop = () => {
+    if (dragKind === 'event') { endDrag(); return } // 事件拖到文件夹外 = 无操作
     if (dragId) {
       const drag = state.categories.find((c) => c.id === dragId)
       if (!(drag && liveFolderAt(state.categories, drag.name, null, dragId))) {
         void app.moveCategory(dragId, null, null)
       }
     }
-    setDragId(null); setDrop(null); setTailOver(false)
+    endDrag()
   }
 
   const checkbox = (opts: { state: CheckState; label: string; onClick: () => void }) => (
@@ -167,13 +182,15 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
           onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />
       )}
       <div className={dragId != null ? 'folder-list dragging' : 'folder-list'}
-        onDragEnd={() => { setDragId(null); setDrop(null); setTailOver(false) }}>
+        onDragEnd={endDrag}>
         {rows.map((row) => {
           if (row.kind === 'event') {
             const e = row.event
             const checked = members.has(e.id)
             return (
-              <div key={`e-${row.id}`} className="event-row" style={{ paddingLeft: 8 + row.depth * 16 }}
+              <div key={`e-${row.id}`} className="event-row" draggable
+                style={{ paddingLeft: 8 + row.depth * 16 }}
+                onDragStart={(ev) => { ev.stopPropagation(); setDragId(e.id); setDragKind('event') }}
                 onClick={() => { app.select(e.id); onEdit(e.id) }}>
                 <span className="twisty-spacer" />
                 {checkbox({ state: checked ? 'checked' : 'unchecked', label: `选择「${e.title}」`, onClick: () => toggleEventScope(e) })}
@@ -186,14 +203,21 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
           const fstate = folderCheckState(row.id, state.categories, state.events, members, checkedFolders)
           const cls = ['folder-row']
           if (drop?.id === row.id) cls.push(`drop-${drop.mode}`)
+          if (dragKind === 'event' && dropFolderId === row.id) cls.push('drop-into')
           if (dragId === row.id) cls.push('dragging')
           return (
             <Fragment key={`f-${row.id}`}>
               <div className={cls.join(' ')} draggable
                 style={{ paddingLeft: 8 + row.depth * 16 }}
-                onDragStart={() => setDragId(row.id)}
+                onDragStart={() => { setDragId(row.id); setDragKind('folder') }}
                 onDragOver={(e) => {
                   e.preventDefault()
+                  if (dragKind === 'event') {
+                    setDropFolderId(row.id)
+                    if (!expanded.has(row.id) && row.hasChildren) armSpring(row.id)
+                    else cancelSpring()
+                    return
+                  }
                   if (dragId === row.id) return
                   const r = e.currentTarget.getBoundingClientRect()
                   const y = e.clientY - r.top
@@ -201,7 +225,15 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                   setDrop({ id: row.id, mode })
                   setTailOver(false)
                 }}
-                onDrop={onDrop}>
+                onDrop={() => {
+                  if (dragKind === 'event' && dragId) {
+                    const moving = liveEvents.find((x) => x.id === dragId)
+                    if (moving && moving.categoryId !== row.id) moveEvent([dragId], row.id)
+                    endDrag()
+                    return
+                  }
+                  onDrop()
+                }}>
                 {row.hasChildren ? (
                   <button type="button" className={expanded.has(row.id) ? 'twisty' : 'twisty collapsed'}
                     aria-label={`${expanded.has(row.id) ? '折叠' : '展开'}「${c.name}」`} aria-expanded={expanded.has(row.id)}
@@ -251,6 +283,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
           onDragLeave={() => setTailOver(false)}
           onDrop={onTailDrop} />
       </div>
+      {moveDialog}
     </section>
   )
 }

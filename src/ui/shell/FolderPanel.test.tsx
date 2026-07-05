@@ -185,4 +185,30 @@ describe('FolderPanel', () => {
     expect(screen.queryByText('工业革命')).toBeNull()
     expect(app.store.getState().filter.scope.folderIds).toEqual([f])
   })
+
+  it('dragging an event onto another folder re-parents it', async () => {
+    const a = await app.createCategory({ name: 'A' })
+    const b = await app.createCategory({ name: 'B' })
+    const e = await app.createEvent({ title: '事件', categoryId: a, start: fromYear(1, 'year') })
+    const { container } = r()
+    await userEvent.click(screen.getByLabelText('展开「A」'))
+    const evRow = screen.getByText('事件').closest('.event-row')!
+    const folderB = [...container.querySelectorAll('.folder-row')].find((el) => el.textContent?.includes('B'))!
+    fireEvent.dragStart(evRow)
+    fireEvent.dragOver(folderB)
+    fireEvent.drop(folderB)
+    await waitFor(() => expect(app.store.getState().events.find((x) => x.id === e)?.categoryId).toBe(b))
+  })
+
+  it('dropping an event outside any folder does nothing', async () => {
+    const a = await app.createCategory({ name: 'A' })
+    const e = await app.createEvent({ title: '事件', categoryId: a, start: fromYear(1, 'year') })
+    const { container } = r()
+    await userEvent.click(screen.getByLabelText('展开「A」'))
+    const evRow = screen.getByText('事件').closest('.event-row')!
+    const tail = container.querySelector('.folder-tail')!
+    fireEvent.dragStart(evRow)
+    fireEvent.drop(tail)
+    expect(app.store.getState().events.find((x) => x.id === e)?.categoryId).toBe(a)
+  })
 })

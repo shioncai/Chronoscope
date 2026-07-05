@@ -3,12 +3,13 @@ import {
   useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
   descendantCategoryIds, computeDropTarget, liveFolderAt,
   memberEventIds, folderCheckState, toggleFolder, toggleEvent, soloFolder,
-  type CategoryNode, type CheckState,
+  type CategoryNode,
 } from '../../state'
 import type { Id, EventRecord } from '../../domain/model'
 import { formatTimePoint, instantOf } from '../../domain/time'
 import { ColorPicker } from './ColorPicker'
 import { AddFolderForm } from './AddFolderForm'
+import { Checkbox } from './Checkbox'
 import { useEventMove } from './useEventMove'
 
 type Row =
@@ -153,20 +154,6 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
     endDrag()
   }
 
-  const checkbox = (opts: { state: CheckState; label: string; onClick: () => void }) => (
-    <button type="button" role="checkbox"
-      aria-checked={opts.state === 'checked' ? true : opts.state === 'indeterminate' ? 'mixed' : false}
-      aria-label={opts.label} className={`tree-cb cb-${opts.state}`}
-      onClick={(e) => { e.stopPropagation(); opts.onClick() }}>
-      {opts.state === 'checked' && (
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="3,8 7,12 13,4" /></svg>
-      )}
-      {opts.state === 'indeterminate' && (
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="3"><line x1="4" y1="8" x2="12" y2="8" /></svg>
-      )}
-    </button>
-  )
-
   return (
     <section className="module">
       <div className="module-head">
@@ -191,7 +178,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                 style={{ paddingLeft: 8 + row.depth * 16 }}
                 onDragStart={(ev) => { ev.stopPropagation(); setDragId(e.id); setDragKind('event') }}>
                 <span className="twisty-spacer" />
-                {checkbox({ state: checked ? 'checked' : 'unchecked', label: `选择「${e.title}」`, onClick: () => toggleEventScope(e) })}
+                <Checkbox state={checked ? 'checked' : 'unchecked'} label={`选择「${e.title}」`} onClick={() => toggleEventScope(e)} />
                 {/* 打开编辑器的点击区从事件名开始往右，避开旁边的小复选框 */}
                 <button type="button" className="ev-main" title={e.title}
                   onClick={() => { app.select(e.id); onEdit(e.id) }}>
@@ -243,7 +230,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,6 8,10 12,6" /></svg>
                   </button>
                 ) : <span className="twisty-spacer" />}
-                {checkbox({ state: fstate, label: `选择文件夹「${c.name}」`, onClick: () => toggleFolderScope(row.id) })}
+                <Checkbox state={fstate} label={`选择文件夹「${c.name}」`} onClick={() => toggleFolderScope(row.id)} />
                 <button type="button" className="color-dot" style={{ background: c.color }} data-picker-trigger
                   ref={colorFor === row.id ? colorDotRef : null}
                   aria-label={`设置「${c.name}」颜色`} onClick={(e) => { e.stopPropagation(); setColorFor((cur) => cur === row.id ? null : row.id) }} />

@@ -23,35 +23,66 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, onPick, onC
   const rootRef = useRef<HTMLDivElement>(null)
   const addRef = useRef<HTMLButtonElement>(null)
   const hsvRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [hsvOpen, setHsvOpen] = useState(false)
+  const [editing, setEditing] = useState<string | null>(null) // original hex being edited
+  const [menu, setMenu] = useState<{ hex: string; at: { left: number; top: number } } | null>(null)
+
   const hsvStyle = useFlyout(addRef, hsvRef, hsvOpen)
+  const menuStyle = useFlyout(
+    { left: menu?.at.left ?? 0, top: menu?.at.top ?? 0, width: 0, height: 0 },
+    menuRef, menu != null,
+  )
 
   useDismiss(rootRef, onClose, true, insidePortal)
 
-  const swatch = (hex: string) => (
-    <button key={hex} type="button"
-      className={hex.toLowerCase() === norm ? 'swatch selected' : 'swatch'}
-      style={{ background: hex }} aria-label={`颜色 ${hex}`}
-      onClick={() => onPick(hex)} />
-  )
+  const clearPress = () => { if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null } }
 
-  const commitFree = (hex: string) => { palette.add(hex); onPick(hex); setHsvOpen(false) }
+  const swatch = (hex: string, custom = false) => {
+    const openMenu = (x: number, y: number) => setMenu({ hex, at: { left: x, top: y } })
+    return (
+      <button key={hex} type="button"
+        className={hex.toLowerCase() === norm ? 'swatch selected' : 'swatch'}
+        style={{ background: hex }} aria-label={`颜色 ${hex}`}
+        onClick={() => onPick(hex)}
+        onContextMenu={custom ? (e) => { e.preventDefault(); openMenu(e.clientX, e.clientY) } : undefined}
+        onPointerDown={custom ? (e) => { const x = e.clientX, y = e.clientY; pressTimer.current = setTimeout(() => openMenu(x, y), 500) } : undefined}
+        onPointerMove={custom ? clearPress : undefined}
+        onPointerUp={custom ? clearPress : undefined} />
+    )
+  }
+
+  const commitFree = (hex: string) => {
+    if (editing) palette.replace(editing, hex)
+    else palette.add(hex)
+    onPick(hex)
+    setHsvOpen(false)
+    setEditing(null)
+  }
 
   return (
     <div className="color-picker" ref={rootRef}>
       <div className="swatch-grid">
         {presets.map((row, i) => (
-          <div className="swatch-row" key={i}>{row.map(swatch)}</div>
+          <div className="swatch-row" key={i}>{row.map((h) => swatch(h))}</div>
         ))}
       </div>
       <div className="swatch-row custom-row">
-        {palette.custom.map(swatch)}
+        {palette.custom.map((h) => swatch(h, true))}
         <button ref={addRef} type="button" className="swatch add-custom" aria-label="自定义颜色"
-          onClick={() => setHsvOpen((o) => !o)}>＋</button>
+          onClick={() => { setEditing(null); setMenu(null); setHsvOpen((o) => !o) }}>＋</button>
       </div>
       {hsvOpen && createPortal(
         <div ref={hsvRef} className="picker-flyout" data-picker-flyout style={hsvStyle}>
-          <HsvPicker value={value} onChange={() => {}} onCommit={commitFree} />
+          <HsvPicker value={editing ?? value} onChange={() => {}} onCommit={commitFree} />
+        </div>,
+        document.body,
+      )}
+      {menu && createPortal(
+        <div ref={menuRef} className="picker-menu" data-picker-flyout style={menuStyle}>
+          <button type="button" onClick={() => { setEditing(menu.hex); setHsvOpen(true); setMenu(null) }}>编辑</button>
+          <button type="button" onClick={() => { palette.remove(menu.hex); setMenu(null) }}>删除</button>
         </div>,
         document.body,
       )}

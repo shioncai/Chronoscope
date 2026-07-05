@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useAppStore, useAppState, flattenCategoryTree, liveFolderAt } from '../../state'
 import type { Id } from '../../domain/model'
 import { nextPresetColor } from '../categoryColors'
@@ -18,6 +18,7 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
   const [color, setColor] = useState<string>(defaultColor(defaultParentId))
   const [touchedColor, setTouchedColor] = useState(false)
   const [swOpen, setSwOpen] = useState(false)
+  const dotRef = useRef<HTMLButtonElement>(null)
 
   const parents = useMemo(() => flattenCategoryTree(state.categories), [state.categories])
 
@@ -51,12 +52,12 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
             <option value="">顶级（无父文件夹）</option>
             {parents.map((t) => <option key={t.category.id} value={t.category.id}>{'　'.repeat(t.depth) + t.category.name}</option>)}
           </select></label>
-        <button type="button" className="dotbtn" aria-label="颜色" data-picker-trigger onClick={() => setSwOpen((o) => !o)}>
+        <button type="button" className="dotbtn" aria-label="颜色" data-picker-trigger ref={dotRef} onClick={() => setSwOpen((o) => !o)}>
           <span className="dot" style={{ background: color }} /></button>
       </div>
       <div className="hint2">默认颜色继承父文件夹；顶级则取下一预设色，可改。</div>
       {swOpen && (
-        <ColorPicker value={color}
+        <ColorPicker value={color} anchorRef={dotRef}
           onPick={(hex) => { setColor(hex); setTouchedColor(true); setSwOpen(false) }}
           onClose={() => setSwOpen(false)} />
       )}

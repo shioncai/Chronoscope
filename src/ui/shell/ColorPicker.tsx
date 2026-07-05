@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { CATEGORY_PRESET_GRID } from '../categoryColors'
 import { useCustomPalette } from './useCustomPalette'
@@ -9,6 +9,7 @@ import { HsvPicker } from './HsvPicker'
 export interface ColorPickerProps {
   value: string
   presets?: readonly (readonly string[])[]
+  anchorRef?: RefObject<HTMLElement | null>
   onPick: (hex: string) => void
   onClose: () => void
 }
@@ -17,7 +18,7 @@ const insidePortal = (t: Node) =>
   (t as Element).closest?.('[data-picker-flyout]') != null ||
   (t as Element).closest?.('[data-picker-trigger]') != null
 
-export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, onPick, onClose }: ColorPickerProps) {
+export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, anchorRef, onPick, onClose }: ColorPickerProps) {
   const norm = value.toLowerCase()
   const palette = useCustomPalette()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -29,6 +30,9 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, onPick, onC
   const [editing, setEditing] = useState<string | null>(null) // original hex being edited
   const [menu, setMenu] = useState<{ hex: string; at: { left: number; top: number } } | null>(null)
 
+  // The popover itself is portaled to <body> and positioned against the trigger,
+  // so it floats over the content and is never clipped by the sidebar's width.
+  const rootStyle = useFlyout(anchorRef ?? { left: 0, top: 0, width: 0, height: 0 }, rootRef, true)
   const hsvStyle = useFlyout(addRef, hsvRef, hsvOpen)
   const menuStyle = useFlyout(
     { left: menu?.at.left ?? 0, top: menu?.at.top ?? 0, width: 0, height: 0 },
@@ -61,8 +65,8 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, onPick, onC
     setEditing(null)
   }
 
-  return (
-    <div className="color-picker" ref={rootRef}>
+  return createPortal(
+    <div className="color-picker" data-picker-flyout ref={rootRef} style={rootStyle}>
       <div className="swatch-grid">
         {presets.map((row, i) => (
           <div className="swatch-row" key={i}>{row.map((h) => swatch(h))}</div>
@@ -86,6 +90,7 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, onPick, onC
         </div>,
         document.body,
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -52,6 +52,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   const [expanded, setExpanded] = useState<Set<Id>>(new Set()) // 默认全折叠
   const [addOpen, setAddOpen] = useState(false)
   const [colorFor, setColorFor] = useState<Id | null>(null)
+  const colorDotRef = useRef<HTMLButtonElement>(null)
   const [dragId, setDragId] = useState<Id | null>(null)
   const [drop, setDrop] = useState<{ id: Id; mode: 'before' | 'after' | 'into' } | null>(null)
   const [tailOver, setTailOver] = useState(false)
@@ -244,6 +245,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                 ) : <span className="twisty-spacer" />}
                 {checkbox({ state: fstate, label: `选择文件夹「${c.name}」`, onClick: () => toggleFolderScope(row.id) })}
                 <button type="button" className="color-dot" style={{ background: c.color }} data-picker-trigger
+                  ref={colorFor === row.id ? colorDotRef : null}
                   aria-label={`设置「${c.name}」颜色`} onClick={(e) => { e.stopPropagation(); setColorFor((cur) => cur === row.id ? null : row.id) }} />
                 {renaming === row.id ? (
                   <input className="rename-input" aria-label={`重命名「${c.name}」`} value={renameVal} autoFocus draggable={false}
@@ -266,11 +268,9 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                   <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={(e) => { e.stopPropagation(); del(row.id, c.name) }}>×</button>
                 </span>
                 {colorFor === row.id && (
-                  <div className="dot-picker">
-                    <ColorPicker value={c.color}
-                      onPick={(hex) => { void app.updateCategory(row.id, { color: hex }); setColorFor(null) }}
-                      onClose={() => setColorFor(null)} />
-                  </div>
+                  <ColorPicker value={c.color} anchorRef={colorDotRef}
+                    onPick={(hex) => { void app.updateCategory(row.id, { color: hex }); setColorFor(null) }}
+                    onClose={() => setColorFor(null)} />
                 )}
               </div>
               {renaming === row.id && renameError && (

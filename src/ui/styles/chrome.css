@@ -70,11 +70,12 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 2px 0 6px 24px;
+  margin: 0;
   padding: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 .color-picker .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .color-picker .swatch {
@@ -494,7 +495,6 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .folder-list.dragging .folder-tail{height:22px;}
 .folder-tail.over{background:var(--accent-soft);border-radius:9px;}
 .folder-tail.over::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:2px;background:var(--accent);border-radius:2px;}
-.dot-picker{position:absolute;left:24px;top:34px;z-index:5;}
 /* tri-state checkbox: small, thin outline, coloured tick with no fill; the
    unchecked box stays hidden at rest and only fades in on row hover, so a
    scope-less tree reads as a quiet list. checked/indeterminate always show. */

@@ -21,11 +21,11 @@ describe('FolderPanel', () => {
     await userEvent.click(screen.getByLabelText('添加文件夹'))
     expect(screen.getByLabelText('名称')).toBeTruthy()
   })
-  it('clicking a folder sets the category filter', async () => {
+  it('clicking a folder solos it into the scope', async () => {
     const id = await app.createCategory({ name: '历史' })
     r()
     await userEvent.click(screen.getByText('历史'))
-    expect(app.store.getState().filter.categoryId).toBe(id)
+    expect(app.store.getState().filter.scope.folderIds).toEqual([id])
   })
   it('clicking a folder clears the untagged filter', async () => {
     const id = await app.createCategory({ name: '历史' })
@@ -33,7 +33,7 @@ describe('FolderPanel', () => {
     r()
     await userEvent.click(screen.getByText('历史'))
     expect(app.store.getState().filter.untagged).toBe(false)
-    expect(app.store.getState().filter.categoryId).toBe(id)
+    expect(app.store.getState().filter.scope.folderIds).toEqual([id])
   })
   it('deletes a folder after confirmation', async () => {
     const id = await app.createCategory({ name: '历史' })

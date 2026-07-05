@@ -7,8 +7,10 @@ import {
   untaggedCount,
   deletedCount,
 } from './selectors'
-import { initialAppState, type AppState } from './types'
+import { initialAppState, type AppState, type Scope } from './types'
 import { ev, cat, tag, y } from '../test/fixtures'
+
+const NO: Scope = { folderIds: [], includeEvents: [], excludeEvents: [] }
 
 // helper to build a state with overrides
 function st(over: Partial<AppState>): AppState {
@@ -52,7 +54,7 @@ describe('visibleEvents', () => {
     const s = st({
       categories: [cat({ id: 'p' }), cat({ id: 'c', parentId: 'p' })],
       events: [ev({ id: 'a', categoryId: 'c', start: y(1) }), ev({ id: 'b', categoryId: null, start: y(2) })],
-      filter: { categoryId: 'p', tagIds: [], tagMode: 'or', query: '' },
+      filter: { scope: { folderIds: ['p'], includeEvents: [], excludeEvents: [] }, tagIds: [], tagMode: 'or', query: '' },
     })
     expect(visibleEvents(s).map((e) => e.id)).toEqual(['a'])
   })
@@ -60,7 +62,7 @@ describe('visibleEvents', () => {
     const s = st({
       categories: [cat({ id: 'c' })],
       events: [ev({ id: 'a', categoryId: 'c', start: y(1) }), ev({ id: 'b', categoryId: null, start: y(2) })],
-      filter: { categoryId: null, uncategorized: true, tagIds: [], tagMode: 'or', query: '' },
+      filter: { scope: NO, uncategorized: true, tagIds: [], tagMode: 'or', query: '' },
     })
     expect(visibleEvents(s).map((e) => e.id)).toEqual(['b'])
   })
@@ -69,15 +71,15 @@ describe('visibleEvents', () => {
       ev({ id: 'a', tagIds: ['t1', 't2'], start: y(1) }),
       ev({ id: 'b', tagIds: ['t1'], start: y(2) }),
     ]
-    const or = st({ events, filter: { categoryId: null, tagIds: ['t1', 't2'], tagMode: 'or', query: '' } })
+    const or = st({ events, filter: { scope: NO, tagIds: ['t1', 't2'], tagMode: 'or', query: '' } })
     expect(visibleEvents(or).map((e) => e.id).sort()).toEqual(['a', 'b'])
-    const and = st({ events, filter: { categoryId: null, tagIds: ['t1', 't2'], tagMode: 'and', query: '' } })
+    const and = st({ events, filter: { scope: NO, tagIds: ['t1', 't2'], tagMode: 'and', query: '' } })
     expect(visibleEvents(and).map((e) => e.id)).toEqual(['a'])
   })
   it('filters by case-insensitive query over title and note', () => {
     const s = st({
       events: [ev({ id: 'a', title: '登月', note: 'Apollo', start: y(1) }), ev({ id: 'b', title: 'x', note: 'y', start: y(2) })],
-      filter: { categoryId: null, tagIds: [], tagMode: 'or', query: 'apollo' },
+      filter: { scope: NO, tagIds: [], tagMode: 'or', query: 'apollo' },
     })
     expect(visibleEvents(s).map((e) => e.id)).toEqual(['a'])
   })

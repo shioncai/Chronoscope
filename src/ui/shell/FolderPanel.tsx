@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import {
   useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
-  descendantCategoryIds, computeDropTarget, liveFolderAt, type CategoryNode,
+  descendantCategoryIds, computeDropTarget, liveFolderAt, soloFolder, isScopeEmpty, type CategoryNode,
 } from '../../state'
 import type { Id } from '../../domain/model'
 import { CATEGORY_PRESETS, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
@@ -67,14 +67,20 @@ export function FolderPanel() {
     else n.add(id)
     return n
   })
-  const pick = (id: Id) => app.setFilter({ categoryId: state.filter.categoryId === id ? null : id, uncategorized: false, untagged: false, trash: false })
+  const pick = (id: Id) => app.setFilter({ scope: soloFolder(id), uncategorized: false, untagged: false, trash: false })
   const del = (id: Id, name: string) => {
     const ids = descendantCategoryIds(state.categories, id)
     const n = liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).length
     const msg = n > 0 ? `删除文件夹「${name}」会同时删除其下 ${n} 个事件（含子文件夹），不可撤销。确定？` : `删除文件夹「${name}」？`
     if (!window.confirm(msg)) return
     app.deleteCategory(id)
-    if (state.filter.categoryId != null && ids.has(state.filter.categoryId)) app.setFilter({ categoryId: null })
+    const evGone = new Set(liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).map((e) => e.id))
+    const sc = state.filter.scope
+    app.setFilter({ scope: {
+      folderIds: sc.folderIds.filter((f) => !ids.has(f)),
+      includeEvents: sc.includeEvents.filter((i) => !evGone.has(i)),
+      excludeEvents: sc.excludeEvents.filter((i) => !evGone.has(i)),
+    } })
   }
 
   const onDrop = () => {
@@ -108,7 +114,10 @@ export function FolderPanel() {
           onClick={() => setAddOpen((o) => !o)}>＋</button>
       </div>
       {addOpen && (
-        <AddFolderForm defaultParentId={state.filter.categoryId ?? null}
+        <AddFolderForm defaultParentId={
+            state.filter.scope.folderIds.length === 1 && state.filter.scope.includeEvents.length === 0
+              ? state.filter.scope.folderIds[0] : null
+          }
           onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />
       )}
       <div className={dragId != null ? 'folder-list dragging' : 'folder-list'}
@@ -116,7 +125,9 @@ export function FolderPanel() {
         {rows.map((row) => {
           const c = byId.get(row.id)!
           const cls = ['folder-row']
-          if (state.filter.categoryId === row.id) cls.push('active')
+          const soloed = state.filter.scope.folderIds.length === 1 && state.filter.scope.folderIds[0] === row.id
+            && isScopeEmpty({ ...state.filter.scope, folderIds: [] })
+          if (soloed) cls.push('active')
           if (drop?.id === row.id) cls.push(`drop-${drop.mode}`)
           if (dragId === row.id) cls.push('dragging')
           return (

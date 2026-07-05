@@ -1,12 +1,5 @@
 import type { EventRecord, Category, Id } from '../domain/model'
-
-// 独立于筛选存在的“筛选范围”。Task 2 起该 interface 迁到 types.ts 并被此处 import；
-// 现阶段本地定义以便 Task 1 自成一体、构建通过。
-export interface Scope {
-  folderIds: Id[] // 显式勾选的文件夹（级联其所有子孙文件夹与事件）
-  includeEvents: Id[] // 在“未被文件夹覆盖”的位置单独勾选的事件
-  excludeEvents: Id[] // 在“已被文件夹覆盖”的范围里单独排除的事件
-}
+import type { Scope } from './types'
 
 export const EMPTY_SCOPE: Scope = { folderIds: [], includeEvents: [], excludeEvents: [] }
 

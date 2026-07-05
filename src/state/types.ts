@@ -5,11 +5,16 @@ export type Theme = 'day' | 'night'
 export type View = 'list' | 'timeline'
 export type TagMode = 'and' | 'or'
 
+// 勾选的文件夹/事件构成的筛选范围。空范围 = 所有事件。取代旧的单选 categoryId。
+export interface Scope {
+  folderIds: Id[] // 显式勾选的文件夹（级联其所有子孙文件夹与事件）
+  includeEvents: Id[] // 在“未被文件夹覆盖”的位置单独勾选的事件
+  excludeEvents: Id[] // 在“已被文件夹覆盖”的范围里单独排除的事件
+}
+
 export interface Filter {
-  categoryId: Id | null
-  // true → show only events with no category ("未分类" folder). Distinct from
-  // categoryId === null, which means "全部" (no category filter at all).
-  uncategorized?: boolean
+  scope: Scope
+  uncategorized?: boolean // true → 仅显示未分类事件（与 scope 互斥）
   untagged?: boolean // true → 仅显示无标签事件
   trash?: boolean // true → 回收站：仅显示已删除事件
   tagIds: Id[]
@@ -51,7 +56,7 @@ export function initialAppState(nowYear: number, theme: Theme): AppState {
     events: [],
     categories: [],
     tags: [],
-    filter: { categoryId: null, uncategorized: false, untagged: false, trash: false, tagIds: [], tagMode: 'or', query: '' },
+    filter: { scope: { folderIds: [], includeEvents: [], excludeEvents: [] }, uncategorized: false, untagged: false, trash: false, tagIds: [], tagMode: 'or', query: '' },
     selectedId: null,
     view: 'list',
     sort: { key: 'start', dir: 'asc' },

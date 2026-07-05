@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   descendantCategoryIds, EMPTY_SCOPE, isScopeEmpty, scopedCategoryIds, isMember,
   memberEventIds, folderCheckState, toggleFolder, toggleEvent, soloFolder, pruneScope,
-  type Scope,
 } from './scope'
+import type { Scope } from './types'
 import { ev, cat } from '../test/fixtures'
 
 const S = (o: Partial<Scope> = {}): Scope => ({ ...EMPTY_SCOPE, ...o })

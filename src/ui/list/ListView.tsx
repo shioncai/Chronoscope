@@ -91,7 +91,10 @@ export function ListView({ onEdit }: ListViewProps) {
                   onEdit(e.id)
                 }}
               >
-                <td className="col-check">
+                {/* Editor opens only from the title column rightward: the
+                    checkbox cell swallows its clicks so a near-miss around the
+                    small box doesn't bubble to the row's open-editor handler. */}
+                <td className="col-check" onClick={(ev) => ev.stopPropagation()}>
                   <Checkbox
                     state={checked.has(e.id) ? 'checked' : 'unchecked'}
                     label={`选择「${e.title}」`}

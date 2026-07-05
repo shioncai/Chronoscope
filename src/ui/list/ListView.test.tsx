@@ -87,6 +87,17 @@ describe('ListView', () => {
     expect(onEdit).not.toHaveBeenCalled()
   })
 
+  it('clicking the checkbox cell around the box does not open the editor', async () => {
+    // The box is small; a near-miss inside its column must not open the editor
+    // (the editor opens only from the title column rightward, like the sidebar).
+    await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    const onEdit = vi.fn()
+    const { container } = renderList(onEdit)
+    const cell = container.querySelector('.list-view tbody td.col-check') as HTMLElement
+    await userEvent.click(cell)
+    expect(onEdit).not.toHaveBeenCalled()
+  })
+
   it('renders selection as the shared styled checkbox control (not a native input)', async () => {
     await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
     renderList()

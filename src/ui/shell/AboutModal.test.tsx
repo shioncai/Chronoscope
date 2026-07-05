@@ -13,4 +13,10 @@ describe('AboutModal', () => {
     await userEvent.click(screen.getByRole('button', { name: '关闭' }))
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('centers its overlay via the modal-overlay--center modifier', () => {
+    const { container } = render(<AboutModal onClose={() => {}} />)
+    const overlay = container.querySelector('.modal-overlay')
+    expect(overlay?.classList.contains('modal-overlay--center')).toBe(true)
+  })
 })

@@ -3,7 +3,7 @@ import { useFocusTrap } from './useFocusTrap'
 export function AboutModal({ onClose }: { onClose: () => void }) {
   const ref = useFocusTrap<HTMLDivElement>(true, onClose)
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay modal-overlay--center" onClick={onClose}>
       <div className="info-card" ref={ref} role="dialog" aria-modal="true" aria-label="关于"
         onClick={(e) => e.stopPropagation()}>
         <div className="logo display">Chronoscope</div>

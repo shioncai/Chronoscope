@@ -98,6 +98,17 @@ describe('ListView', () => {
     expect(onEdit).not.toHaveBeenCalled()
   })
 
+  it('clicking the title cell outside the title button does not open the editor', async () => {
+    // The editor opens via a dedicated title button, not the whole cell, so the
+    // cell's leading padding is a safe buffer well to the right of the checkbox.
+    await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    const onEdit = vi.fn()
+    const { container } = renderList(onEdit)
+    const titleCell = container.querySelector('.list-view tbody tr td:nth-child(2)') as HTMLElement
+    await userEvent.click(titleCell)
+    expect(onEdit).not.toHaveBeenCalled()
+  })
+
   it('renders selection as the shared styled checkbox control (not a native input)', async () => {
     await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
     renderList()

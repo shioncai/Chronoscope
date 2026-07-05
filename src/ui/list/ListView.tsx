@@ -101,9 +101,15 @@ export function ListView({ onEdit }: ListViewProps) {
                     onClick={() => app.toggleChecked(e.id)}
                   />
                 </td>
-                <td>
-                  <span className="cell-dot" style={{ background: catColor(e.categoryId) }} aria-hidden="true" />
-                  {e.title}
+                {/* Open the editor from a dedicated title button (like the
+                    sidebar's .ev-main), not the whole cell: the cell padding
+                    stays a safe buffer to the right of the checkbox column. */}
+                <td className="col-title" onClick={(ev) => ev.stopPropagation()}>
+                  <button type="button" className="cell-title" title={e.title}
+                    onClick={() => { app.select(e.id); onEdit(e.id) }}>
+                    <span className="cell-dot" style={{ background: catColor(e.categoryId) }} aria-hidden="true" />
+                    {e.title}
+                  </button>
                 </td>
                 <td className="mono">{formatTimeRange(e.start, e.end)}</td>
                 <td>{catName(e.categoryId)}</td>

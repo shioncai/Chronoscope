@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { hexToHsv, hsvToHex, normalizeHex, type Hsv } from '../color/hsv'
 
 export interface HsvPickerProps {
@@ -15,8 +15,8 @@ export function HsvPicker({ value, onChange, onCommit }: HsvPickerProps) {
   const svRef = useRef<HTMLDivElement>(null)
   const hueRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { setHsv(hexToHsv(value)); setHexText(value) }, [value])
-
+  // Seeded from `value` at mount. Consumers remount (via key) to re-seed, so no
+  // prop→state sync effect is needed.
   const current = hsvToHex(hsv)
 
   const emit = (next: Hsv) => {

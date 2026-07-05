@@ -75,7 +75,7 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, onPick, onC
       </div>
       {hsvOpen && createPortal(
         <div ref={hsvRef} className="picker-flyout" data-picker-flyout style={hsvStyle}>
-          <HsvPicker value={editing ?? value} onChange={() => {}} onCommit={commitFree} />
+          <HsvPicker key={editing ?? value} value={editing ?? value} onChange={() => {}} onCommit={commitFree} />
         </div>,
         document.body,
       )}

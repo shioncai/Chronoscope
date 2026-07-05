@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppStore, useAppState, flattenCategoryTree, liveFolderAt } from '../../state'
 import type { Id } from '../../domain/model'
-import { CATEGORY_PRESETS, nextPresetColor, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
+import { nextPresetColor } from '../categoryColors'
 import { ColorPicker } from './ColorPicker'
 
 export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
@@ -18,8 +18,6 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
   const [color, setColor] = useState<string>(defaultColor(defaultParentId))
   const [touchedColor, setTouchedColor] = useState(false)
   const [swOpen, setSwOpen] = useState(false)
-  const [custom, setCustom] = useState<string[]>(() => loadCustomColors(window.localStorage))
-  useEffect(() => { persistCustomColors(window.localStorage, custom) }, [custom])
 
   const parents = useMemo(() => flattenCategoryTree(state.categories), [state.categories])
 
@@ -53,14 +51,14 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
             <option value="">顶级（无父文件夹）</option>
             {parents.map((t) => <option key={t.category.id} value={t.category.id}>{'　'.repeat(t.depth) + t.category.name}</option>)}
           </select></label>
-        <button type="button" className="dotbtn" aria-label="颜色" onClick={() => setSwOpen((o) => !o)}>
+        <button type="button" className="dotbtn" aria-label="颜色" data-picker-trigger onClick={() => setSwOpen((o) => !o)}>
           <span className="dot" style={{ background: color }} /></button>
       </div>
       <div className="hint2">默认颜色继承父文件夹；顶级则取下一预设色，可改。</div>
       {swOpen && (
-        <ColorPicker value={color} presets={CATEGORY_PRESETS} custom={custom}
+        <ColorPicker value={color}
           onPick={(hex) => { setColor(hex); setTouchedColor(true); setSwOpen(false) }}
-          onAddCustom={(hex) => setCustom((p) => addToPalette(p, hex))} />
+          onClose={() => setSwOpen(false)} />
       )}
       <div className="af-actions">
         <button type="button" className="btn-sm" onClick={onCancel}>取消</button>

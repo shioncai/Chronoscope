@@ -7,9 +7,9 @@ import { loadCustomColors } from '../categoryColors'
 function memoryStorage(): Storage {
   const store: Record<string, string> = {}
   return {
-    getItem: (k) => (k in store ? store[k] : null),
-    setItem: (k, v) => { store[k] = String(v) },
-    removeItem: (k) => { delete store[k] },
+    getItem: (k: string) => (k in store ? store[k] : null),
+    setItem: (k: string, v: string) => { store[k] = String(v) },
+    removeItem: (k: string) => { delete store[k] },
     clear: () => { for (const k of Object.keys(store)) delete store[k] },
     key: () => null, length: 0,
   } as unknown as Storage

@@ -7,7 +7,6 @@ import {
 } from '../../state'
 import type { Id, EventRecord } from '../../domain/model'
 import { formatTimePoint, instantOf } from '../../domain/time'
-import { CATEGORY_PRESETS, loadCustomColors, persistCustomColors, addToPalette } from '../categoryColors'
 import { ColorPicker } from './ColorPicker'
 import { AddFolderForm } from './AddFolderForm'
 import { useEventMove } from './useEventMove'
@@ -53,7 +52,6 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   const [expanded, setExpanded] = useState<Set<Id>>(new Set()) // 默认全折叠
   const [addOpen, setAddOpen] = useState(false)
   const [colorFor, setColorFor] = useState<Id | null>(null)
-  const [custom, setCustom] = useState<string[]>(() => loadCustomColors(window.localStorage))
   const [dragId, setDragId] = useState<Id | null>(null)
   const [drop, setDrop] = useState<{ id: Id; mode: 'before' | 'after' | 'into' } | null>(null)
   const [tailOver, setTailOver] = useState(false)
@@ -245,7 +243,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                   </button>
                 ) : <span className="twisty-spacer" />}
                 {checkbox({ state: fstate, label: `选择文件夹「${c.name}」`, onClick: () => toggleFolderScope(row.id) })}
-                <button type="button" className="color-dot" style={{ background: c.color }}
+                <button type="button" className="color-dot" style={{ background: c.color }} data-picker-trigger
                   aria-label={`设置「${c.name}」颜色`} onClick={(e) => { e.stopPropagation(); setColorFor((cur) => cur === row.id ? null : row.id) }} />
                 {renaming === row.id ? (
                   <input className="rename-input" aria-label={`重命名「${c.name}」`} value={renameVal} autoFocus draggable={false}
@@ -269,9 +267,9 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                 </span>
                 {colorFor === row.id && (
                   <div className="dot-picker">
-                    <ColorPicker value={c.color} presets={CATEGORY_PRESETS} custom={custom}
+                    <ColorPicker value={c.color}
                       onPick={(hex) => { void app.updateCategory(row.id, { color: hex }); setColorFor(null) }}
-                      onAddCustom={(hex) => { const n = addToPalette(custom, hex); setCustom(n); persistCustomColors(window.localStorage, n) }} />
+                      onClose={() => setColorFor(null)} />
                   </div>
                 )}
               </div>

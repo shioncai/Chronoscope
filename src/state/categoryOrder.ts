@@ -1,5 +1,5 @@
 import type { Category, Id } from '../domain/model'
-import { descendantCategoryIds } from './selectors'
+import { descendantCategoryIds } from './scope'
 
 // Returns the categories that need to be written back (the dragged category plus any
 // reordered siblings under the target parent). An illegal move returns [].

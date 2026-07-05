@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import {
-  descendantCategoryIds,
   buildCategoryTree,
   categoryEventCounts,
   visibleEvents,
@@ -15,19 +14,6 @@ import { ev, cat, tag, y } from '../test/fixtures'
 function st(over: Partial<AppState>): AppState {
   return { ...initialAppState(2026, 'day'), ...over }
 }
-
-describe('descendantCategoryIds', () => {
-  it('includes the root and all descendants, skipping deleted', () => {
-    const cats = [
-      cat({ id: 'a' }),
-      cat({ id: 'b', parentId: 'a' }),
-      cat({ id: 'c', parentId: 'b' }),
-      cat({ id: 'd', parentId: 'a', deleted: true }),
-      cat({ id: 'x' }),
-    ]
-    expect([...descendantCategoryIds(cats, 'a')].sort()).toEqual(['a', 'b', 'c'])
-  })
-})
 
 describe('categoryEventCounts', () => {
   it('counts live events per category, including descendants', () => {

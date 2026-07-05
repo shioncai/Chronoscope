@@ -1,24 +1,7 @@
 import type { EventRecord, Category, Id } from '../domain/model'
 import { instantOf } from '../domain/time'
 import type { AppState, Filter, Sort } from './types'
-
-export function descendantCategoryIds(categories: Category[], rootId: Id): Set<Id> {
-  const childrenOf = new Map<Id | null, Category[]>()
-  for (const c of categories) {
-    if (c.deleted) continue
-    const arr = childrenOf.get(c.parentId) ?? []
-    arr.push(c)
-    childrenOf.set(c.parentId, arr)
-  }
-  const out = new Set<Id>()
-  const walk = (id: Id) => {
-    if (out.has(id)) return
-    out.add(id)
-    for (const child of childrenOf.get(id) ?? []) walk(child.id)
-  }
-  walk(rootId)
-  return out
-}
+import { descendantCategoryIds } from './scope'
 
 export interface CategoryNode {
   category: Category

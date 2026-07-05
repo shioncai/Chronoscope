@@ -1,5 +1,6 @@
 export * from './store'
 export * from './types'
+export * from './scope'
 export * from './selectors'
 export * from './categoryOrder'
 export * from './identity'

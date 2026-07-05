@@ -89,6 +89,22 @@ describe('toggleFolder', () => {
     expect(out.folderIds).toEqual(['p'])
     expect(out.excludeEvents).toEqual([])
   })
+  it('unchecking a child folder while the parent is checked excludes the child subtree', () => {
+    const parentChecked = toggleFolder(EMPTY_SCOPE, 'p', cats, events) // { folderIds: ['p'] }
+    const childUnchecked = toggleFolder(parentChecked, 'c', cats, events)
+    const members = memberEventIds(childUnchecked, cats, events)
+    expect(members.has('b')).toBe(false) // child's event is excluded
+    expect(members.has('a')).toBe(true) // parent's own event stays
+    const checked = new Set(childUnchecked.folderIds)
+    expect(folderCheckState('c', cats, events, members, checked)).toBe('unchecked')
+    expect(folderCheckState('p', cats, events, members, checked)).toBe('indeterminate')
+  })
+  it('re-checking the child folder restores its subtree', () => {
+    const s = toggleFolder(toggleFolder(toggleFolder(EMPTY_SCOPE, 'p', cats, events), 'c', cats, events), 'c', cats, events)
+    const members = memberEventIds(s, cats, events)
+    expect(members.has('b')).toBe(true)
+    expect(folderCheckState('c', cats, events, members, new Set(s.folderIds))).toBe('checked')
+  })
 })
 
 describe('toggleEvent', () => {

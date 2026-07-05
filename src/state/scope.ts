@@ -95,7 +95,15 @@ export function toggleFolder(scope: Scope, folderId: Id, categories: Category[],
     includeEvents: scope.includeEvents.filter((id) => !descEventIds.has(id)),
     excludeEvents: scope.excludeEvents.filter((id) => !descEventIds.has(id)),
   }
-  if (state === 'checked') return base // 取消
+  if (state === 'checked') {
+    // 取消整棵子树。若某祖先文件夹仍被勾选，其子孙事件会继续经祖先覆盖而留在
+    // 范围内——必须显式排除这些仍被覆盖的事件，否则子文件夹“取消不掉”。
+    const scopedAfter = scopedCategoryIds(base, categories)
+    const stillCovered = events
+      .filter((e) => !e.deleted && descEventIds.has(e.id) && e.categoryId != null && scopedAfter.has(e.categoryId))
+      .map((e) => e.id)
+    return stillCovered.length ? { ...base, excludeEvents: [...base.excludeEvents, ...stillCovered] } : base
+  }
   return { ...base, folderIds: [...base.folderIds, folderId] } // 勾选整棵子树
 }
 

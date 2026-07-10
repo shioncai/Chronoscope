@@ -13,8 +13,10 @@ describe('TagMenu', () => {
     expect(onPick).toHaveBeenCalledWith('t1')
   })
 
-  it('shows a placeholder and no menuitems when there are no tags', () => {
-    render(<TagMenu tags={[]} onPick={vi.fn()} />)
+  it('shows the caller-supplied placeholder and no menuitems when there are no tags', () => {
+    // TagMenu is presentational (no i18n access), so the caller supplies the
+    // localized placeholder; the component itself defaults to '' when omitted.
+    render(<TagMenu tags={[]} onPick={vi.fn()} emptyLabel="无标签" />)
     expect(screen.getByText('无标签')).toBeTruthy()
     expect(screen.queryByRole('menuitem')).toBeNull()
   })

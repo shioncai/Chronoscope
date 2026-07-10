@@ -409,7 +409,6 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .batch-bar > *{flex:0 0 auto;}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .batch-bar .bb-count{font-size:13px;color:var(--muted);padding:0 8px;white-space:nowrap;}
-.batch-bar .bb-count b{color:var(--text);}
 .batch-bar .bb-sep{width:1px;height:22px;background:var(--border);margin:0 3px;}
 .batch-bar .bb-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s;}
 .batch-bar .bb-btn:hover{background:var(--hover);}

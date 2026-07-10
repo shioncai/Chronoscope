@@ -5,22 +5,26 @@ import { BatchBar } from './BatchBar'
 import { markdownToText } from '../features/markdown/text'
 import type { Id } from '../../domain/model'
 import { Checkbox } from '../shell/Checkbox'
+import { useT, useLocale } from '../../i18n/useT'
+import type { MessageKey } from '../../i18n/catalog'
 
 export interface ListViewProps {
   onEdit: (id: Id) => void
 }
 
-const COLUMNS: { key: Sort['key']; label: string; cell: 'mono' | '' }[] = [
-  { key: 'title', label: '标题', cell: '' },
-  { key: 'start', label: '时间', cell: 'mono' },
-  { key: 'category', label: '文件夹', cell: '' },
-  { key: 'tags', label: '标签', cell: '' },
-  { key: 'note', label: '备注', cell: 'mono' },
+const COLUMNS: { key: Sort['key']; label: MessageKey; cell: 'mono' | '' }[] = [
+  { key: 'title', label: 'list.col.title', cell: '' },
+  { key: 'start', label: 'list.col.time', cell: 'mono' },
+  { key: 'category', label: 'list.col.category', cell: '' },
+  { key: 'tags', label: 'list.col.tags', cell: '' },
+  { key: 'note', label: 'list.col.note', cell: 'mono' },
 ]
 
 export function ListView({ onEdit }: ListViewProps) {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
+  const locale = useLocale()
   const rows = visibleEvents(state)
   const trash = !!state.filter.trash
   const checked = new Set(state.checkedIds)
@@ -58,14 +62,14 @@ export function ListView({ onEdit }: ListViewProps) {
               <th className="col-check">
                 <Checkbox
                   state={allChecked ? 'checked' : someChecked ? 'indeterminate' : 'unchecked'}
-                  label="全选"
+                  label={t('list.selectAll')}
                   onClick={toggleAll}
                 />
               </th>
               {COLUMNS.map((c) => (
                 <th key={c.key}>
                   <button type="button" onClick={() => clickHeader(c.key)}>
-                    {c.label}
+                    {t(c.label)}
                     {state.sort.key === c.key && (
                       <span aria-hidden>{state.sort.dir === 'asc' ? ' ▲' : ' ▼'}</span>
                     )}
@@ -78,7 +82,7 @@ export function ListView({ onEdit }: ListViewProps) {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="empty">
-                  {trash ? '回收站为空' : '暂无事件'}
+                  {trash ? t('list.trashEmpty') : t('list.empty')}
                 </td>
               </tr>
             )}
@@ -97,7 +101,7 @@ export function ListView({ onEdit }: ListViewProps) {
                 <td className="col-check" onClick={(ev) => ev.stopPropagation()}>
                   <Checkbox
                     state={checked.has(e.id) ? 'checked' : 'unchecked'}
-                    label={`选择「${e.title}」`}
+                    label={t('common.selectEvent', { title: e.title })}
                     onClick={() => app.toggleChecked(e.id)}
                   />
                 </td>
@@ -111,7 +115,7 @@ export function ListView({ onEdit }: ListViewProps) {
                     {e.title}
                   </button>
                 </td>
-                <td className="mono">{formatTimeRange(e.start, e.end)}</td>
+                <td className="mono">{formatTimeRange(e.start, e.end, locale)}</td>
                 <td>{catName(e.categoryId)}</td>
                 <td>{tagNames(e.tagIds)}</td>
                 <td className="mono col-note">{markdownToText(e.note).slice(0, 60)}</td>

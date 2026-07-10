@@ -8,7 +8,7 @@ export interface TagMenuProps {
 
 // A small popover list of tags. Shares the .move-menu look; shows a plain
 // placeholder (not a button) when there is nothing to pick.
-export function TagMenu({ tags, onPick, emptyLabel = '无标签' }: TagMenuProps) {
+export function TagMenu({ tags, onPick, emptyLabel = '' }: TagMenuProps) {
   return (
     <div className="tag-menu move-menu" role="menu">
       {tags.length === 0 ? (

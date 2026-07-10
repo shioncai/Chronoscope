@@ -7,7 +7,7 @@ import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 
-function makeApp(): AppStore {
+function makeApp(locale?: 'en' | 'zh'): AppStore {
   const db: Database = {
     events: createMemoryRepository<EventRecord>(),
     categories: createMemoryRepository<Category>(),
@@ -16,7 +16,7 @@ function makeApp(): AppStore {
   let t = 0
   let i = 0
   const clock: Clock = { now: () => `t${++t}` }
-  return createAppStore({ db, clock, nowYear: 2026, theme: 'day', genId: () => `id${++i}` })
+  return createAppStore({ db, clock, nowYear: 2026, theme: 'day', genId: () => `id${++i}`, locale })
 }
 
 let app: AppStore
@@ -170,5 +170,16 @@ describe('ListView', () => {
     renderList()
     await userEvent.click(screen.getByRole('button', { name: '恢复' }))
     expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
+  })
+
+  it('renders in English when the store locale is en', () => {
+    const enApp = makeApp('en')
+    render(
+      <AppStoreProvider value={enApp}>
+        <ListView onEdit={() => {}} />
+      </AppStoreProvider>,
+    )
+    expect(screen.getByRole('button', { name: 'Title' })).toBeTruthy()
+    expect(screen.getByText('No events')).toBeTruthy()
   })
 })

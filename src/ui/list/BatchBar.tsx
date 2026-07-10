@@ -9,6 +9,7 @@ import { MoveMenu } from '../shell/MoveMenu'
 import { TagMenu } from './TagMenu'
 import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
 import { useEventMove } from '../shell/useEventMove'
+import { useT, useTn } from '../../i18n/useT'
 import type { Id } from '../../domain/model'
 
 type OpenMenu = 'folder' | 'addTag' | 'removeTag' | null
@@ -19,6 +20,8 @@ type OpenMenu = 'folder' | 'addTag' | 'removeTag' | null
 export function BatchBar({ trash = false }: { trash?: boolean }) {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
+  const tn = useTn()
   const ids = state.checkedIds
   const [open, setOpen] = useState<OpenMenu>(null)
   const [restoreConflicts, setRestoreConflicts] = useState<EventConflictItem[]>([])
@@ -33,7 +36,7 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
   // Recycle-bin selection: restore / permanent-delete instead of move/tag/delete.
   if (trash) {
     const purge = () => {
-      if (window.confirm(`永久删除选中的 ${ids.length} 个事件？此操作不可撤销。`)) void app.purgeEvents(ids)
+      if (window.confirm(tn('list.purgeConfirm', ids.length))) void app.purgeEvents(ids)
     }
     const toItems = (conflicts: RestoreConflict[]): EventConflictItem[] =>
       conflicts.map((c) => ({
@@ -52,24 +55,27 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
     return (
       <>
         <div className="batch-bar">
-          <span className="bb-count">
-            已选 <b>{ids.length}</b> 项
-          </span>
+          <span className="bb-count">{t('list.selectedCount', { n: ids.length })}</span>
           <span className="bb-sep" />
           <button type="button" className="bb-btn" onClick={() => void restore()}>
-            恢复
+            {t('common.restore')}
           </button>
           <button type="button" className="bb-btn danger" onClick={purge}>
-            永久删除
+            {t('common.purge')}
           </button>
           <span className="bb-sep" />
-          <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
+          <button
+            type="button"
+            className="bb-cancel"
+            aria-label={t('list.clearSelection')}
+            onClick={() => app.setChecked([])}
+          >
             ✕
           </button>
         </div>
         {restoreConflicts.length > 0 && (
           <EventConflictDialog
-            title="恢复冲突"
+            title={t('conflict.restoreTitle')}
             conflicts={restoreConflicts}
             onResolve={(choices) => void resolveRestore(choices)}
             onCancel={() => setRestoreConflicts([])}
@@ -109,15 +115,13 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
     setOpen(null)
   }
   const del = () => {
-    if (window.confirm(`删除选中的 ${ids.length} 个事件?`)) void app.deleteEvents(ids)
+    if (window.confirm(tn('list.deleteConfirm', ids.length))) void app.deleteEvents(ids)
   }
 
   return (
     <>
       <div className="batch-bar">
-        <span className="bb-count">
-          已选 <b>{ids.length}</b> 项
-        </span>
+        <span className="bb-count">{t('list.selectedCount', { n: ids.length })}</span>
         <span className="bb-sep" />
         <span className="menu-anchor">
           <button
@@ -127,9 +131,11 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
             aria-expanded={open === 'folder'}
             onClick={() => toggle('folder')}
           >
-            移动到文件夹 ▾
+            {t('list.moveToFolder')}
           </button>
-          {open === 'folder' && <MoveMenu targets={folders} topLabel="未分类" onMove={move} />}
+          {open === 'folder' && (
+            <MoveMenu targets={folders} topLabel={t('common.uncategorized')} onMove={move} />
+          )}
         </span>
         <span className="menu-anchor">
           <button
@@ -139,9 +145,9 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
             aria-expanded={open === 'addTag'}
             onClick={() => toggle('addTag')}
           >
-            添加标签 ▾
+            {t('list.addTag')}
           </button>
-          {open === 'addTag' && <TagMenu tags={allTags} onPick={addTag} />}
+          {open === 'addTag' && <TagMenu tags={allTags} onPick={addTag} emptyLabel={t('list.noTags')} />}
         </span>
         <span className="menu-anchor">
           <button
@@ -151,15 +157,22 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
             aria-expanded={open === 'removeTag'}
             onClick={() => toggle('removeTag')}
           >
-            移除标签 ▾
+            {t('list.removeTag')}
           </button>
-          {open === 'removeTag' && <TagMenu tags={removableTags} onPick={removeTag} />}
+          {open === 'removeTag' && (
+            <TagMenu tags={removableTags} onPick={removeTag} emptyLabel={t('list.noTags')} />
+          )}
         </span>
         <button type="button" className="bb-btn danger" onClick={del}>
-          删除
+          {t('common.delete')}
         </button>
         <span className="bb-sep" />
-        <button type="button" className="bb-cancel" aria-label="取消选择" onClick={() => app.setChecked([])}>
+        <button
+          type="button"
+          className="bb-cancel"
+          aria-label={t('list.clearSelection')}
+          onClick={() => app.setChecked([])}
+        >
           ✕
         </button>
       </div>

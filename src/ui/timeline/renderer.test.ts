@@ -167,6 +167,17 @@ describe('renderer', () => {
     expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.1))
     expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.9))
   })
+  it('paints the lens with accent, leaving --now for data only', () => {
+    const ctx = fakeCtx()
+    drawScene(ctx, scene, COLORS, computeLayout(400))
+    // the lens is navigation chrome — it must be achromatic. In COLORS,
+    // accent='#0aa' and now='#0ff'; the markers use mixHex(deepTime, now, d)
+    // which never yields '#0ff', so a '#0ff' strokeStyle could only be the lens.
+    expect(ctx.styles).toContain(COLORS.accent)
+    expect(ctx.styles).not.toContain(COLORS.now)
+    expect(ctx.fills).toContain(COLORS.accent) // its translucent fill too
+    expect(ctx.fills).toContain(COLORS.now) // --now survives as the selected glyph
+  })
   it('draws more line segments when endpoints have fuzz (error-bar caps)', () => {
     const withW = fakeCtx()
     drawScene(withW, scene, COLORS, computeLayout(400))

@@ -190,13 +190,14 @@ export function drawScene(
     ctx.stroke()
   }
 
-  // lens window
+  // lens window — navigation chrome, so it is achromatic (--accent), not --now.
+  // Keeping --now off the chrome leaves it meaning exactly one thing: focus.
   const { x0, x1 } = scene.overview.lens
-  ctx.globalAlpha = 0.18
-  ctx.fillStyle = colors.now
+  ctx.globalAlpha = 0.10
+  ctx.fillStyle = colors.accent
   ctx.fillRect(x0, layout.overviewTop, Math.max(2, x1 - x0), layout.overviewHeight)
   ctx.globalAlpha = 1
-  ctx.strokeStyle = colors.now
+  ctx.strokeStyle = colors.accent
   ctx.strokeRect(x0, layout.overviewTop, Math.max(2, x1 - x0), layout.overviewHeight)
 
   // current overview time range — labelled at both ends of the band, on top.

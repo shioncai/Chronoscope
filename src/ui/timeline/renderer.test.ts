@@ -16,6 +16,7 @@ function fakeCtx() {
   const fills: string[] = []
   const args: Record<string, unknown[][]> = {}
   const textDraws: { text: string; font: string }[] = []
+  const lineWidths: number[] = []
   let currentFont = ''
   const method = (name: string) => (...a: unknown[]) => {
     calls.push(`${name}(${a.length})`)
@@ -26,6 +27,7 @@ function fakeCtx() {
     styles,
     args,
     textDraws,
+    lineWidths,
     clearRect: method('clearRect'),
     beginPath: method('beginPath'),
     moveTo: method('moveTo'),
@@ -55,7 +57,7 @@ function fakeCtx() {
     set fillStyle(v: string) { fills.push(v) },
     set strokeStyle(v: string) { styles.push(v) },
     set font(v: string) { currentFont = v },
-    set lineWidth(_v: number) {},
+    set lineWidth(v: number) { lineWidths.push(v) },
     set globalAlpha(_v: number) {},
     set textAlign(_v: string) {},
   }
@@ -63,6 +65,7 @@ function fakeCtx() {
     calls: string[]
     styles: string[]
     fills: string[]
+    lineWidths: number[]
     args: Record<string, unknown[][]>
     textDraws: { text: string; font: string }[]
   }
@@ -154,7 +157,7 @@ describe('renderer', () => {
     const count = (name: string) => ctx.calls.filter((c) => c.startsWith(name + '(')).length
     expect(count('clearRect')).toBe(1)
     expect(count('fillRect')).toBe(5) // bg + span glyph + overview band + band wash + lens fill
-    expect(count('arc')).toBe(1) // one point glyph
+    expect(count('arc')).toBe(3) // one point glyph + its selection halo and ring
     expect(count('strokeRect')).toBe(1) // lens border
     expect(count('fillText')).toBe(6) // 2 tick labels + 2 glyph titles + 2 overview range labels
   })
@@ -166,6 +169,49 @@ describe('renderer', () => {
     // markers sit at x=100 and x=900 over width 1000 → depth 0.1 and 0.9
     expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.1))
     expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.9))
+  })
+  it('outlines a selected span with a bg halo and a text ring', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: true, color: '#b8791c', label: { text: 'A', side: 'right', x: 306 } }],
+        rowCount: 1,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    // lens border (1) + halo (1) + ring (1)
+    expect(ctx.calls.filter((c) => c.startsWith('strokeRect(')).length).toBe(3)
+    expect(ctx.styles).toContain(COLORS.bg)
+    expect(ctx.styles).toContain(COLORS.text)
+  })
+  it('leaves an unselected glyph un-outlined', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#b8791c', label: { text: 'A', side: 'right', x: 306 } }],
+        rowCount: 1,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    expect(ctx.calls.filter((c) => c.startsWith('strokeRect(')).length).toBe(1) // lens only
+    expect(ctx.styles).not.toContain(COLORS.bg)
+  })
+  it('outlines a selected point with two concentric arcs', () => {
+    const ctx = fakeCtx()
+    drawScene(ctx, scene, COLORS, computeLayout(400)) // glyph 'b' is a selected point
+    expect(ctx.calls.filter((c) => c.startsWith('arc(')).length).toBe(3) // core + halo + ring
+    expect(ctx.styles).toContain(COLORS.bg)
+    expect(ctx.styles).toContain(COLORS.text)
+  })
+  it('scales the selection outline with magnification', () => {
+    const a = fakeCtx(); drawScene(a, scene, COLORS, computeLayout(400, 1))
+    const b = fakeCtx(); drawScene(b, scene, COLORS, computeLayout(400, 2))
+    expect(a.lineWidths).toContain(2) // halo = 2 * scale
+    expect(b.lineWidths).toContain(4)
   })
   it('paints the lens with accent, leaving --now for data only', () => {
     const ctx = fakeCtx()

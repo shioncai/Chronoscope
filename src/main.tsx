@@ -10,7 +10,7 @@ import App from './App.tsx'
 import './ui/styles/tokens.css'
 import './ui/styles/chrome.css'
 import { openDatabase, getOrCreateNodeId, createClock } from './data'
-import { createAppStore, resolveInitialTheme, type AppStore } from './state'
+import { createAppStore, resolveInitialTheme, resolveInitialLocale, type AppStore } from './state'
 import { decimalFromCivil } from './domain/time'
 
 async function bootstrap(): Promise<{ app: AppStore }> {
@@ -31,7 +31,11 @@ async function bootstrap(): Promise<{ app: AppStore }> {
   })
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const theme = resolveInitialTheme(window.localStorage.getItem('chronoscope.theme'), prefersDark)
-  const app = createAppStore({ db: opened, clock, nowYear, theme })
+  const locale = resolveInitialLocale(
+    window.localStorage.getItem('chronoscope.locale'),
+    navigator.languages,
+  )
+  const app = createAppStore({ db: opened, clock, nowYear, theme, locale })
   await app.load()
 
   return { app }

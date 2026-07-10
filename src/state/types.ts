@@ -1,5 +1,6 @@
 import type { EventRecord, Category, Tag, Id } from '../domain/model'
 import type { LinearView } from '../domain/time'
+import type { Locale } from '../domain/locale'
 
 export type Theme = 'day' | 'night'
 export type View = 'list' | 'timeline'
@@ -36,6 +37,7 @@ export interface AppState {
   view: View
   sort: Sort
   theme: Theme
+  locale: Locale
   nowYear: number
   // Timeline zoom/pan, kept here (not in TimelineView) so it survives the view
   // switch that unmounts the timeline. null = "not yet touched, fall back to the
@@ -51,7 +53,7 @@ export interface AppState {
   loaded: boolean
 }
 
-export function initialAppState(nowYear: number, theme: Theme): AppState {
+export function initialAppState(nowYear: number, theme: Theme, locale: Locale = 'zh'): AppState {
   return {
     events: [],
     categories: [],
@@ -61,6 +63,7 @@ export function initialAppState(nowYear: number, theme: Theme): AppState {
     view: 'list',
     sort: { key: 'start', dir: 'asc' },
     theme,
+    locale,
     nowYear,
     timelineView: null,
     timelineOverview: null,

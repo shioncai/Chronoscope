@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
-import { AppStoreProvider, useAppState, applyTheme, persistTheme, type AppStore } from '../../state'
+import { AppStoreProvider, useAppState, applyTheme, persistTheme, applyLocale, persistLocale, type AppStore } from '../../state'
 import { TopBar } from './TopBar'
 import { Sidebar } from './Sidebar'
 import { ListView } from '../list/ListView'
@@ -75,6 +75,11 @@ function ShellBody() {
     applyTheme(document.documentElement, state.theme)
     persistTheme(window.localStorage, state.theme)
   }, [state.theme])
+
+  useLayoutEffect(() => {
+    applyLocale(document.documentElement, state.locale)
+    persistLocale(window.localStorage, state.locale)
+  }, [state.locale])
 
   return (
     <div className="app-shell" ref={shellRef} style={{ '--sidebar-w': `${sidebarWidth}px` } as CSSProperties}>

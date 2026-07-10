@@ -15,12 +15,14 @@ import { reorderedCategories } from './categoryOrder'
 import { planRestore, planImport, type ImportSummary, type RestoreConflict } from './importPlan'
 import { buildTransferFile, parseTransferFile, type TransferFile } from './transfer'
 import { initialAppState, type AppState, type Filter, type Sort, type Theme, type View } from './types'
+import type { Locale } from '../domain/locale'
 
 export interface AppStoreDeps {
   db: Database
   clock: Clock
   nowYear: number
   theme: Theme
+  locale?: Locale
   genId?: () => string
 }
 
@@ -57,6 +59,7 @@ export interface AppStore {
   setView(view: View): void
   setSort(sort: Sort): void
   setTheme(theme: Theme): void
+  setLocale(locale: Locale): void
   setTimelineView(updater: LinearView | ((prev: LinearView | null) => LinearView)): void
   setTimelineOverview(updater: LinearView | ((prev: LinearView | null) => LinearView)): void
   setTimelineScale(updater: number | ((prev: number) => number)): void
@@ -72,9 +75,9 @@ function upsert<T extends { id: Id }>(list: T[], rec: T): T[] {
 }
 
 export function createAppStore(deps: AppStoreDeps): AppStore {
-  const { db, clock, nowYear, theme } = deps
+  const { db, clock, nowYear, theme, locale = 'zh' } = deps
   const genId = deps.genId ?? (() => crypto.randomUUID())
-  const store = createStore<AppState>(initialAppState(nowYear, theme))
+  const store = createStore<AppState>(initialAppState(nowYear, theme, locale))
 
   async function load(): Promise<void> {
     const [rawEvents, categories, tags] = await Promise.all([
@@ -403,6 +406,9 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
     },
     setTheme(t) {
       store.setState((s) => ({ ...s, theme: t }))
+    },
+    setLocale(l) {
+      store.setState((s) => ({ ...s, locale: l }))
     },
     setTimelineView(updater) {
       store.setState((s) => ({

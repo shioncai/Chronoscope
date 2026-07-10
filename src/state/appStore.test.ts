@@ -188,6 +188,12 @@ describe('appStore', () => {
     expect(app.store.getState().timelineOverview).toEqual({ min: -10, max: 10 })
   })
 
+  it('sets the locale', () => {
+    expect(app.store.getState().locale).toBe('zh')
+    app.setLocale('en')
+    expect(app.store.getState().locale).toBe('en')
+  })
+
   it('moveCategory reparents a category under another', async () => {
     const a = await app.createCategory({ name: 'A' })
     const b = await app.createCategory({ name: 'B' })

@@ -1,6 +1,27 @@
-/* Chronoscope design tokens — "Deep Time Instrument".
-   Day = cool drafting paper; Night = deep slate. Same layout & gradient;
-   only the light changes. Warm = deep time, cyan (--now) = now/interactive.
+/* Chronoscope design tokens — "Ink & Amber".
+   The chrome is achromatic: --accent is ink in day, moon white at night.
+   Exactly one colour survives: --now.
+
+   --now is a misnomer the contract will not let us fix (TimelineView.tsx reads
+   these names via getComputedStyle). There is no now-line anywhere in the app.
+   --now is the FOCUS colour, and it paints exactly three things:
+     1. renderer.ts — the selected event glyph
+     2. renderer.ts — the warm end of the overview temperature wash
+     3. renderer.ts — the interpolation endpoint of the density markers
+   The lens window is navigation chrome and uses --accent, not --now.
+
+   --accent is a VALUE, not a HUE. At night it equals --text byte for byte, so
+   `color: var(--accent)` cannot lift an element out of body text. Emphasis must
+   come from weight, fill, border, or --now.
+
+   --deep-time lost its hue, so lightness is the only channel it has left: it
+   must stay dark enough (day) / light enough (night) that the leftmost density
+   markers clear 3:1 against --surface. Do not "soften" it without re-measuring.
+
+   --focus-ring is deliberately separate from --accent-soft: a ring must be
+   seen, a fill must not be. A saturated teal could do both jobs; a neutral
+   cannot.
+
    Exact values are tunable; the custom-property contract is what's stable.
    Self-hosted via @fontsource (imported in main.tsx); system fonts fall back. */
 
@@ -9,48 +30,50 @@
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* Day theme (default) — 面板分层：主工作区略灰、侧栏纯白浮起 */
-  --bg: #e9edf1;          /* 主工作区 / canvas 背景 */
-  --panel: #ffffff;       /* 侧栏 / 顶栏 */
-  --surface: #ffffff;     /* 卡片 / 弹层 / 输入 */
-  --field: #f3f5f8;       /* 编辑器输入底 */
-  --hover: #eef1f5;
-  --selected: #e7ecf2;
-  --border: #dce1e7;
-  --border-soft: #e6eaee;
-  --text: #1c2430;
-  --muted: #5c6b7a;
-  --faint: #94a0ad;
-  --accent: #0d7d8c;
-  --on-accent: #ffffff;
-  --accent-soft: rgba(13, 125, 140, 0.10);
-  --now: #06b6c4;
-  --deep-time: #b4541f;
+  /* Day — 未漂白的纸。暖中性灰；正文不用纯黑、底不用纯白，长时间阅读不易疲劳。 */
+  --bg: #f0efec;
+  --panel: #f8f7f5;
+  --surface: #fdfcfb;
+  --field: #f2f1ee;
+  --hover: #f1f0ed;
+  --selected: #e9e7e3;
+  --border: #e0ded9;
+  --border-soft: #ebe9e5;
+  --text: #1f1e1c;
+  --muted: #6b6863;
+  --faint: #a09c95;
+  --accent: #24231f;
+  --on-accent: #fdfcfb;
+  --accent-soft: rgba(36, 35, 31, 0.06);
+  --focus-ring: rgba(36, 35, 31, 0.07);
+  --now: #b8791c;
+  --deep-time: #8f8a80;
   --danger: #c0392b;
-  --shadow: 0 6px 22px rgba(20, 30, 45, 0.14);
-  --fab-shadow: 0 6px 16px rgba(13, 125, 140, 0.35);
+  --shadow: 0 1px 2px rgba(40, 35, 25, 0.05), 0 8px 24px rgba(40, 35, 25, 0.07);
+  --fab-shadow: 0 6px 16px rgba(40, 35, 25, 0.20);
 }
 
 [data-theme='night'] {
-  --bg: #0d1117;          /* 最暗炭灰：主工作区 */
-  --panel: #161b22;       /* 略浅：侧栏 / 顶栏，浮起 */
-  --surface: #1c2330;
-  --field: #11161d;
-  --hover: #1e2632;
-  --selected: #232c3a;
-  --border: #2a313c;
-  --border-soft: #222933;
-  --text: #e6edf3;
-  --muted: #7d8794;
-  --faint: #586170;
-  --accent: #2bd4e4;
-  --on-accent: #06222a;
-  --accent-soft: rgba(43, 212, 228, 0.14);
-  --now: #3fe0ee;
-  --deep-time: #e8843f;
-  --danger: #e06b5e;
-  --shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
-  --fab-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  --bg: #121211;
+  --panel: #1a1a18;
+  --surface: #212120;
+  --field: #171716;
+  --hover: #262624;
+  --selected: #2e2e2b;
+  --border: #2f2f2c;
+  --border-soft: #262624;
+  --text: #e8e6e1;
+  --muted: #918d86;
+  --faint: #63605b;
+  --accent: #e8e6e1;   /* == --text, by design */
+  --on-accent: #121211;
+  --accent-soft: rgba(232, 230, 225, 0.08);
+  --focus-ring: rgba(232, 230, 225, 0.09);
+  --now: #f0a93c;
+  --deep-time: #78746d;
+  --danger: #e8695c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --fab-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
 }
 
 * { box-sizing: border-box; }
@@ -89,8 +112,8 @@ html, body, #root { height: 100%; }
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 .event-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .event-card h3 { margin: 0; }

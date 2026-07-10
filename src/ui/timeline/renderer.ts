@@ -21,6 +21,9 @@ export interface TimelineLayout {
   fontSize: number
   dotRadius: number
   barHeight: number
+  /** The display magnification (1–2.5). Published so painters can size
+      decorations — like the selection outline — in scaled pixels. */
+  scale: number
 }
 
 const OVERVIEW_HEIGHT = 48
@@ -28,6 +31,16 @@ const OVERVIEW_HEIGHT = 48
 // fixed size instead of growing with the content magnification (which would push
 // the text above the band's top edge at high zoom).
 const OVERVIEW_LABEL_PX = 11
+
+// Selection is signalled by colour (--now) *and* shape, because a user's folder
+// colour can legitimately be the same amber. The halo is drawn in the canvas
+// background colour, so it isolates the glyph from its neighbours; the ring
+// then draws the actual outline. Both live entirely outside the glyph — the
+// fill is never covered. Widths are in unscaled px and multiplied by
+// layout.scale. The row gap is 8 * scale px (rowHeight 16 − barHeight 8), so
+// the 3 * scale px of outline fits.
+const SELECT_HALO = 2
+const SELECT_RING = 1
 
 export function computeLayout(height: number, scale = 1): TimelineLayout {
   return {
@@ -40,6 +53,7 @@ export function computeLayout(height: number, scale = 1): TimelineLayout {
     fontSize: 11 * scale,
     dotRadius: 4 * scale,
     barHeight: 8 * scale,
+    scale,
   }
 }
 
@@ -126,6 +140,42 @@ export function drawScene(
       ctx.fill()
     }
 
+    // selection outline — see SELECT_HALO. Drawn after the core so it sits on
+    // top of the whiskers where they meet the glyph, reading as "the whisker
+    // passes behind the selected event".
+    if (g.selected) {
+      const halo = SELECT_HALO * layout.scale
+      const ring = SELECT_RING * layout.scale
+      if (g.kind === 'span') {
+        const w = Math.max(2, g.xEnd - g.xStart)
+        ctx.strokeStyle = colors.bg
+        ctx.lineWidth = halo
+        ctx.strokeRect(g.xStart - halo / 2, y - halo / 2, w + halo, bh + halo)
+        ctx.strokeStyle = colors.text
+        ctx.lineWidth = ring
+        ctx.strokeRect(
+          g.xStart - halo - ring / 2,
+          y - halo - ring / 2,
+          w + 2 * halo + ring,
+          bh + 2 * halo + ring,
+        )
+      } else {
+        ctx.strokeStyle = colors.bg
+        ctx.lineWidth = halo
+        ctx.beginPath()
+        ctx.arc(g.xStart, y + r, r + halo / 2, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.strokeStyle = colors.text
+        ctx.lineWidth = ring
+        ctx.beginPath()
+        ctx.arc(g.xStart, y + r, r + halo + ring / 2, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      // the end caps and every later stroke assume the 1px default set at the
+      // top of drawScene — restore it.
+      ctx.lineWidth = 1
+    }
+
     // end caps on top of the core, so inner caps stay visible (taller than the bar)
     ctx.strokeStyle = colors.muted
     for (const w of g.whiskers) {
@@ -186,13 +236,14 @@ export function drawScene(
     ctx.stroke()
   }
 
-  // lens window
+  // lens window — navigation chrome, so it is achromatic (--accent), not --now.
+  // Keeping --now off the chrome leaves it meaning exactly one thing: focus.
   const { x0, x1 } = scene.overview.lens
-  ctx.globalAlpha = 0.18
-  ctx.fillStyle = colors.now
+  ctx.globalAlpha = 0.10
+  ctx.fillStyle = colors.accent
   ctx.fillRect(x0, layout.overviewTop, Math.max(2, x1 - x0), layout.overviewHeight)
   ctx.globalAlpha = 1
-  ctx.strokeStyle = colors.now
+  ctx.strokeStyle = colors.accent
   ctx.strokeRect(x0, layout.overviewTop, Math.max(2, x1 - x0), layout.overviewHeight)
 
   // current overview time range — labelled at both ends of the band, on top.

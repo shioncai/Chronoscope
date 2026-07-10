@@ -123,6 +123,8 @@ describe('renderer', () => {
     expect(l2.barHeight).toBeCloseTo(l1.barHeight * 2, 6)
     expect(l2.glyphTop).toBeCloseTo(l1.glyphTop * 2, 6)
     expect(l2.overviewHeight).toBe(48) // the overview band is fixed, not scaled
+    expect(l1.scale).toBe(1)
+    expect(l2.scale).toBe(2)
   })
   it('draws a label on the left when side is left', () => {
     const ctx = fakeCtx()

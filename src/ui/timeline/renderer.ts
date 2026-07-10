@@ -21,6 +21,9 @@ export interface TimelineLayout {
   fontSize: number
   dotRadius: number
   barHeight: number
+  /** The display magnification (1–2.5). Published so painters can size
+      decorations — like the selection outline — in scaled pixels. */
+  scale: number
 }
 
 const OVERVIEW_HEIGHT = 48
@@ -40,6 +43,7 @@ export function computeLayout(height: number, scale = 1): TimelineLayout {
     fontSize: 11 * scale,
     dotRadius: 4 * scale,
     barHeight: 8 * scale,
+    scale,
   }
 }
 

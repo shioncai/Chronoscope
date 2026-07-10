@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useAppStore, useAppState, moveConflicts, dedupeTargetMovers } from '../../state'
 import { EventConflictDialog, type EventConflictItem } from './EventConflictDialog'
+import { useT } from '../../i18n/useT'
 import type { Id } from '../../domain/model'
 
 // Shared “move events into a folder, resolving same-title (title, folder)
@@ -9,6 +10,7 @@ import type { Id } from '../../domain/model'
 export function useEventMove(): { move: (ids: Id[], targetId: Id | null) => void; dialog: ReactNode } {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
   const [ctx, setCtx] = useState<{ target: Id | null; ids: Id[]; items: EventConflictItem[] } | null>(null)
 
   const move = (ids: Id[], target: Id | null) => {
@@ -38,7 +40,7 @@ export function useEventMove(): { move: (ids: Id[], targetId: Id | null) => void
   }
 
   const dialog = ctx ? (
-    <EventConflictDialog title="移动冲突" conflicts={ctx.items} onResolve={resolve} onCancel={() => setCtx(null)} />
+    <EventConflictDialog title={t('conflict.moveTitle')} conflicts={ctx.items} onResolve={resolve} onCancel={() => setCtx(null)} />
   ) : null
 
   return { move, dialog }

@@ -53,12 +53,12 @@ describe('parseTransferFile', () => {
 
   it('rejects invalid JSON', () => {
     const r = parseTransferFile('{not json')
-    expect(r).toEqual({ ok: false, error: '文件已损坏或不是有效的 JSON' })
+    expect(r).toEqual({ ok: false, error: 'corrupt-json' })
   })
 
   it('rejects a foreign file (wrong app)', () => {
     const r = parseTransferFile(JSON.stringify({ app: 'other', version: 1, data: {} }))
-    expect(r).toEqual({ ok: false, error: '这不是 Chronoscope 导出文件' })
+    expect(r).toEqual({ ok: false, error: 'not-chronoscope' })
   })
 
   it('accepts a v1 file (migrated on import)', () => {
@@ -74,12 +74,15 @@ describe('parseTransferFile', () => {
   it('rejects an unsupported version', () => {
     const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 9, data: {} }))
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.error).toContain('不支持的文件版本')
+    if (!r.ok) {
+      expect(r.error).toBe('unsupported-version')
+      expect(r.version).toBe('9')
+    }
   })
 
   it('rejects missing data arrays', () => {
     const r = parseTransferFile(JSON.stringify({ app: 'chronoscope', version: 1, data: { events: [] } }))
-    expect(r).toEqual({ ok: false, error: '文件内容不完整或已损坏' })
+    expect(r).toEqual({ ok: false, error: 'incomplete' })
   })
 
   it('round-trips buildTransferFile output', () => {

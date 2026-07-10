@@ -13,7 +13,7 @@ import { createStore, type Store } from './store'
 import { descendantCategoryIds } from './scope'
 import { reorderedCategories } from './categoryOrder'
 import { planRestore, planImport, type ImportSummary, type RestoreConflict } from './importPlan'
-import { buildTransferFile, parseTransferFile, type TransferFile } from './transfer'
+import { buildTransferFile, parseTransferFile, type TransferFile, type TransferError } from './transfer'
 import { initialAppState, type AppState, type Filter, type Sort, type Theme, type View } from './types'
 import type { Locale } from '../domain/locale'
 
@@ -28,7 +28,7 @@ export interface AppStoreDeps {
 
 export type ImportOutcome =
   | { ok: true; summary: ImportSummary }
-  | { ok: false; error: string }
+  | { ok: false; error: TransferError; version?: string }
 
 export interface AppStore {
   store: Store<AppState>
@@ -120,7 +120,7 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
 
     async importData(text) {
       const parsed = parseTransferFile(text)
-      if (!parsed.ok) return { ok: false, error: parsed.error }
+      if (!parsed.ok) return { ok: false, error: parsed.error, version: parsed.version }
       const s = store.getState()
       // migrate incoming deep-time points (v1 files store absolute years);
       // idempotent, so v2 files pass through unchanged

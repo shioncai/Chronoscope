@@ -463,7 +463,7 @@ describe('export / import', () => {
     const before = app.store.getState().events.length
     const outcome = await app.importData('{garbage')
     expect(outcome.ok).toBe(false)
-    if (!outcome.ok) expect(outcome.error).toContain('损坏')
+    if (!outcome.ok) expect(outcome.error).toBe('corrupt-json')
     expect(app.store.getState().events.length).toBe(before)
   })
 })

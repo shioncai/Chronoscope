@@ -8,20 +8,12 @@ import {
   type TimeFields,
   type ScaleUnit,
 } from './timeFields'
+import { useT, useLocale } from '../../i18n/useT'
 
 export interface TimeInputProps {
   label: string
   value: TimePoint | null
   onChange: (tp: TimePoint | null) => void
-}
-
-const UNIT_LABELS: Record<ScaleUnit, string> = {
-  decade: '年代',
-  century: '世纪',
-  millennium: '千年纪',
-  ka: '千年(ka)',
-  Ma: '百万年(Ma)',
-  Ga: '十亿年(Ga)',
 }
 
 function range(from: number, to: number): number[] {
@@ -31,6 +23,8 @@ function range(from: number, to: number): number[] {
 }
 
 export function TimeInput({ label, value, onChange }: TimeInputProps) {
+  const t = useT()
+  const locale = useLocale()
   const [fields, setFields] = useState<TimeFields>(() => fieldsFromTimePoint(value))
 
   const update = (patch: Partial<TimeFields>) => {
@@ -47,7 +41,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
 
   const preview = (() => {
     const tp = buildTimePoint(fields)
-    return tp ? formatTimePoint(tp) : ''
+    return tp ? formatTimePoint(tp, locale) : ''
   })()
 
   const yearNum = fields.era === 'BCE' ? 1 - Number(fields.year || 0) : Number(fields.year || 0)
@@ -62,21 +56,21 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
     <fieldset className="time-input">
       <legend>{label}</legend>
 
-      <div className="seg" role="group" aria-label={`${label} 尺度`}>
+      <div className="seg" role="group" aria-label={t('editor.time.scaleGroup', { label })}>
         <button type="button" className={fields.mode === 'civil' ? 'active' : ''} aria-pressed={fields.mode === 'civil'}
-          onClick={() => update({ mode: 'civil' })}>历法日期</button>
+          onClick={() => update({ mode: 'civil' })}>{t('editor.time.civil')}</button>
         <button type="button" className={fields.mode === 'scale' ? 'active' : ''} aria-pressed={fields.mode === 'scale'}
-          onClick={() => update({ mode: 'scale' })}>大尺度</button>
+          onClick={() => update({ mode: 'scale' })}>{t('editor.time.scale')}</button>
       </div>
 
       <div className="structured animin" key={fields.mode}>
         {fields.mode === 'scale' && (
           <label>
-            {`${label} 单位`}
+            {t('editor.time.unit', { label })}
             <select value={fields.unit} onChange={(e) => update({ unit: e.target.value as ScaleUnit })}>
               {SCALE_UNITS.map((u) => (
                 <option key={u} value={u}>
-                  {UNIT_LABELS[u]}
+                  {t(`editor.scaleUnit.${u}`)}
                 </option>
               ))}
             </select>
@@ -87,14 +81,14 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
         {!relative && (
           <>
             <label>
-              {`${label} 纪元`}
+              {t('editor.time.era', { label })}
               <select value={fields.era} onChange={(e) => update({ era: e.target.value as TimeFields['era'] })}>
-                <option value="CE">公元</option>
-                <option value="BCE">公元前</option>
+                <option value="CE">{t('editor.era.ce')}</option>
+                <option value="BCE">{t('editor.era.bce')}</option>
               </select>
             </label>
             <label>
-              {`${label} 年`}
+              {t('editor.time.year', { label })}
               <input type="number" min="1" value={fields.year} onChange={(e) => update({ year: e.target.value })} />
             </label>
           </>
@@ -103,7 +97,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
         {/* 距今 magnitude: scale mode, relative units (ka/Ma/Ga) */}
         {relative && (
           <label>
-            {`${label} 距今`}
+            {t('editor.time.ago', { label })}
             <input
               type="number"
               min="0"
@@ -118,7 +112,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
         {fields.mode === 'civil' && (
           <>
             <label>
-              {`${label} 月`}
+              {t('editor.time.month', { label })}
               <select value={fields.mo} onChange={(e) => update({ mo: e.target.value })}>
                 {blank('—')}
                 {range(1, 12).map((m) => (
@@ -129,7 +123,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
               </select>
             </label>
             <label>
-              {`${label} 日`}
+              {t('editor.time.day', { label })}
               <select value={fields.d} disabled={!fields.mo} onChange={(e) => update({ d: e.target.value })}>
                 {blank('—')}
                 {range(1, maxDay).map((d) => (
@@ -140,7 +134,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
               </select>
             </label>
             <label>
-              {`${label} 时`}
+              {t('editor.time.hour', { label })}
               <select value={fields.h} disabled={!fields.d} onChange={(e) => update({ h: e.target.value })}>
                 {blank('—')}
                 {range(0, 23).map((h) => (
@@ -151,7 +145,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
               </select>
             </label>
             <label>
-              {`${label} 分`}
+              {t('editor.time.minute', { label })}
               <select value={fields.mi} disabled={!fields.h} onChange={(e) => update({ mi: e.target.value })}>
                 {blank('—')}
                 {range(0, 59).map((mi) => (

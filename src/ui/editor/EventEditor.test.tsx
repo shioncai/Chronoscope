@@ -7,8 +7,9 @@ import { instantOf } from '../../domain/time'
 import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import type { Locale } from '../../domain/locale'
 
-function makeApp(): AppStore {
+function makeApp(locale?: Locale): AppStore {
   const db: Database = {
     events: createMemoryRepository<EventRecord>(),
     categories: createMemoryRepository<Category>(),
@@ -17,7 +18,7 @@ function makeApp(): AppStore {
   let t = 0
   const clock: Clock = { now: () => `t${++t}` }
   let i = 0
-  return createAppStore({ db, clock, nowYear: 2026, theme: 'day', genId: () => `id${++i}` })
+  return createAppStore({ db, clock, nowYear: 2026, theme: 'day', locale, genId: () => `id${++i}` })
 }
 
 let app: AppStore
@@ -182,5 +183,12 @@ describe('EventEditor', () => {
     const e = app.store.getState().events.find((ev) => ev.title === 'x')!
     expect(created).toBeTruthy()
     expect(e.tagIds).toContain(created.id)
+  })
+
+  it('renders the new-event editor in English after switching locale', async () => {
+    app = makeApp('en')
+    renderEditor(null)
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
+    expect(screen.getByPlaceholderText('Event title…')).toBeTruthy()
   })
 })

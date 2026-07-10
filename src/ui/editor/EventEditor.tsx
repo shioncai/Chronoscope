@@ -10,6 +10,8 @@ import { Pill } from '../shell/Pill'
 import { AddFolderForm } from '../shell/AddFolderForm'
 import { AddTagForm } from '../shell/AddTagForm'
 import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
+import { useT } from '../../i18n/useT'
+import type { MessageKey } from '../../i18n/catalog'
 
 export interface EventEditorProps {
   editingId: Id | null
@@ -19,6 +21,7 @@ export interface EventEditorProps {
 export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
   const existing = editingId ? state.events.find((e) => e.id === editingId) ?? null : null
 
   const [title, setTitle] = useState(existing?.title ?? '')
@@ -30,7 +33,7 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const [links, setLinks] = useState<Id[]>(existing?.links ?? [])
   const [startFuzz, setStartFuzz] = useState<FuzzValue | undefined>(existing?.start?.fuzz)
   const [endFuzz, setEndFuzz] = useState<FuzzValue | undefined>(existing?.end?.fuzz)
-  const [errors, setErrors] = useState<string[]>([])
+  const [errors, setErrors] = useState<MessageKey[]>([])
 
   const [fuzzStartOpen, setFuzzStartOpen] = useState(!!startFuzz)
   const [fuzzEndOpen, setFuzzEndOpen] = useState(!!endFuzz)
@@ -39,7 +42,7 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const [newTagOpen, setNewTagOpen] = useState(false)
   const [restoreConflict, setRestoreConflict] = useState<EventConflictItem[] | null>(null)
 
-  const liveTags = state.tags.filter((t) => !t.deleted)
+  const liveTags = state.tags.filter((tg) => !tg.deleted)
 
   const toggleTag = (id: Id) =>
     setTagIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -51,12 +54,12 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
   const save = async () => {
     const result = validateEvent({ title, start: start ?? undefined, end: end ?? undefined })
     if (!result.ok) {
-      setErrors(result.errors)
+      setErrors(result.errors.map((c) => `editor.error.${c}` as MessageKey))
       return
     }
     const targetCat = categoryId === '' ? null : categoryId
     if (liveEventAt(state.events, title, targetCat, editingId ?? undefined)) {
-      setErrors(['该文件夹下已存在同名事件'])
+      setErrors(['editor.error.duplicateTitle'])
       return
     }
     const fields = {
@@ -96,64 +99,69 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
     onClose()
   }
   const purge = async () => {
-    if (editingId && window.confirm('永久删除此事件？此操作不可撤销。')) {
+    if (editingId && window.confirm(t('editor.purgeConfirm'))) {
       await app.purgeEvents([editingId])
       onClose()
     }
   }
 
   return (
-    <div className="event-editor" role="dialog" aria-label={editingId ? '编辑事件' : '新建事件'}>
+    <div className="event-editor" role="dialog" aria-label={editingId ? t('editor.editEvent') : t('editor.newEvent')}>
       {errors.length > 0 && (
         <ul className="errors">
-          {errors.map((e) => (
-            <li key={e}>{e}</li>
+          {errors.map((k) => (
+            <li key={k}>{t(k)}</li>
           ))}
         </ul>
       )}
 
       <div className="title-field">
-        <input aria-label="标题" value={title} placeholder="事件标题…" onChange={(e) => setTitle(e.target.value)} />
+        <input
+          aria-label={t('editor.titleAria')}
+          value={title}
+          placeholder={t('editor.titlePlaceholder')}
+          onChange={(e) => setTitle(e.target.value)}
+        />
       </div>
 
       <section className="ee-sec">
-        <div className="sec-label">时间</div>
+        <div className="sec-label">{t('editor.sectionTime')}</div>
         <div className="timeblock">
           <div className="block-head">
-            <span className="bh-title">起点</span>
+            <span className="bh-title">{t('editor.start')}</span>
           </div>
-          <TimeInput label="起点" value={start} onChange={setStart} />
+          <TimeInput label={t('editor.start')} value={start} onChange={setStart} />
           <button type="button" className="disc" aria-expanded={fuzzStartOpen} onClick={() => setFuzzStartOpen((o) => !o)}>
-            ± 误差范围
+            {t('editor.fuzzToggle')}
           </button>
-          {fuzzStartOpen && <FuzzInput label="起点" value={startFuzz} onChange={setStartFuzz} />}
+          {fuzzStartOpen && <FuzzInput label={t('editor.start')} value={startFuzz} onChange={setStartFuzz} />}
         </div>
         <div className="timeblock">
           <div className="block-head">
-            <span className="bh-title">终点</span>
-            <span className="bh-opt">· 留空表示这是一个时间点</span>
+            <span className="bh-title">{t('editor.end')}</span>
+            <span className="bh-opt">{t('editor.endHint')}</span>
           </div>
-          <TimeInput label="终点" value={end} onChange={setEnd} />
+          <TimeInput label={t('editor.end')} value={end} onChange={setEnd} />
           <button type="button" className="disc" aria-expanded={fuzzEndOpen} onClick={() => setFuzzEndOpen((o) => !o)}>
-            ± 误差范围
+            {t('editor.fuzzToggle')}
           </button>
-          {fuzzEndOpen && <FuzzInput label="终点" value={endFuzz} onChange={setEndFuzz} />}
+          {fuzzEndOpen && <FuzzInput label={t('editor.end')} value={endFuzz} onChange={setEndFuzz} />}
         </div>
       </section>
 
       <section className="ee-sec">
-        <div className="sec-label">归类</div>
+        <div className="sec-label">{t('editor.sectionCategory')}</div>
         <div className="cat-row">
-          <select aria-label="文件夹" value={categoryId} onChange={(e) => setCategoryId(e.target.value as Id | '')}>
-            <option value="">未分类</option>
-            {flattenCategoryTree(state.categories).map((t) => (
-              <option key={t.category.id} value={t.category.id}>
-                {'　'.repeat(t.depth) + t.category.name}
+          <select aria-label={t('editor.folderAria')} value={categoryId} onChange={(e) => setCategoryId(e.target.value as Id | '')}>
+            <option value="">{t('common.uncategorized')}</option>
+            {flattenCategoryTree(state.categories).map((ct) => (
+              <option key={ct.category.id} value={ct.category.id}>
+                {'　'.repeat(ct.depth) + ct.category.name}
               </option>
             ))}
           </select>
           <button type="button" className="ghost" onClick={() => setNewFolderOpen((o) => !o)}>
-            ＋ 新建文件夹
+            {t('editor.newFolder')}
           </button>
         </div>
         {newFolderOpen && (
@@ -167,11 +175,11 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
           />
         )}
         <div className="pills">
-          {liveTags.map((t) => (
-            <Pill key={t.id} label={t.name} active={tagIds.includes(t.id)} onToggle={() => toggleTag(t.id)} />
+          {liveTags.map((tg) => (
+            <Pill key={tg.id} label={tg.name} active={tagIds.includes(tg.id)} onToggle={() => toggleTag(tg.id)} />
           ))}
           <button type="button" className="pill add" aria-expanded={newTagOpen} onClick={() => setNewTagOpen((o) => !o)}>
-            ＋ 新标签
+            {t('editor.newTag')}
           </button>
         </div>
         {newTagOpen && (
@@ -186,24 +194,24 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
       </section>
 
       <section className="ee-sec">
-        <div className="sec-label">更多</div>
+        <div className="sec-label">{t('editor.sectionMore')}</div>
         <label className="sr-only-label" htmlFor="ee-note">
-          备注
+          {t('editor.note')}
         </label>
         <textarea
           id="ee-note"
-          aria-label="备注"
+          aria-label={t('editor.note')}
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={4}
-          placeholder="备注（支持 Markdown）…"
+          placeholder={t('editor.notePlaceholder')}
         />
         <button type="button" className="disc" aria-expanded={linksOpen} onClick={() => setLinksOpen((o) => !o)}>
-          ＋ 关联其他事件
+          {t('editor.linkToggle')}
         </button>
         {linksOpen && (
           <div className="linklist">
-            {linkCandidates.length === 0 && <p className="muted">暂无可关联的事件</p>}
+            {linkCandidates.length === 0 && <p className="muted">{t('editor.noLinkCandidates')}</p>}
             {linkCandidates.map((e) => (
               <label key={e.id} className="linkitem">
                 <input type="checkbox" checked={links.includes(e.id)} onChange={() => toggleLink(e.id)} />
@@ -218,26 +226,26 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
         {isDeleted ? (
           <>
             <button type="button" className="primary" onClick={restore}>
-              恢复
+              {t('common.restore')}
             </button>
             <button type="button" onClick={onClose}>
-              取消
+              {t('common.cancel')}
             </button>
             <button type="button" className="danger" onClick={purge}>
-              永久删除
+              {t('common.purge')}
             </button>
           </>
         ) : (
           <>
             <button type="button" className="primary" onClick={save}>
-              保存
+              {t('common.save')}
             </button>
             <button type="button" onClick={onClose}>
-              取消
+              {t('common.cancel')}
             </button>
             {editingId && (
               <button type="button" className="danger" onClick={remove}>
-                删除
+                {t('common.delete')}
               </button>
             )}
           </>
@@ -245,7 +253,7 @@ export function EventEditor({ editingId, onClose }: EventEditorProps) {
       </div>
       {restoreConflict && (
         <EventConflictDialog
-          title="恢复冲突"
+          title={t('conflict.restoreTitle')}
           conflicts={restoreConflict}
           onResolve={(choices) => {
             void (async () => {

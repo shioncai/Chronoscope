@@ -3,11 +3,13 @@ import { useAppStore, useAppState, flattenCategoryTree, liveFolderAt } from '../
 import type { Id } from '../../domain/model'
 import { nextPresetColor } from '../categoryColors'
 import { ColorPicker } from './ColorPicker'
+import { useT } from '../../i18n/useT'
 
 export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
   { defaultParentId: Id | null; onCreated: (id: Id) => void; onCancel: () => void }) {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
   const live = state.categories.filter((c) => !c.deleted)
   const colorOf = (id: Id | null) => live.find((c) => c.id === id)?.color
   const defaultColor = (parent: Id | null) => colorOf(parent) ?? nextPresetColor(live.length)
@@ -31,7 +33,7 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
     if (!n) return
     const parent = parentId || null
     if (liveFolderAt(state.categories, n, parent)) {
-      setError('同一位置已存在同名文件夹')
+      setError(t('editor.addFolder.duplicate'))
       return
     }
     setError('')
@@ -41,29 +43,29 @@ export function AddFolderForm({ defaultParentId, onCreated, onCancel }:
 
   return (
     <div className="inlineform">
-      <div className="af-title display">新建文件夹</div>
-      <label className="field"><span className="cap">名称</span>
-        <input aria-label="名称" value={name} autoFocus onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') create() }} placeholder="例如：宋朝" /></label>
+      <div className="af-title display">{t('editor.addFolder.title')}</div>
+      <label className="field"><span className="cap">{t('editor.field.name')}</span>
+        <input aria-label={t('editor.field.name')} value={name} autoFocus onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') create() }} placeholder={t('editor.addFolder.namePlaceholder')} /></label>
       {error && <div className="errors">{error}</div>}
       <div className="parent-color">
-        <label className="field"><span className="cap">父文件夹（层级）</span>
-          <select aria-label="父文件夹" value={parentId} onChange={(e) => onParent(e.target.value as Id | '')}>
-            <option value="">顶级（无父文件夹）</option>
-            {parents.map((t) => <option key={t.category.id} value={t.category.id}>{'　'.repeat(t.depth) + t.category.name}</option>)}
+        <label className="field"><span className="cap">{t('editor.addFolder.parent')}</span>
+          <select aria-label={t('editor.addFolder.parentAria')} value={parentId} onChange={(e) => onParent(e.target.value as Id | '')}>
+            <option value="">{t('editor.addFolder.topOption')}</option>
+            {parents.map((pt) => <option key={pt.category.id} value={pt.category.id}>{'　'.repeat(pt.depth) + pt.category.name}</option>)}
           </select></label>
-        <button type="button" className="dotbtn" aria-label="颜色" data-picker-trigger ref={dotRef} onClick={() => setSwOpen((o) => !o)}>
+        <button type="button" className="dotbtn" aria-label={t('editor.addFolder.colorAria')} data-picker-trigger ref={dotRef} onClick={() => setSwOpen((o) => !o)}>
           <span className="dot" style={{ background: color }} /></button>
       </div>
-      <div className="hint2">默认颜色继承父文件夹；顶级则取下一预设色，可改。</div>
+      <div className="hint2">{t('editor.addFolder.colorHint')}</div>
       {swOpen && (
         <ColorPicker value={color} anchorRef={dotRef}
           onPick={(hex) => { setColor(hex); setTouchedColor(true); setSwOpen(false) }}
           onClose={() => setSwOpen(false)} />
       )}
       <div className="af-actions">
-        <button type="button" className="btn-sm" onClick={onCancel}>取消</button>
-        <button type="button" className="btn-sm primary" onClick={create}>创建</button>
+        <button type="button" className="btn-sm" onClick={onCancel}>{t('common.cancel')}</button>
+        <button type="button" className="btn-sm primary" onClick={create}>{t('common.create')}</button>
       </div>
     </div>
   )

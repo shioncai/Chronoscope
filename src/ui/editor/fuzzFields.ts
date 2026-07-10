@@ -9,15 +9,6 @@ export const FUZZ_UNIT_YEARS: Record<FuzzUnit, number> = {
   Ga: 1e9,
 }
 
-export const FUZZ_UNIT_LABELS: Record<FuzzUnit, string> = {
-  day: '天',
-  year: '年',
-  century: '世纪',
-  millennium: '千年',
-  Ma: '百万年(Ma)',
-  Ga: '十亿年(Ga)',
-}
-
 export interface FuzzFields {
   unit: FuzzUnit
   amount: string // symmetric ± value

@@ -3,7 +3,7 @@
    structure is identical across themes. tokens.css owns the contract + the
    height/flex skeleton; this file is the skin (imported after tokens). */
 
-:root { --radius: 8px; }
+:root { --radius: 10px; }
 
 /* ---------- top bar ---------- */
 .topbar{position:relative;display:flex;align-items:center;gap:14px;flex:0 0 auto;height:54px;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--border);transition:background .35s ease,border-color .35s ease;}
@@ -15,7 +15,7 @@
 .search-box svg{position:absolute;left:12px;width:16px;height:16px;color:var(--faint);pointer-events:none;}
 .search-box input{width:100%;height:38px;padding:0 14px 0 36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font:inherit;font-size:14px;outline:none;transition:border-color .18s,box-shadow .18s;}
 .search-box input::placeholder{color:var(--faint);}
-.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--focus-ring);}
 .view-switch{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
 .view-switch button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:color .2s,background .25s;}
 .view-switch button.active{background:var(--accent);color:var(--on-accent);}
@@ -36,9 +36,15 @@
 .func-row .fr-label{flex:1;min-width:0;}
 .switch{flex:0 0 auto;width:36px;height:20px;border-radius:999px;background:var(--border);position:relative;transition:background .25s;}
 .switch.on{background:var(--accent);}
-.switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .25s cubic-bezier(.4,0,.2,1);}
+/* The knob is the track's contrast partner. `.switch` has exactly one consumer
+   (SidebarFooter.tsx), where `.on` ⟺ [data-theme='night'], so only two states
+   render: day+off (near-white knob on a pale --border track) and night+on
+   (warm-black knob on a moon-white --accent track). --on-accent is correct in
+   both, which is why no theme override is needed. If a non-theme toggle ever
+   reuses `.switch`, night+off becomes reachable and this breaks — switch to
+   `knob: var(--text)` when off, `var(--on-accent)` when on. */
+.switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--on-accent);transition:transform .25s cubic-bezier(.4,0,.2,1);}
 .switch.on .knob{transform:translateX(16px);}
-[data-theme='night'] .switch .knob{background:#0d1117;}
 
 /* folder move menu (hierarchy targets) — mirrors .color-picker */
 .move-menu {
@@ -437,7 +443,7 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .inlineform .field{display:flex;flex-direction:column;gap:5px;}
 .inlineform .field .cap{font-size:11px;color:var(--muted);}
 .inlineform input,.inlineform select{width:100%;min-width:0;height:38px;background:var(--panel);border:1px solid var(--border);border-radius:9px;color:var(--text);font:inherit;font-size:14px;padding:0 10px;outline:none;transition:border-color .15s,box-shadow .15s;}
-.inlineform input:focus,.inlineform select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+.inlineform input:focus,.inlineform select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--focus-ring);}
 .parent-color{display:flex;gap:10px;align-items:flex-end;}
 .parent-color .field{flex:1 1 auto;min-width:0;}
 .dotbtn{flex:0 0 38px;width:38px;height:38px;border:1px solid var(--border);border-radius:9px;background:var(--panel);cursor:pointer;display:flex;align-items:center;justify-content:center;}

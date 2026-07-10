@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAppState, eventDiffFields, type EventDiffField } from '../../state'
 import { formatTimeRange } from '../list/timeText'
 import { useFocusTrap } from './useFocusTrap'
-import { useT } from '../../i18n/useT'
+import { useT, useLocale } from '../../i18n/useT'
 import type { MessageKey } from '../../i18n/catalog'
 import type { EventRecord, Id } from '../../domain/model'
 
@@ -31,6 +31,7 @@ export function EventConflictDialog({
 }) {
   const state = useAppState()
   const t = useT()
+  const locale = useLocale()
   const ref = useFocusTrap<HTMLDivElement>(true, onCancel)
   const [choices, setChoices] = useState<Record<Id, 'overwrite' | 'skip'>>(
     () => Object.fromEntries(conflicts.map((c) => [c.incoming.id, 'skip' as const])),
@@ -39,11 +40,11 @@ export function EventConflictDialog({
     setChoices(Object.fromEntries(conflicts.map((c) => [c.incoming.id, v])))
 
   const tagNames = (ids: Id[]) =>
-    ids.map((id) => state.tags.find((t) => t.id === id)?.name).filter(Boolean).join('、') || '—'
+    ids.map((id) => state.tags.find((t) => t.id === id)?.name).filter(Boolean).join(t('common.listSeparator')) || '—'
   const linkTitles = (ids: Id[]) =>
-    ids.map((id) => state.events.find((e) => e.id === id)?.title).filter(Boolean).join('、') || '—'
+    ids.map((id) => state.events.find((e) => e.id === id)?.title).filter(Boolean).join(t('common.listSeparator')) || '—'
   const fieldValue = (e: EventRecord, f: EventDiffField): string => {
-    if (f === 'time') return formatTimeRange(e.start, e.end)
+    if (f === 'time') return formatTimeRange(e.start, e.end, locale)
     if (f === 'note') return e.note || '—'
     if (f === 'tags') return tagNames(e.tagIds)
     return linkTitles(e.links)

@@ -45,4 +45,19 @@ describe('EventConflictDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: '取消' }))
     expect(onCancel).toHaveBeenCalled()
   })
+
+  it('renders the Time diff row in English when locale is en', () => {
+    app.setLocale('en')
+    const incomingDeep = ev('inc-deep', { title: 'Moon Landing', start: fromYear(-2999, 'year') })
+    const existingDeep = ev('exi-deep', { title: 'Moon Landing', start: fromYear(1969, 'year') })
+    render(
+      <AppStoreProvider value={app}>
+        <EventConflictDialog title="Move conflict" conflicts={[{ incoming: incomingDeep, existing: existingDeep }]} onResolve={vi.fn()} onCancel={vi.fn()} />
+      </AppStoreProvider>,
+    )
+    const timeRow = screen.getByText('Time').closest('tr')
+    expect(timeRow).not.toBeNull()
+    expect(timeRow!.textContent).toContain('3000 BCE')
+    expect(timeRow!.textContent).not.toMatch(/年/)
+  })
 })

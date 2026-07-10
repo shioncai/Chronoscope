@@ -30,6 +30,11 @@ export const en = {
   'color.custom': 'Custom color',
   'color.hexAria': 'Hex color',
   'color.add': 'Add',
+  'about.tagline': 'Local-first timeline',
+  'about.description': 'A cross-scale event-timeline PWA. All data stays on your device — no server, no account.',
+  'about.author': 'Author',
+  'about.stack': 'Stack',
+  'about.license': 'License',
 } as const
 
 export const zh: Record<keyof typeof en, string> = {
@@ -64,4 +69,9 @@ export const zh: Record<keyof typeof en, string> = {
   'color.custom': '自定义颜色',
   'color.hexAria': '十六进制颜色',
   'color.add': '加入',
+  'about.tagline': '本地优先时间轴',
+  'about.description': '跨尺度的事件时间轴 PWA。数据完全保存在本地，无需服务器、无需账号。',
+  'about.author': '作者',
+  'about.stack': '技术栈',
+  'about.license': '许可',
 }

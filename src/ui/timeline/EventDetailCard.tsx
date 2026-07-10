@@ -25,8 +25,8 @@ export function EventDetailCard({ data, onEdit, onClose, onSelectLink }: EventDe
       {data.categoryName && <p className="category">{data.categoryName}</p>}
       {data.tagNames.length > 0 && (
         <ul className="tags">
-          {data.tagNames.map((t) => (
-            <li key={t}>{t}</li>
+          {data.tagNames.map((tag) => (
+            <li key={tag}>{tag}</li>
           ))}
         </ul>
       )}

@@ -59,4 +59,12 @@ describe('SidebarFooter export/import', () => {
     fireEvent.change(input, { target: { files: [file] } })
     await waitFor(() => expect(screen.getByText('导入失败')).toBeTruthy())
   })
+
+  it('renders the footer in English after switching locale', async () => {
+    const app = makeApp()
+    app.setLocale('en')
+    render(<AppStoreProvider value={app}><SidebarFooter /></AppStoreProvider>)
+    expect(screen.getByText('Export data')).toBeTruthy()
+    expect(screen.getByText('English')).toBeTruthy()
+  })
 })

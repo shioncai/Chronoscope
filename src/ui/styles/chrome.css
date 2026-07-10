@@ -520,3 +520,11 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .event-row .ev-main:hover{border-color:transparent;}
 .event-row .ev-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .event-row .ev-time{flex:0 0 auto;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums;}
+/* language switcher: popover trigger row + its flyout menu, matching the
+   ColorPicker/HsvPicker portal-flyout pattern (positioned via useFlyout). */
+.func-row .fr-value{margin-left:auto;color:var(--muted);font-size:0.85em;}
+.lang-menu{min-width:140px;padding:4px;border-radius:8px;background:var(--surface);border:1px solid var(--border);box-shadow:0 6px 24px rgb(0 0 0 / 18%);display:flex;flex-direction:column;}
+.lang-item{display:flex;align-items:center;gap:6px;padding:6px 10px;background:none;border:0;text-align:left;cursor:pointer;color:var(--text);border-radius:6px;font:inherit;}
+.lang-item:hover{background:var(--bg);}
+.lang-item.active{color:var(--accent);}
+.lang-check{width:1em;display:inline-block;}

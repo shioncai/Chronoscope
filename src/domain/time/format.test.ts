@@ -43,3 +43,25 @@ describe('formatTimePoint', () => {
     expect(formatTimePoint({ year: -2999, precision: 'minute' })).toBe('公元前3000年')
   })
 })
+
+describe('formatTimePoint (English)', () => {
+  it('formats civil, year, decade, and BCE', () => {
+    expect(formatTimePoint(fromCivil({ y: 2026, mo: 6, d: 21 }, 'day'), 'en')).toBe('2026-06-21')
+    expect(formatTimePoint(fromCivil({ y: 2026, mo: 6, d: 21, h: 15, mi: 30 }, 'minute'), 'en')).toBe('2026-06-21 15:30')
+    expect(formatTimePoint(fromYear(1969, 'year'), 'en')).toBe('1969')
+    expect(formatTimePoint(fromYear(-2999, 'year'), 'en')).toBe('3000 BCE')
+    expect(formatTimePoint(fromYear(1990, 'decade'), 'en')).toBe('1990s')
+  })
+  it('formats centuries with English ordinals', () => {
+    expect(formatTimePoint(fromYear(2001, 'century'), 'en')).toBe('21st century')
+    expect(formatTimePoint(fromYear(-2999, 'century'), 'en')).toBe('30th century BCE')
+  })
+  it('formats deep time with independent English thresholds', () => {
+    expect(formatTimePoint(fromAgo(4.6e9, 'Ga'), 'en')).toBe('~4.6 billion years ago')
+    expect(formatTimePoint(fromAgo(4.6e6, 'Ma'), 'en')).toBe('~4.6 million years ago')
+    expect(formatTimePoint(fromAgo(4.6e5, 'ka'), 'en')).toBe('~460,000 years ago')
+    expect(formatTimePoint(fromAgo(3000, 'ka'), 'en')).toBe('~3,000 years ago')
+    expect(formatTimePoint(fromAgo(0, 'Ga'), 'en')).toBe('now')
+    expect(formatTimePoint(fromAgo(-1e9, 'Ga'), 'en')).toBe('~1 billion years from now')
+  })
+})

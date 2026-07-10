@@ -9,7 +9,7 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
       <div className="info-card" ref={ref} role="dialog" aria-modal="true" aria-label={t('sidebar.about')}
         onClick={(e) => e.stopPropagation()}>
         <div className="logo display">Chronoscope</div>
-        <div className="ver mono">v0.1.0 · {t('about.tagline')}</div>
+        <div className="ver mono">v{__APP_VERSION__} · {t('about.tagline')}</div>
         <p>{t('about.description')}</p>
         <div className="meta">
           <div><span>{t('about.author')}</span><b>ShionChoy</b></div>

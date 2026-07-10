@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// package.json is the single source of truth for the app version; the About
+// modal reads it through the __APP_VERSION__ define below.
+const { version } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { version: string }
 
 // VitePWA is build/dev-only; exclude it under Vitest so the unit suite never
 // loads Workbox or a virtual SW module. Also exclude it for the ELECTRON build:
@@ -34,5 +41,6 @@ const pwa = process.env.VITEST || process.env.ELECTRON
 
 export default defineConfig({
   plugins: [react(), ...pwa],
+  define: { __APP_VERSION__: JSON.stringify(version) },
   test: { globals: true, environment: 'node' },
 })

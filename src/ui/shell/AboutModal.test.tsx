@@ -35,6 +35,11 @@ describe('AboutModal', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('renders the version injected from package.json', () => {
+    renderModal(() => {})
+    expect(screen.getByText(/^v\d+\.\d+\.\d+ ·/)).toBeTruthy()
+  })
+
   it('centers its overlay via the modal-overlay--center modifier', () => {
     const { container } = renderModal(() => {})
     const overlay = container.querySelector('.modal-overlay')

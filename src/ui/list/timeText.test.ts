@@ -15,4 +15,7 @@ describe('formatTimeRange', () => {
   it('falls back to a dash when neither is set', () => {
     expect(formatTimeRange(undefined, undefined)).toBe('—')
   })
+  it('formats in English when passed the en locale', () => {
+    expect(formatTimeRange(fromYear(1300, 'year'), fromYear(1600, 'year'), 'en')).toBe('1300 → 1600')
+  })
 })

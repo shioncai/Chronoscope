@@ -97,6 +97,10 @@ describe('buildScene', () => {
     expect(scene.overview.range.start).toBe('2000年')
     expect(scene.overview.range.end).toBe('2100年')
   })
+  it('labels ticks in English when locale is en', () => {
+    const scene = buildScene({ ...base, locale: 'en', events: [] })
+    expect(scene.overview.range.start.includes('年')).toBe(false)
+  })
   it('uses a relative label for a deep-time overview bound', () => {
     const scene = buildScene({ ...base, overview: { min: 2026 - 5e8, max: 2026 - 1e6 }, events: [] })
     expect(scene.overview.range.start).toBe('约5.0亿年前')

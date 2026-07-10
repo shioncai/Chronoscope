@@ -1,6 +1,7 @@
 import type { EventRecord, Category, Tag, Id } from '../../domain/model'
 import { formatTimePoint } from '../../domain/time'
 import type { TimePoint } from '../../domain/time'
+import type { Locale } from '../../domain/locale'
 
 export interface EventCardData {
   id: Id
@@ -18,15 +19,15 @@ export interface CardLookups {
   events: EventRecord[]
 }
 
-export function formatEventTime(event: EventRecord): string {
-  const fmt = (tp: TimePoint) => formatTimePoint(tp)
+export function formatEventTime(event: EventRecord, locale: Locale = 'zh'): string {
+  const fmt = (tp: TimePoint) => formatTimePoint(tp, locale)
   if (event.start && event.end) return `${fmt(event.start)} – ${fmt(event.end)}`
   if (event.start) return fmt(event.start)
   if (event.end) return `→ ${fmt(event.end)}`
   return '—'
 }
 
-export function buildEventCard(event: EventRecord, lookups: CardLookups): EventCardData {
+export function buildEventCard(event: EventRecord, lookups: CardLookups, locale: Locale = 'zh'): EventCardData {
   const cat =
     event.categoryId != null
       ? lookups.categories.find((c) => c.id === event.categoryId && !c.deleted) ?? null
@@ -41,7 +42,7 @@ export function buildEventCard(event: EventRecord, lookups: CardLookups): EventC
   return {
     id: event.id,
     title: event.title,
-    timeLabel: formatEventTime(event),
+    timeLabel: formatEventTime(event, locale),
     note: event.note,
     categoryName: cat?.name ?? null,
     tagNames,

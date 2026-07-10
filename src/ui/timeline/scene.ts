@@ -10,6 +10,7 @@ import {
   fromAgo,
   PRESENT_EPOCH,
 } from '../../domain/time'
+import type { Locale } from '../../domain/locale'
 import { packRows } from './packing'
 import { lensFromView } from './view'
 import { placeLabel, BASE_FONT_PX } from './labels'
@@ -63,6 +64,7 @@ export interface BuildSceneInput {
   // display magnification (1 = normal). Widens labels so packing reserves the
   // scaled width; the renderer scales the matching pixel sizes.
   scale?: number
+  locale?: Locale
 }
 
 const MARKER_BUCKET_PX = 6
@@ -94,14 +96,15 @@ export function eventInstant(e: EventRecord): number | null {
 // Label a decimal year for the overview's range readout: an absolute year near
 // the present, a relative "约X…年前/后" deeper in time (the formatter picks the
 // 亿/万/年 unit automatically for relative precisions).
-function rangeLabel(year: number, nowYear: number): string {
+function rangeLabel(year: number, nowYear: number, locale: Locale): string {
   return Math.abs(nowYear - year) >= 1000
-    ? formatTimePoint(fromAgo(PRESENT_EPOCH - year, 'ka'))
-    : formatTimePoint(fromYear(year, 'year'))
+    ? formatTimePoint(fromAgo(PRESENT_EPOCH - year, 'ka'), locale)
+    : formatTimePoint(fromYear(year, 'year'), locale)
 }
 
 export function buildScene(input: BuildSceneInput): TimelineScene {
   const { events, view, overview, nowYear, width, selectedId } = input
+  const locale = input.locale ?? 'zh'
   const categoryColors = input.categoryColors ?? new Map<Id, string>()
   const scale = input.scale ?? 1
   const fontSizePx = BASE_FONT_PX * scale
@@ -117,7 +120,7 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
     const x = xOf(instantOf(tp))
     if (x < 0 || x > width) continue
     if (x - lastTickX < MIN_TICK_GAP) continue
-    ticks.push({ x, label: formatTimePoint(tp) })
+    ticks.push({ x, label: formatTimePoint(tp, locale) })
     lastTickX = x
   }
 
@@ -215,7 +218,7 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
   const lensW = Math.min(Math.max(lx1 - lx0, MIN_LENS_PX), width)
   const x0 = Math.max(0, Math.min(lx0, width - lensW))
   const x1 = x0 + lensW
-  const range = { start: rangeLabel(overview.min, nowYear), end: rangeLabel(overview.max, nowYear) }
+  const range = { start: rangeLabel(overview.min, nowYear, locale), end: rangeLabel(overview.max, nowYear, locale) }
   return {
     width,
     detail: { ticks, glyphs, rowCount },

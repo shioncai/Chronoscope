@@ -15,6 +15,9 @@ describe('formatEventTime', () => {
   it('returns a dash when there is no time', () => {
     expect(formatEventTime(ev({ id: 'a' }))).toBe('—')
   })
+  it('formats the event time in English', () => {
+    expect(formatEventTime(ev({ id: 'e', start: y(-2999) }), 'en')).toBe('3000 BCE')
+  })
 })
 
 describe('buildEventCard', () => {

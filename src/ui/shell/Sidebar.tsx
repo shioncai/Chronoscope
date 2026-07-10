@@ -4,6 +4,7 @@ import { FolderPanel } from './FolderPanel'
 import { TagPanel } from './TagPanel'
 import { SidebarFooter } from './SidebarFooter'
 import type { Id } from '../../domain/model'
+import { useT } from '../../i18n/useT'
 
 export interface SidebarProps {
   open?: boolean
@@ -12,6 +13,7 @@ export interface SidebarProps {
 }
 
 export function Sidebar({ open = false, onResizeStart, onEdit }: SidebarProps) {
+  const t = useT()
   return (
     <aside id="sidebar" className={open ? 'sidebar open' : 'sidebar'}>
       <div className="sidebar-scroll">
@@ -22,7 +24,7 @@ export function Sidebar({ open = false, onResizeStart, onEdit }: SidebarProps) {
       <SidebarFooter />
       {onResizeStart && (
         <div className="sidebar-resize" role="separator" aria-orientation="vertical"
-          aria-label="调整侧边栏宽度" onPointerDown={onResizeStart} />
+          aria-label={t('shell.resizeSidebar')} onPointerDown={onResizeStart} />
       )}
     </aside>
   )

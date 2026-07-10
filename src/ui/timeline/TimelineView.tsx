@@ -8,6 +8,7 @@ import { drawScene, computeLayout, type TimelineColors } from './renderer'
 import type { Id } from '../../domain/model'
 import { buildEventCard } from './card'
 import { EventDetailCard } from './EventDetailCard'
+import { useT, useLocale } from '../../i18n/useT'
 
 export interface TimelineViewProps {
   onEdit: (id: Id) => void
@@ -31,6 +32,8 @@ function readColors(el: Element): TimelineColors {
 export function TimelineView({ onEdit }: TimelineViewProps) {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
+  const locale = useLocale()
   const events = useMemo(() => visibleEvents(state), [state])
   const nowYear = state.nowYear
   const scale = state.timelineScale
@@ -98,7 +101,17 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     const dpr = window.devicePixelRatio || 1
     canvas.width = size.w * dpr
     canvas.height = size.h * dpr
-    const scene = buildScene({ events, view, overview, nowYear, width: size.w, selectedId: state.selectedId, categoryColors, scale })
+    const scene = buildScene({
+      events,
+      view,
+      overview,
+      nowYear,
+      width: size.w,
+      selectedId: state.selectedId,
+      categoryColors,
+      scale,
+      locale,
+    })
     const layout = computeLayout(size.h, scale)
     sceneRef.current = scene
     layoutRef.current = layout
@@ -108,7 +121,7 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     const contentH = scene.detail.rowCount * layout.rowHeight
     const visibleH = layout.overviewTop - layout.glyphTop
     drawScene(ctx, scene, readColors(canvas), layout, clampScroll(scrollY, contentH, visibleH))
-  }, [events, view, overview, nowYear, size, state.selectedId, state.theme, categoryColors, scale, scrollY])
+  }, [events, view, overview, nowYear, size, state.selectedId, state.theme, categoryColors, scale, scrollY, locale])
 
   // re-clamp the scroll offset when magnification / size / content shrink the
   // scrollable range, so it never rests past the end
@@ -305,22 +318,26 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
       />
       {selectedEvent && (
         <EventDetailCard
-          data={buildEventCard(selectedEvent, {
-            categories: state.categories,
-            tags: state.tags,
-            events: state.events,
-          })}
+          data={buildEventCard(
+            selectedEvent,
+            {
+              categories: state.categories,
+              tags: state.tags,
+              events: state.events,
+            },
+            locale,
+          )}
           onEdit={() => onEdit(selectedEvent.id)}
           onClose={() => app.select(null)}
           onSelectLink={(id) => app.select(id)}
         />
       )}
-      <div className="tl-zoom" role="group" aria-label="时间轴显示缩放">
-        <button type="button" aria-label="放大" onClick={() => app.setTimelineScale((s) => clampScale(s + 0.25))}>＋</button>
-        <button type="button" aria-label="重置缩放" className="tl-zoom-readout" onClick={() => app.setTimelineScale(1)}>
+      <div className="tl-zoom" role="group" aria-label={t('timeline.zoomGroup')}>
+        <button type="button" aria-label={t('timeline.zoomIn')} onClick={() => app.setTimelineScale((s) => clampScale(s + 0.25))}>＋</button>
+        <button type="button" aria-label={t('timeline.zoomReset')} className="tl-zoom-readout" onClick={() => app.setTimelineScale(1)}>
           {scale.toFixed(2).replace(/\.?0+$/, '')}×
         </button>
-        <button type="button" aria-label="缩小" onClick={() => app.setTimelineScale((s) => clampScale(s - 0.25))}>－</button>
+        <button type="button" aria-label={t('timeline.zoomOut')} onClick={() => app.setTimelineScale((s) => clampScale(s - 0.25))}>－</button>
       </div>
     </div>
   )

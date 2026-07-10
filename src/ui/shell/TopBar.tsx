@@ -1,4 +1,5 @@
 import { useAppStore, useAppState } from '../../state'
+import { useT } from '../../i18n/useT'
 
 export interface TopBarProps {
   onToggleSidebar?: () => void
@@ -8,12 +9,13 @@ export interface TopBarProps {
 export function TopBar({ onToggleSidebar, sidebarOpen = false }: TopBarProps) {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
   return (
     <header className="topbar">
       <button
         type="button"
         className="icon-btn drawer-toggle"
-        aria-label="菜单"
+        aria-label={t('topbar.menu')}
         aria-controls="sidebar"
         aria-expanded={sidebarOpen}
         onClick={onToggleSidebar}
@@ -28,15 +30,15 @@ export function TopBar({ onToggleSidebar, sidebarOpen = false }: TopBarProps) {
         </svg>
         <input
           type="search"
-          aria-label="搜索事件"
-          placeholder="搜索事件…"
+          aria-label={t('topbar.searchAria')}
+          placeholder={t('topbar.searchPlaceholder')}
           value={state.filter.query}
           onChange={(e) => app.setFilter({ query: e.target.value })}
         />
       </div>
       <nav className="view-switch">
         <button type="button" className={state.view === 'list' ? 'active' : ''} aria-pressed={state.view === 'list'} onClick={() => app.setView('list')}>
-          列表
+          {t('topbar.list')}
         </button>
         <button
           type="button"
@@ -44,7 +46,7 @@ export function TopBar({ onToggleSidebar, sidebarOpen = false }: TopBarProps) {
           aria-pressed={state.view === 'timeline'}
           onClick={() => app.setView('timeline')}
         >
-          时间轴
+          {t('topbar.timeline')}
         </button>
       </nav>
     </header>

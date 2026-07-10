@@ -7,7 +7,7 @@ import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 
-function makeApp(): AppStore {
+function makeApp(locale?: 'en' | 'zh'): AppStore {
   const db: Database = {
     events: createMemoryRepository<EventRecord>(),
     categories: createMemoryRepository<Category>(),
@@ -15,7 +15,7 @@ function makeApp(): AppStore {
   }
   let t = 0
   const clock: Clock = { now: () => `t${++t}` }
-  return createAppStore({ db, clock, nowYear: 2026, theme: 'day', genId: () => 'id' })
+  return createAppStore({ db, clock, nowYear: 2026, theme: 'day', genId: () => 'id', locale })
 }
 
 let app: AppStore
@@ -23,9 +23,9 @@ beforeEach(() => {
   app = makeApp()
 })
 
-function renderTopBar() {
+function renderTopBar(target: AppStore = app) {
   render(
-    <AppStoreProvider value={app}>
+    <AppStoreProvider value={target}>
       <TopBar onToggleSidebar={() => {}} />
     </AppStoreProvider>,
   )
@@ -46,5 +46,11 @@ describe('TopBar', () => {
   it('no longer renders a 新建 button (moved to FAB)', () => {
     renderTopBar()
     expect(screen.queryByText('新建')).toBeNull()
+  })
+  it('renders English copy when locale is en', () => {
+    renderTopBar(makeApp('en'))
+    expect(screen.getByRole('button', { name: 'List' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Timeline' })).toBeTruthy()
+    expect(screen.getByPlaceholderText('Search events…')).toBeTruthy()
   })
 })

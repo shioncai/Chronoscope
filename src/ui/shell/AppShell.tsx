@@ -7,6 +7,7 @@ import { TimelineView } from '../timeline/TimelineView'
 import { EventEditor } from '../editor/EventEditor'
 import { useFocusTrap } from './useFocusTrap'
 import type { Id } from '../../domain/model'
+import { useT } from '../../i18n/useT'
 
 type EditorTarget = Id | 'new' | null
 
@@ -25,6 +26,7 @@ function loadSidebarWidth(): number {
 
 function ShellBody() {
   const state = useAppState()
+  const t = useT()
   const [editor, setEditor] = useState<EditorTarget>(null)
   const trapRef = useFocusTrap<HTMLDivElement>(editor !== null, () => setEditor(null))
   const shellRef = useRef<HTMLDivElement>(null)
@@ -97,7 +99,7 @@ function ShellBody() {
         {/* FAB lives on the non-scrolling .body (not inside .view-area), so its
             position is identical in both views and it never scrolls with the
             list or shifts with the list's scrollbar. */}
-        <button type="button" className="fab" aria-label="新建事件" onClick={() => setEditor('new')}>
+        <button type="button" className="fab" aria-label={t('common.newEvent')} onClick={() => setEditor('new')}>
           <span aria-hidden="true">＋</span>
         </button>
       </div>

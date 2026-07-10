@@ -2,6 +2,7 @@
 import { Markdown } from '../features/markdown/Markdown'
 import type { EventCardData } from './card'
 import type { Id } from '../../domain/model'
+import { useT } from '../../i18n/useT'
 
 export interface EventDetailCardProps {
   data: EventCardData
@@ -11,11 +12,12 @@ export interface EventDetailCardProps {
 }
 
 export function EventDetailCard({ data, onEdit, onClose, onSelectLink }: EventDetailCardProps) {
+  const t = useT()
   return (
-    <div className="event-card" role="dialog" aria-label="事件详情">
+    <div className="event-card" role="dialog" aria-label={t('card.detail')}>
       <header>
         <h3 className="display">{data.title}</h3>
-        <button type="button" aria-label="关闭" onClick={onClose}>
+        <button type="button" aria-label={t('common.close')} onClick={onClose}>
           ✕
         </button>
       </header>
@@ -42,7 +44,7 @@ export function EventDetailCard({ data, onEdit, onClose, onSelectLink }: EventDe
       )}
       <div className="actions">
         <button type="button" onClick={onEdit}>
-          编辑
+          {t('common.edit')}
         </button>
       </div>
     </div>

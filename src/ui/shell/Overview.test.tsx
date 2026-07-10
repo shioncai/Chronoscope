@@ -36,4 +36,9 @@ describe('Overview', () => {
     await userEvent.click(screen.getByText('未分类事件'))
     expect(app.store.getState().filter.uncategorized).toBe(true)
   })
+  it('renders row labels in English after switching locale', () => {
+    app.setLocale('en')
+    r()
+    expect(screen.getByText('All events')).toBeTruthy()
+  })
 })

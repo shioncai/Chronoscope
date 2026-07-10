@@ -5,6 +5,7 @@ import { useCustomPalette } from './useCustomPalette'
 import { useDismiss } from './useDismiss'
 import { useFlyout } from './useFlyout'
 import { HsvPicker } from './HsvPicker'
+import { useT } from '../../i18n/useT'
 
 export interface ColorPickerProps {
   value: string
@@ -19,6 +20,7 @@ const insidePortal = (t: Node) =>
   (t as Element).closest?.('[data-picker-trigger]') != null
 
 export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, anchorRef, onPick, onClose }: ColorPickerProps) {
+  const t = useT()
   const norm = value.toLowerCase()
   const palette = useCustomPalette()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -48,7 +50,7 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, anchorRef, 
     return (
       <button key={hex} type="button"
         className={hex.toLowerCase() === norm ? 'swatch selected' : 'swatch'}
-        style={{ background: hex }} aria-label={`颜色 ${hex}`}
+        style={{ background: hex }} aria-label={t('color.swatchAria', { hex })}
         onClick={() => onPick(hex)}
         onContextMenu={custom ? (e) => { e.preventDefault(); openMenu(e.clientX, e.clientY) } : undefined}
         onPointerDown={custom ? (e) => { const x = e.clientX, y = e.clientY; pressTimer.current = setTimeout(() => openMenu(x, y), 500) } : undefined}
@@ -74,7 +76,7 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, anchorRef, 
       </div>
       <div className="swatch-row custom-row">
         {palette.custom.map((h) => swatch(h, true))}
-        <button ref={addRef} type="button" className="swatch add-custom" aria-label="自定义颜色"
+        <button ref={addRef} type="button" className="swatch add-custom" aria-label={t('color.custom')}
           onClick={() => { setEditing(null); setMenu(null); setHsvOpen((o) => !o) }}>＋</button>
       </div>
       {hsvOpen && createPortal(
@@ -85,8 +87,8 @@ export function ColorPicker({ value, presets = CATEGORY_PRESET_GRID, anchorRef, 
       )}
       {menu && createPortal(
         <div ref={menuRef} className="picker-menu" data-picker-flyout style={menuStyle}>
-          <button type="button" onClick={() => { setEditing(menu.hex); setHsvOpen(true); setMenu(null) }}>编辑</button>
-          <button type="button" onClick={() => { palette.remove(menu.hex); setMenu(null) }}>删除</button>
+          <button type="button" onClick={() => { setEditing(menu.hex); setHsvOpen(true); setMenu(null) }}>{t('common.edit')}</button>
+          <button type="button" onClick={() => { palette.remove(menu.hex); setMenu(null) }}>{t('common.delete')}</button>
         </div>,
         document.body,
       )}

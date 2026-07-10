@@ -3,11 +3,13 @@ import { useAppStore, useAppState } from '../../state'
 import type { Id } from '../../domain/model'
 import { Pill } from './Pill'
 import { AddTagForm } from './AddTagForm'
+import { useT } from '../../i18n/useT'
 
 export function TagPanel() {
   const app = useAppStore()
   const state = useAppState()
-  const tags = state.tags.filter((t) => !t.deleted)
+  const t = useT()
+  const tags = state.tags.filter((tag) => !tag.deleted)
   const f = state.filter
   const [addOpen, setAddOpen] = useState(false)
 
@@ -15,7 +17,7 @@ export function TagPanel() {
   const toggle = (id: Id) =>
     app.setFilter({ tagIds: f.tagIds.includes(id) ? f.tagIds.filter((x) => x !== id) : [...f.tagIds, id], untagged: false, trash: false })
   const del = (id: Id, name: string) => {
-    if (!window.confirm(`删除标签「${name}」？`)) return
+    if (!window.confirm(t('sidebar.deleteTagConfirm', { name }))) return
     app.deleteTag(id)
     if (f.tagIds.includes(id)) app.setFilter({ tagIds: f.tagIds.filter((x) => x !== id) })
   }
@@ -23,20 +25,20 @@ export function TagPanel() {
   return (
     <section className="module">
       <div className="module-head">
-        <h2>标签</h2>
-        <button type="button" className="logic-btn" aria-label="切换 与/或 逻辑"
+        <h2>{t('sidebar.tags')}</h2>
+        <button type="button" className="logic-btn" aria-label={t('sidebar.tagLogic')}
           onClick={() => app.setFilter({ tagMode: f.tagMode === 'or' ? 'and' : 'or' })}>
           {f.tagMode === 'or' ? 'OR' : 'AND'}
         </button>
       </div>
       <div className="pills">
-        {tags.map((t) => (
-          <Pill key={t.id} label={t.name} count={tagCount(t.id)} active={f.tagIds.includes(t.id)}
-            onToggle={() => toggle(t.id)} onDelete={() => del(t.id, t.name)} />
+        {tags.map((tag) => (
+          <Pill key={tag.id} label={tag.name} count={tagCount(tag.id)} active={f.tagIds.includes(tag.id)}
+            onToggle={() => toggle(tag.id)} onDelete={() => del(tag.id, tag.name)} />
         ))}
-        <button type="button" className="pill add" aria-label="添加标签" aria-expanded={addOpen}
+        <button type="button" className="pill add" aria-label={t('sidebar.addTag')} aria-expanded={addOpen}
           onClick={() => setAddOpen((o) => !o)}>
-          ＋ 新标签
+          {t('editor.newTag')}
         </button>
       </div>
       {addOpen && <AddTagForm onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />}

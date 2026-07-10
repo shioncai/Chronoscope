@@ -6,11 +6,13 @@ import {
   type CategoryNode,
 } from '../../state'
 import type { Id, EventRecord } from '../../domain/model'
+import type { Locale } from '../../domain/locale'
 import { formatTimePoint, instantOf } from '../../domain/time'
 import { ColorPicker } from './ColorPicker'
 import { AddFolderForm } from './AddFolderForm'
 import { Checkbox } from './Checkbox'
 import { useEventMove } from './useEventMove'
+import { useT, useTn, useLocale } from '../../i18n/useT'
 
 type Row =
   | { kind: 'folder'; id: Id; depth: number; parentId: Id | null; node: CategoryNode; hasChildren: boolean }
@@ -35,8 +37,8 @@ function buildRows(
   return out
 }
 
-const eventTime = (e: EventRecord): string =>
-  e.start ? formatTimePoint(e.start) : e.end ? formatTimePoint(e.end) : '—'
+const eventTime = (e: EventRecord, locale: Locale): string =>
+  e.start ? formatTimePoint(e.start, locale) : e.end ? formatTimePoint(e.end, locale) : '—'
 
 export interface FolderPanelProps {
   onEdit: (id: Id) => void
@@ -45,6 +47,9 @@ export interface FolderPanelProps {
 export function FolderPanel({ onEdit }: FolderPanelProps) {
   const app = useAppStore()
   const state = useAppState()
+  const t = useT()
+  const tn = useTn()
+  const locale = useLocale()
   const tree = buildCategoryTree(state.categories)
   const counts = categoryEventCounts(state)
   const live = state.categories.filter((c) => !c.deleted)
@@ -109,7 +114,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
       if (n) {
         const self = state.categories.find((c) => c.id === renaming)
         if (self && liveFolderAt(state.categories, n, self.parentId, renaming)) {
-          setRenameError('同一位置已存在同名文件夹')
+          setRenameError(t('sidebar.renameDuplicate'))
           return
         }
         void app.updateCategory(renaming, { name: n })
@@ -122,7 +127,9 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   const del = (id: Id, name: string) => {
     const ids = descendantCategoryIds(state.categories, id)
     const n = liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).length
-    const msg = n > 0 ? `删除文件夹「${name}」会同时删除其下 ${n} 个事件（含子文件夹），不可撤销。确定？` : `删除文件夹「${name}」？`
+    const msg = n > 0
+      ? tn('sidebar.deleteFolderConfirm', n, { name })
+      : t('sidebar.deleteFolderConfirmEmpty', { name })
     if (!window.confirm(msg)) return
     app.deleteCategory(id)
     const evGone = new Set(liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).map((e) => e.id))
@@ -157,8 +164,8 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   return (
     <section className="module">
       <div className="module-head">
-        <h2>文件夹</h2>
-        <button type="button" className="head-btn" aria-label="添加文件夹" aria-expanded={addOpen}
+        <h2>{t('sidebar.folders')}</h2>
+        <button type="button" className="head-btn" aria-label={t('sidebar.addFolder')} aria-expanded={addOpen}
           onClick={() => setAddOpen((o) => !o)}>＋</button>
       </div>
       {addOpen && (
@@ -178,12 +185,12 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                 style={{ paddingLeft: 8 + row.depth * 16 }}
                 onDragStart={(ev) => { ev.stopPropagation(); setDragId(e.id); setDragKind('event') }}>
                 <span className="twisty-spacer" />
-                <Checkbox state={checked ? 'checked' : 'unchecked'} label={`选择「${e.title}」`} onClick={() => toggleEventScope(e)} />
+                <Checkbox state={checked ? 'checked' : 'unchecked'} label={t('common.selectEvent', { title: e.title })} onClick={() => toggleEventScope(e)} />
                 {/* 打开编辑器的点击区从事件名开始往右，避开旁边的小复选框 */}
                 <button type="button" className="ev-main" title={e.title}
                   onClick={() => { app.select(e.id); onEdit(e.id) }}>
                   <span className="ev-label">{e.title}</span>
-                  <span className="ev-time mono">{eventTime(e)}</span>
+                  <span className="ev-time mono">{eventTime(e, locale)}</span>
                 </button>
               </div>
             )
@@ -225,17 +232,17 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                 }}>
                 {row.hasChildren ? (
                   <button type="button" className={expanded.has(row.id) ? 'twisty' : 'twisty collapsed'}
-                    aria-label={`${expanded.has(row.id) ? '折叠' : '展开'}「${c.name}」`} aria-expanded={expanded.has(row.id)}
+                    aria-label={t(expanded.has(row.id) ? 'sidebar.collapse' : 'sidebar.expand', { name: c.name })} aria-expanded={expanded.has(row.id)}
                     onClick={(e) => { e.stopPropagation(); toggleExpand(row.id) }}>
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,6 8,10 12,6" /></svg>
                   </button>
                 ) : <span className="twisty-spacer" />}
-                <Checkbox state={fstate} label={`选择文件夹「${c.name}」`} onClick={() => toggleFolderScope(row.id)} />
+                <Checkbox state={fstate} label={t('sidebar.selectFolder', { name: c.name })} onClick={() => toggleFolderScope(row.id)} />
                 <button type="button" className="color-dot" style={{ background: c.color }} data-picker-trigger
                   ref={colorFor === row.id ? colorDotRef : null}
-                  aria-label={`设置「${c.name}」颜色`} onClick={(e) => { e.stopPropagation(); setColorFor((cur) => cur === row.id ? null : row.id) }} />
+                  aria-label={t('sidebar.setColor', { name: c.name })} onClick={(e) => { e.stopPropagation(); setColorFor((cur) => cur === row.id ? null : row.id) }} />
                 {renaming === row.id ? (
-                  <input className="rename-input" aria-label={`重命名「${c.name}」`} value={renameVal} autoFocus draggable={false}
+                  <input className="rename-input" aria-label={t('sidebar.rename', { name: c.name })} value={renameVal} autoFocus draggable={false}
                     onChange={(e) => setRenameVal(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     onDragStart={(e) => e.preventDefault()}
@@ -250,9 +257,9 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                 )}
                 <span className="count">{counts.get(row.id) ?? 0}</span>
                 <span className="row-actions">
-                  <button type="button" className="rename" aria-label={`重命名文件夹「${c.name}」`}
+                  <button type="button" className="rename" aria-label={t('sidebar.renameFolder', { name: c.name })}
                     onClick={(e) => { e.stopPropagation(); startRename(row.id, c.name) }}>✎</button>
-                  <button type="button" className="del" aria-label={`删除文件夹「${c.name}」`} onClick={(e) => { e.stopPropagation(); del(row.id, c.name) }}>×</button>
+                  <button type="button" className="del" aria-label={t('sidebar.deleteFolder', { name: c.name })} onClick={(e) => { e.stopPropagation(); del(row.id, c.name) }}>×</button>
                 </span>
                 {colorFor === row.id && (
                   <ColorPicker value={c.color} anchorRef={colorDotRef}

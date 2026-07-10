@@ -3,31 +3,44 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ColorPicker } from './ColorPicker'
+import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createMemoryRepository, type Database, type Clock } from '../../data'
+import type { EventRecord, Category, Tag } from '../../domain/model'
 
 const grid = [['#abcdef', '#123456'], ['#0d7d8c', '#8e44ad']] as const
 
-beforeEach(() => window.localStorage.clear())
+function makeApp(): AppStore {
+  const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
+  let t = 0, i = 0
+  const clock: Clock = { now: () => `t${++t}` }
+  return createAppStore({ db, clock, nowYear: 2026, theme: 'day', genId: () => `id${++i}` })
+}
+let app: AppStore
+beforeEach(() => { window.localStorage.clear(); app = makeApp() })
+function renderPicker(props: Parameters<typeof ColorPicker>[0]) {
+  return render(<AppStoreProvider value={app}><ColorPicker {...props} /></AppStoreProvider>)
+}
 
 describe('ColorPicker', () => {
   it('renders the preset grid and calls onPick on a swatch', async () => {
     const onPick = vi.fn()
-    render(<ColorPicker value="#000000" presets={grid} onPick={onPick} onClose={vi.fn()} />)
+    renderPicker({ value: '#000000', presets: grid, onPick, onClose: vi.fn() })
     await userEvent.click(screen.getByLabelText('颜色 #abcdef'))
     expect(onPick).toHaveBeenCalledWith('#abcdef')
   })
   it('marks the swatch matching value as selected (case-insensitive)', () => {
-    render(<ColorPicker value="#ABCDEF" presets={grid} onPick={vi.fn()} onClose={vi.fn()} />)
+    renderPicker({ value: '#ABCDEF', presets: grid, onPick: vi.fn(), onClose: vi.fn() })
     expect(screen.getByLabelText('颜色 #abcdef').className).toContain('selected')
     expect(screen.getByLabelText('颜色 #123456').className).not.toContain('selected')
   })
   it('closes on Escape', () => {
     const onClose = vi.fn()
-    render(<ColorPicker value="#000000" presets={grid} onPick={vi.fn()} onClose={onClose} />)
+    renderPicker({ value: '#000000', presets: grid, onPick: vi.fn(), onClose })
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalled()
   })
   it('opens the HSV picker from ＋', async () => {
-    render(<ColorPicker value="#000000" presets={grid} onPick={vi.fn()} onClose={vi.fn()} />)
+    renderPicker({ value: '#000000', presets: grid, onPick: vi.fn(), onClose: vi.fn() })
     await userEvent.click(screen.getByLabelText('自定义颜色'))
     expect(screen.getByLabelText('十六进制颜色')).toBeTruthy()
   })
@@ -39,7 +52,7 @@ describe('ColorPicker', () => {
   }
 
   it('right-click on a custom color opens edit/delete and delete removes it', async () => {
-    render(<ColorPicker value="#000000" presets={grid} onPick={vi.fn()} onClose={vi.fn()} />)
+    renderPicker({ value: '#000000', presets: grid, onPick: vi.fn(), onClose: vi.fn() })
     await seedCustom()
     fireEvent.contextMenu(screen.getByLabelText('颜色 #ff0000'))
     expect(screen.getByRole('button', { name: '删除' })).toBeTruthy()
@@ -48,7 +61,7 @@ describe('ColorPicker', () => {
   })
 
   it('edit from the menu opens the HSV picker seeded with that color', async () => {
-    render(<ColorPicker value="#000000" presets={grid} onPick={vi.fn()} onClose={vi.fn()} />)
+    renderPicker({ value: '#000000', presets: grid, onPick: vi.fn(), onClose: vi.fn() })
     await seedCustom()
     fireEvent.contextMenu(screen.getByLabelText('颜色 #ff0000'))
     await userEvent.click(screen.getByRole('button', { name: '编辑' }))

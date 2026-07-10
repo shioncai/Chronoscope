@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { hexToHsv, hsvToHex, normalizeHex, type Hsv } from '../color/hsv'
+import { useT } from '../../i18n/useT'
 
 export interface HsvPickerProps {
   value: string
@@ -10,6 +11,7 @@ export interface HsvPickerProps {
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x)
 
 export function HsvPicker({ value, onChange, onCommit }: HsvPickerProps) {
+  const t = useT()
   const [hsv, setHsv] = useState<Hsv>(() => hexToHsv(value))
   const [hexText, setHexText] = useState(value)
   const svRef = useRef<HTMLDivElement>(null)
@@ -61,10 +63,10 @@ export function HsvPicker({ value, onChange, onCommit }: HsvPickerProps) {
       </div>
       <div className="hsv-row">
         <span className="hsv-preview" style={{ background: current }} />
-        <input className="hsv-hex" aria-label="十六进制颜色" value={hexText}
+        <input className="hsv-hex" aria-label={t('color.hexAria')} value={hexText}
           onChange={(e) => onHex(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') commit() }} />
-        <button type="button" className="hsv-add" onClick={commit}>加入</button>
+        <button type="button" className="hsv-add" onClick={commit}>{t('color.add')}</button>
       </div>
     </div>
   )

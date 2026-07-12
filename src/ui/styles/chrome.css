@@ -147,11 +147,12 @@
    paper disc clips to white and the feedback silently vanishes in day. */
 .fab{position:absolute;right:22px;bottom:60px;width:48px;height:48px;border:1px solid var(--float-border);border-radius:50%;background:var(--float);color:var(--text);font-size:23px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--fab-shadow);transition:transform .24s cubic-bezier(.2,.7,.3,1),box-shadow .24s ease,background-color .24s ease;z-index:8;}
 .fab span{display:block;transition:transform .34s cubic-bezier(.2,.7,.3,1);}
-/* border-color is set explicitly: the global `button:hover{border-color:var(--accent)}`
-   below would otherwise paint an ink (day) / moon-white (night) ring here — the
-   very colour this control was moved off. --muted keeps the cue in the neutral
-   family. The FAB was immune before only because it had border:0. */
-.fab:hover{transform:translateY(-2px) scale(1.04);background:var(--float-hover);border-color:var(--muted);}
+/* border-color is repeated on purpose — it does not change on hover. Without it
+   the global `button:hover{border-color:var(--accent)}` below paints an ink (day)
+   / moon-white (night) ring here, reintroducing the exact colour this control was
+   moved off. The FAB was immune before only because it had border:0. Hover is the
+   lift and scale; the disc must not grow an outline. */
+.fab:hover{transform:translateY(-2px) scale(1.04);background:var(--float-hover);border-color:var(--float-border);}
 .fab:hover span{transform:rotate(90deg);}
 .fab:active{transform:scale(.97);transition-duration:.08s;}
 

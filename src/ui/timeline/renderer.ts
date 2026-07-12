@@ -32,13 +32,15 @@ const OVERVIEW_HEIGHT = 48
 // the text above the band's top edge at high zoom).
 const OVERVIEW_LABEL_PX = 11
 
-// Selection is signalled by colour (--now) *and* shape, because a user's folder
-// colour can legitimately be the same amber. The halo is drawn in the canvas
-// background colour, so it isolates the glyph from its neighbours; the ring
-// then draws the actual outline. Both live entirely outside the glyph — the
-// fill is never covered. Widths are in unscaled px and multiplied by
-// layout.scale. The row gap is 8 * scale px (rowHeight 16 − barHeight 8), so
-// the 3 * scale px of outline fits.
+// Selection is signalled by SHAPE and WEIGHT, never by colour — the glyph keeps
+// its folder colour, because overwriting the colour the user chose is exactly
+// what this replaced. The halo is drawn in the canvas background colour, so it
+// isolates the glyph from its neighbours AND guarantees the ring can never merge
+// into a near-black or near-white fill; the ring then draws the actual outline.
+// Both live entirely outside the glyph — the fill is never covered. Widths are
+// in unscaled px and multiplied by layout.scale. The row gap is 8 * scale px
+// (rowHeight 16 − barHeight 8), so the 3 * scale px of outline fits.
+// The other half of the signal is the title at weight 600 (see the label block).
 const SELECT_HALO = 2
 const SELECT_RING = 1
 
@@ -116,7 +118,7 @@ export function drawScene(
   ctx.clip()
   for (const g of scene.detail.glyphs) {
     const y = layout.glyphTop + g.row * layout.rowHeight - scrollY
-    const color = g.selected ? colors.now : (g.color ?? colors.muted)
+    const color = g.color ?? colors.muted
     const r = layout.dotRadius
     const bh = layout.barHeight
 
@@ -188,8 +190,13 @@ export function drawScene(
       ctx.stroke()
     }
 
-    // title — scene already chose the side and (if needed) truncated it
+    // title — scene already chose the side and (if needed) truncated it. The
+    // selected title carries weight 600: it is the second, achromatic half of the
+    // selection signal (the ink ring is the first). ctx.font is set once outside
+    // this loop, so it must be re-set on EVERY glyph — otherwise the bold leaks
+    // onto every title drawn after the selected one.
     if (g.label.side !== 'none' && g.label.text) {
+      ctx.font = `${g.selected ? '600 ' : ''}${layout.fontSize}px ui-monospace, monospace`
       ctx.fillStyle = colors.text
       ctx.textAlign = g.label.side === 'left' ? 'right' : 'left'
       ctx.fillText(g.label.text, g.label.x, y + bh)

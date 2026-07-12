@@ -227,16 +227,11 @@ describe('renderer', () => {
     expect(a.lineWidths).toContain(2) // halo = 2 * scale
     expect(b.lineWidths).toContain(4)
   })
-  it('paints the lens with accent, leaving --now for data only', () => {
+  it('paints the lens with accent — the chrome carries no hue at all', () => {
     const ctx = fakeCtx()
     drawScene(ctx, scene, COLORS, computeLayout(400))
-    // the lens is navigation chrome — it must be achromatic. In COLORS,
-    // accent='#0aa' and now='#0ff'; the markers use mixHex(deepTime, now, d)
-    // which never yields '#0ff', so a '#0ff' strokeStyle could only be the lens.
     expect(ctx.styles).toContain(COLORS.accent)
-    expect(ctx.styles).not.toContain(COLORS.now)
     expect(ctx.fills).toContain(COLORS.accent) // its translucent fill too
-    expect(ctx.fills).toContain(COLORS.now) // --now survives as the selected glyph
   })
   it('draws more line segments when endpoints have fuzz (error-bar caps)', () => {
     const withW = fakeCtx()
@@ -262,6 +257,54 @@ describe('renderer', () => {
     drawScene(ctx, s, COLORS, computeLayout(400))
     expect(ctx.fills).toContain('#abcdef') // categorized glyph uses its color
     expect(ctx.fills).toContain(COLORS.muted) // uncategorized glyph falls back to muted gray
+  })
+  it('keeps a selected glyph on its own folder colour — selection never overwrites it', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: true, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306 } }],
+        rowCount: 1,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    expect(ctx.fills).toContain('#7a5aa6')
+  })
+  it('draws the selected glyph title at weight 600, and leaves the others alone', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [
+          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306 } },
+          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 1, selected: true, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606 } },
+        ],
+        rowCount: 2,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    expect(ctx.textDraws.find((d) => d.text === 'B')?.font).toContain('600')
+    expect(ctx.textDraws.find((d) => d.text === 'A')?.font).not.toContain('600')
+  })
+  it('does not leak the bold weight onto glyphs drawn after the selected one', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [
+          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 0, selected: true, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606 } },
+          { eventId: 'c', kind: 'span', xStart: 700, xEnd: 800, whiskers: [], row: 1, selected: false, color: '#4f8a5b', label: { text: 'C', side: 'right', x: 806 } },
+        ],
+        rowCount: 2,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    // ctx.font is set once outside the glyph loop — a naive `if (selected) bold`
+    // would leave every later title bold. C comes after B, so it is the canary.
+    expect(ctx.textDraws.find((d) => d.text === 'C')?.font).not.toContain('600')
   })
   it('offsets glyph drawing by the scroll position', () => {
     const a = fakeCtx(); drawScene(a, scene, COLORS, computeLayout(400), 0)

@@ -23,7 +23,17 @@
    cannot.
 
    Exact values are tunable; the custom-property contract is what's stable.
-   Self-hosted via @fontsource (imported in main.tsx); system fonts fall back. */
+   Self-hosted via @fontsource (imported in main.tsx); system fonts fall back.
+
+   --bg IS MIRRORED OUTSIDE THIS FILE. Three surfaces are painted before any CSS
+   loads, so they cannot read a custom property and hard-code the hex instead.
+   Change --bg (day or night) and you must change all three, or the browser and
+   the desktop window will paint the previous palette's colour:
+     1. index.html            — the <meta name="theme-color"> pair
+     2. vite.config.ts        — the PWA manifest's theme_color/background_color
+     3. electron/main.cjs     — BrowserWindow backgroundColor
+   src/state/theme.ts holds the same two values as THEME_COLORS, which is what
+   AppShell applies to the meta tags on a theme change. */
 
 :root {
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;

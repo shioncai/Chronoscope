@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { resolveInitialTheme, persistTheme, loadStoredTheme, applyTheme, THEME_STORAGE_KEY } from './theme'
+import {
+  resolveInitialTheme,
+  persistTheme,
+  loadStoredTheme,
+  applyTheme,
+  applyThemeColor,
+  THEME_COLORS,
+  THEME_STORAGE_KEY,
+} from './theme'
 
 describe('theme', () => {
   it('prefers a valid stored theme', () => {
@@ -22,5 +30,32 @@ describe('theme', () => {
     let attr = ''
     applyTheme({ setAttribute: (_n, v) => void (attr = v) }, 'day')
     expect(attr).toBe('day')
+  })
+
+  describe('theme-color', () => {
+    const fakeMeta = () => {
+      const attrs: Record<string, string> = {}
+      return { attrs, setAttribute: (n: string, v: string) => void (attrs[n] = v) }
+    }
+
+    it('collapses every meta tag onto the active theme, overriding the media split', () => {
+      // index.html ships one tag per colour scheme. A night theme on a light
+      // system must still darken the address bar, so both tags get the same
+      // colour — the media queries stop deciding once JS knows the truth.
+      const light = fakeMeta()
+      const dark = fakeMeta()
+      applyThemeColor([light, dark], 'night')
+      expect(light.attrs.content).toBe(THEME_COLORS.night)
+      expect(dark.attrs.content).toBe(THEME_COLORS.night)
+    })
+
+    it('carries a colour for both themes', () => {
+      expect(THEME_COLORS.day).toBe('#f0efec')
+      expect(THEME_COLORS.night).toBe('#121211')
+    })
+
+    it('survives a document with no theme-color tags', () => {
+      expect(() => applyThemeColor([], 'day')).not.toThrow()
+    })
   })
 })

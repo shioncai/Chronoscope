@@ -156,19 +156,33 @@ describe('renderer', () => {
     drawScene(ctx, scene, COLORS, computeLayout(400))
     const count = (name: string) => ctx.calls.filter((c) => c.startsWith(name + '(')).length
     expect(count('clearRect')).toBe(1)
-    expect(count('fillRect')).toBe(5) // bg + span glyph + overview band + band wash + lens fill
+    expect(count('fillRect')).toBe(5) // bg + span glyph + overview band + band top rule + lens fill
     expect(count('arc')).toBe(3) // one point glyph + its selection halo and ring
     expect(count('strokeRect')).toBe(1) // lens border
     expect(count('fillText')).toBe(6) // 2 tick labels + 2 glyph titles + 2 overview range labels
   })
-  it('washes the overview with a deep-time→now gradient and colors markers by depth', () => {
+  it('draws no gradient in the overview band — the depth cue is lightness, not hue', () => {
     const ctx = fakeCtx()
     drawScene(ctx, scene, COLORS, computeLayout(400))
     const count = (name: string) => ctx.calls.filter((c) => c.startsWith(name + '(')).length
-    expect(count('createLinearGradient')).toBe(1)
+    expect(count('createLinearGradient')).toBe(0)
+  })
+  it('ramps the density markers from deep-time to accent by depth', () => {
+    const ctx = fakeCtx()
+    drawScene(ctx, scene, COLORS, computeLayout(400))
     // markers sit at x=100 and x=900 over width 1000 → depth 0.1 and 0.9
-    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.1))
-    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.9))
+    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.accent, 0.1))
+    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.accent, 0.9))
+  })
+  it('rules the overview band off the canvas with a 1px border line', () => {
+    const ctx = fakeCtx()
+    const layout = computeLayout(400)
+    drawScene(ctx, scene, COLORS, layout)
+    // --surface is only 1.16:1 on --bg at night; the fill alone cannot separate
+    // the band from the canvas, so a 1px --border top rule does it.
+    expect(ctx.fills).toContain(COLORS.border)
+    const rects = (ctx.args.fillRect ?? []) as unknown[][]
+    expect(rects).toContainEqual([0, layout.overviewTop, scene.width, 1])
   })
   it('outlines a selected span with a bg halo and a text ring', () => {
     const ctx = fakeCtx()

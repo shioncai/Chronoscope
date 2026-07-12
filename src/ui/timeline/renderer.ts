@@ -212,23 +212,25 @@ export function drawScene(
     ctx.globalAlpha = 1
   }
 
-  // overview band — surface, then a faint deep-time→now temperature wash
+  // overview band — bare --surface. The 1px --border top rule is structural, not
+  // decoration: --surface is only 1.16:1 against --bg at night, so the fill alone
+  // cannot separate the band from the canvas. (An amber temperature wash used to
+  // do this job as a side effect; it left with the amber.)
   ctx.fillStyle = colors.surface
   ctx.fillRect(0, layout.overviewTop, scene.width, layout.overviewHeight)
-  const wash = ctx.createLinearGradient(0, 0, scene.width, 0)
-  wash.addColorStop(0, colors.deepTime)
-  wash.addColorStop(1, colors.now)
-  ctx.globalAlpha = 0.1
-  ctx.fillStyle = wash
-  ctx.fillRect(0, layout.overviewTop, scene.width, layout.overviewHeight)
-  ctx.globalAlpha = 1
+  ctx.fillStyle = colors.border
+  ctx.fillRect(0, layout.overviewTop, scene.width, 1)
 
+  // density markers — time depth is encoded in LIGHTNESS, not hue: faint grey in
+  // deep time, full-strength ink (day) / moonlight (night) at the present. Do not
+  // mix a saturated colour back into --deep-time; blending a desaturated warm grey
+  // into a saturated amber is what made the old band look like khaki mud.
   const midY = layout.overviewTop + layout.overviewHeight / 2
   const maxHalf = layout.overviewHeight / 2 - 6
   const maxCount = scene.overview.markers.reduce((m, k) => Math.max(m, k.count), 1)
   for (const m of scene.overview.markers) {
     const depth = scene.width > 0 ? m.x / scene.width : 0
-    ctx.strokeStyle = mixHex(colors.deepTime, colors.now, depth)
+    ctx.strokeStyle = mixHex(colors.deepTime, colors.accent, depth)
     const half = maxHalf * densityHeight(m.count, maxCount)
     ctx.beginPath()
     ctx.moveTo(m.x, midY - half)

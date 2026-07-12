@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
+     role="img" aria-label="Chronoscope">
+  <!-- Maskable variant: the OS crops this to its own shape (a circle in the
+       worst case), so the tile is a full-bleed square and the glyphs are scaled
+       to 0.86 about the centre to clear the 80% safe zone. The top bar keeps its
+       overhang on purpose — it is meant to run off the edge, so the crop only
+       says what the bar already said. Geometry otherwise mirrors favicon.svg;
+       this one is never rendered small, so it does not need the 16px grid. -->
+  <rect width="256" height="256" fill="#121211"/>
+  <g fill="#e8e6e1">
+    <rect x="-20" y="45.4" width="189.3" height="27.5"/>
+    <rect x="86.7" y="100.5" width="96.3" height="27.5"/>
+    <rect x="141.8" y="155.5" width="55" height="27.5"/>
+  </g>
+</svg>

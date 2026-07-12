@@ -19,7 +19,7 @@ const pwa = process.env.VITEST || process.env.ELECTRON
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto', // no manual registerSW import needed
-        includeAssets: ['favicon.svg'],
+        includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
         manifest: {
           name: 'Chronoscope',
           short_name: 'Chronoscope',
@@ -34,8 +34,16 @@ const pwa = process.env.VITEST || process.env.ELECTRON
           background_color: '#f0efec',
           display: 'standalone',
           start_url: '/',
+          // `any` and `maskable` must be separate entries, not one icon claiming
+          // both: a maskable icon is cropped to the OS's shape (a circle in the
+          // worst case), so it needs its glyphs pulled into the central 80% —
+          // which is exactly what would ruin the icon when shown uncropped.
+          // public/icon-maskable.svg is that inset variant.
           icons: [
-            { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+            { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+            { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           ],
         },
         workbox: {

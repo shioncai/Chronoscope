@@ -28,6 +28,21 @@
    signal is the four together — fill, this shadow, --muted to --text, and
    weight 500 to 600. Weaken any one and re-check the control in a browser.
 
+   --float / --float-border / --float-hover are for controls that float on the
+   CANVAS (--bg): the FAB and the zoom stepper. They exist because --surface is
+   only 1.16:1 against --bg at night, and --fab-shadow is a black shadow on a
+   near-black canvas — it does nothing there. A card can live with that (it is
+   large and full of text); a 48px disc cannot. Do NOT "simplify" these back to
+   --surface/--border: that is exactly the state this fixed. Day fill/border
+   equal --surface/--border by design — day never had the separation problem.
+
+   --float-hover must always move AWAY from --bg. The float sits *above* the
+   canvas in both themes (lighter in day, lighter at night), so hover brightens
+   in both. Reusing --hover here is a trap: --hover is #f1f0ed, which is the
+   canvas itself, so the day FAB dissolved into the background on hover. In day
+   there is almost no headroom above --surface, so the lift and scale carry the
+   feedback and the fill barely moves; at night the fill does the work.
+
    Exact values are tunable; the custom-property contract is what's stable.
    Self-hosted via @fontsource (imported in main.tsx); system fonts fall back.
 
@@ -65,6 +80,9 @@
   --now: #b8791c;
   --deep-time: #8f8a80;
   --danger: #c0392b;
+  --float: #fdfcfb;
+  --float-border: #e0ded9;
+  --float-hover: #ffffff;   /* hover moves AWAY from --bg; in day that is up */
   --shadow: 0 1px 2px rgba(40, 35, 25, 0.05), 0 8px 24px rgba(40, 35, 25, 0.07);
   --shadow-raised: 0 1px 2px rgba(40, 35, 25, 0.10), 0 1px 1px rgba(40, 35, 25, 0.06);
   --fab-shadow: 0 6px 16px rgba(40, 35, 25, 0.20);
@@ -89,6 +107,9 @@
   --now: #f0a93c;
   --deep-time: #78746d;
   --danger: #e8695c;
+  --float: #2e2e2b;         /* 1.38:1 on --bg — the border is what outlines it */
+  --float-border: #403e38;  /* 1.75:1 on --bg — this is the actual edge */
+  --float-hover: #3a3834;   /* likewise away from --bg; at night that is also up */
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.35);
   --fab-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);

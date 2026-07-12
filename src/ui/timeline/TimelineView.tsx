@@ -24,7 +24,6 @@ function readColors(el: Element): TimelineColors {
     muted: v('--muted', '#888'),
     border: v('--border', '#ccc'),
     accent: v('--accent', '#0aa'),
-    now: v('--now', '#0cf'),
     deepTime: v('--deep-time', '#b4541f'),
   }
 }

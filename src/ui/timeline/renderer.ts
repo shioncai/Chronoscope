@@ -7,7 +7,6 @@ export interface TimelineColors {
   muted: string
   border: string
   accent: string
-  now: string
   deepTime: string
 }
 
@@ -245,8 +244,7 @@ export function drawScene(
     ctx.stroke()
   }
 
-  // lens window — navigation chrome, so it is achromatic (--accent), not --now.
-  // Keeping --now off the chrome leaves it meaning exactly one thing: focus.
+  // lens window — navigation chrome, and the chrome is achromatic (--accent).
   const { x0, x1 } = scene.overview.lens
   ctx.globalAlpha = 0.10
   ctx.fillStyle = colors.accent

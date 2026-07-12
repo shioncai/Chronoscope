@@ -1,22 +1,35 @@
-/* Chronoscope design tokens — "Ink & Amber".
-   The chrome is achromatic: --accent is ink in day, moon white at night.
-   Exactly one colour survives: --now.
-
-   --now is a misnomer the contract will not let us fix (TimelineView.tsx reads
-   these names via getComputedStyle). There is no now-line anywhere in the app.
-   --now is the FOCUS colour, and it paints exactly three things:
-     1. renderer.ts — the selected event glyph
-     2. renderer.ts — the warm end of the overview temperature wash
-     3. renderer.ts — the interpolation endpoint of the density markers
-   The lens window is navigation chrome and uses --accent, not --now.
+/* Chronoscope design tokens — "Ink & Paper".
+   The chrome is achromatic, top to bottom: --accent is ink in day, moon white at
+   night. No token the timeline paints carries a hue. The only colour in the app
+   belongs to the user — their folder colours, on the event glyphs.
 
    --accent is a VALUE, not a HUE. At night it equals --text byte for byte, so
    `color: var(--accent)` cannot lift an element out of body text. Emphasis must
-   come from weight, fill, border, or --now.
+   come from weight, fill, or border.
 
-   --deep-time lost its hue, so lightness is the only channel it has left: it
-   must stay dark enough (day) / light enough (night) that the leftmost density
-   markers clear 3:1 against --surface. Do not "soften" it without re-measuring.
+   TIME DEPTH IS ENCODED IN LIGHTNESS, NOT HUE. The overview band's density
+   markers ramp mixHex(--deep-time, --accent, depth): faint grey in deep time,
+   full-strength ink/moonlight at the present. This replaced a --deep-time→amber
+   "temperature" wash whose midpoint blended a desaturated warm grey into a
+   saturated amber and came out khaki mud (#a3814e), laid at 10% alpha over warm
+   paper. DO NOT mix a saturated colour back into --deep-time: that, plus the
+   large low-alpha area, is precisely what made the old band look dirty. Changing
+   the hue would not have saved it — removing the hue did.
+
+   --deep-time therefore has lightness as its only channel: it must stay dark
+   enough (day) / light enough (night) that the leftmost density markers clear
+   3:1 against --surface. Do not "soften" it without re-measuring.
+
+   The overview band is bare --surface plus a 1px --border top rule. That rule is
+   STRUCTURAL, not decoration: --surface is only 1.16:1 against --bg at night, so
+   the fill alone cannot separate the band from the canvas. The old wash was doing
+   this job as a side effect, and it left with the amber. Do not "simplify" the
+   rule away.
+
+   Selection is achromatic and NEVER overwrites the user's folder colour: the
+   glyph keeps its fill and gets a --bg halo + a --text ring (the halo is what
+   guarantees the ring cannot merge into a near-black or near-white fill), plus
+   its title at weight 600.
 
    --focus-ring is deliberately separate from --accent-soft: a ring must be
    seen, a fill must not be. A saturated teal could do both jobs; a neutral
@@ -77,7 +90,6 @@
   --on-accent: #fdfcfb;
   --accent-soft: rgba(36, 35, 31, 0.06);
   --focus-ring: rgba(36, 35, 31, 0.07);
-  --now: #b8791c;
   --deep-time: #8f8a80;
   --danger: #c0392b;
   --float: #fdfcfb;
@@ -104,7 +116,6 @@
   --on-accent: #121211;
   --accent-soft: rgba(232, 230, 225, 0.08);
   --focus-ring: rgba(232, 230, 225, 0.09);
-  --now: #f0a93c;
   --deep-time: #78746d;
   --danger: #e8695c;
   --float: #2e2e2b;         /* 1.38:1 on --bg — the border is what outlines it */

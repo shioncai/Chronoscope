@@ -4,7 +4,7 @@ import type { TimelineScene } from './scene'
 
 const COLORS: TimelineColors = {
   bg: '#000', surface: '#111', text: '#fff', muted: '#888',
-  border: '#333', accent: '#0aa', now: '#0ff', deepTime: '#a40',
+  border: '#333', accent: '#0aa', deepTime: '#a40',
 }
 
 // Minimal recording double for a 2D context — records method calls (with arg

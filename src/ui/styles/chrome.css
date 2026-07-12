@@ -16,9 +16,14 @@
 .search-box input{width:100%;height:38px;padding:0 14px 0 36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font:inherit;font-size:14px;outline:none;transition:border-color .18s,box-shadow .18s;}
 .search-box input::placeholder{color:var(--faint);}
 .search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--focus-ring);}
-.view-switch{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
-.view-switch button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:color .2s,background .25s;}
-.view-switch button.active{background:var(--accent);color:var(--on-accent);}
+/* Segmented control: a recessed --field track with the selected segment raised
+   on --surface. Mirrors .event-editor .seg, which is the same widget. --accent
+   is a near-black/near-white slab and reads far too heavy for what is a *state*,
+   not an action. See --shadow-raised in tokens.css: the fill step is tiny, so
+   the shadow, the --muted-to--text shift and the weight bump all carry it. */
+.view-switch{display:inline-flex;background:var(--field);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
+.view-switch button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:color .2s,background .25s,box-shadow .25s;}
+.view-switch button.active{background:var(--surface);color:var(--text);font-weight:600;box-shadow:var(--shadow-raised);}
 @media (max-width:640px){.topbar .title{display:none;}.search-box{flex:1 1 auto;}}
 
 /* ---------- sidebar / filters ---------- */
@@ -209,8 +214,9 @@ legend {
 .time-input .structured label { flex: 1 1 auto; min-width: 64px; display: flex; flex-direction: column; gap: 4px; }
 
 .event-editor .seg{display:inline-flex;background:var(--field);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;align-self:flex-start;}
-.event-editor .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:5px 14px;border-radius:6px;cursor:pointer;transition:color .15s,background .2s;}
-.event-editor .seg button.active{background:var(--accent);color:var(--on-accent);font-weight:500;}
+.event-editor .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:5px 14px;border-radius:6px;cursor:pointer;transition:color .15s,background .2s,box-shadow .2s;}
+/* the raised-pill treatment from .view-switch — same widget, same idiom */
+.event-editor .seg button.active{background:var(--surface);color:var(--text);font-weight:600;box-shadow:var(--shadow-raised);}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
 .time-input .structured.animin{animation:fadeSlide .22s cubic-bezier(.4,0,.2,1);}
 .time-input .preview{display:inline-flex;align-items:center;align-self:flex-start;padding:6px 12px;background:var(--accent-soft);border-radius:8px;color:var(--accent);font-size:13px;}

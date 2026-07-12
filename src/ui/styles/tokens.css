@@ -22,6 +22,12 @@
    seen, a fill must not be. A saturated teal could do both jobs; a neutral
    cannot.
 
+   --shadow-raised lifts the selected pill of a segmented control off its
+   recessed --field track. It is load-bearing: --field to --surface is only a
+   ~1.1:1 step in BOTH themes, so the fill alone cannot say "selected". The
+   signal is the four together — fill, this shadow, --muted to --text, and
+   weight 500 to 600. Weaken any one and re-check the control in a browser.
+
    Exact values are tunable; the custom-property contract is what's stable.
    Self-hosted via @fontsource (imported in main.tsx); system fonts fall back.
 
@@ -60,6 +66,7 @@
   --deep-time: #8f8a80;
   --danger: #c0392b;
   --shadow: 0 1px 2px rgba(40, 35, 25, 0.05), 0 8px 24px rgba(40, 35, 25, 0.07);
+  --shadow-raised: 0 1px 2px rgba(40, 35, 25, 0.10), 0 1px 1px rgba(40, 35, 25, 0.06);
   --fab-shadow: 0 6px 16px rgba(40, 35, 25, 0.20);
 }
 
@@ -83,6 +90,7 @@
   --deep-time: #78746d;
   --danger: #e8695c;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.35);
   --fab-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
 }
 

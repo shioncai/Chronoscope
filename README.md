@@ -1,52 +1,56 @@
 # Chronoscope
 
-> 一台"观时之镜"——在同一条时间轴上同时容纳「138 亿年前」和「今天下午」。
+> A cross-scale event timeline, from deep time to this afternoon.
 
-Chronoscope 是一个跨尺度的事件时间轴。从宇宙、地质级别的大事件，到某个下午发生的小事，都能落在**同一条轴**上，直观地比较它们的先后与跨度。它完全在你自己的设备上运行，数据只属于你。
+Chronoscope puts events of wildly different scales on a single axis. The formation of the Earth, the fall of Rome, and something that happened last Tuesday all live on the same timeline, so you can compare when they happened and how long they lasted. It runs entirely on your own device, and the data stays yours.
 
-## 你能用它做什么
+## What you can do with it
 
-- **跨越极大的时间尺度**：同一条轴上从数十亿年前一直到秒级；支持公元前、地质年代（ka / Ma / Ga）。
-- **记录"说不准"的时间**：可以写"约 38 亿年前""1990 年代"这类模糊时间、标注误差范围，也允许只有起点或只有终点的事件。
-- **两种视图，一套筛选**
-  - **时间轴**：细节轴 + 一屏纵览的总览条，拖动"取景窗"在宏观与细节间来回比对，可缩放、可放大显示。
-  - **列表**：多列展示、可勾选、批量移动 / 打标签 / 删除。
-  - 两种视图共享同一套搜索、筛选与排序。
-- **分类与标签**：可嵌套的文件夹（拖拽调整层级）+ 多标签（支持"与 / 或"筛选）+ 全文搜索；事件之间还能互相关联，备注支持 Markdown。
-- **回收站**：删除是可恢复的软删除；删文件夹会连同子级一起删，恢复事件时会自动还原它所属的文件夹层级。
-- **导出 / 导入**：一键把全部数据导出成一个 JSON 文件用于备份或换设备；导入是**合并式**的，不会覆盖、不会丢数据。
-- **昼夜双主题**：精密仪器般的观感，颜色会随时间深度变化。
-- **本地优先、完全离线**：没有服务器、没有账号，数据不联网、不外传。
+**Work across enormous time scales.** One axis spans billions of years ago down to the second. BCE dates and geological units (ka, Ma, Ga) are first-class, not a workaround.
 
-## 开始使用
+**Record time you are not sure about.** You can write "about 3.8 billion years ago" or "the 1990s", attach a margin of error, and create events that have only a start or only an end.
 
-### 桌面版（Windows 便携版，推荐）
+**Switch between two views that share one set of filters.** The timeline gives you a detail axis plus an overview bar that holds the whole span on one screen, with a viewport window you drag to move between the big picture and the fine grain. You can zoom the axis and magnify the display. The list view shows the same events in columns, with checkboxes for moving, tagging, or deleting many events at once. Search, filters, and sorting carry across both views.
 
-1. 把 `Chronoscope` 文件夹解压到一个**可写**的位置（桌面 / 文档 / U 盘皆可；请勿放进 `C:\Program Files\` 这类只读目录）。
-2. 双击文件夹里的 `Chronoscope.exe`。
+**Organize with folders and tags.** Folders nest, can be dragged to a new parent, and can be given a color that follows their events onto the timeline. Selecting folders in the sidebar narrows what both views show. Tags support AND and OR filtering, events can link to each other, notes are written in Markdown, and full-text search covers everything.
 
-免安装、无后台服务、完全离线。你的全部数据保存在 `Chronoscope.exe` 旁边的 `data\` 子目录里——**把整个文件夹拷到哪里，数据就跟到哪里**，拷贝一份即是一次完整备份。
+**Delete without fear.** Deleting is a soft delete you can undo from the recycle bin. Deleting a folder takes its children with it, and restoring an event brings back the folder hierarchy it belonged to.
 
-### 网页版
+**Export and import.** One click writes all of your data to a single JSON file for backup or for moving to another machine. Import merges into what is already there rather than replacing it, and anything that conflicts is shown to you instead of being silently overwritten.
 
-Chronoscope 也是一个网页应用（PWA）。在浏览器里打开后可"安装"到桌面，像独立应用一样离线使用。数据保存在浏览器本地。（本地运行方式见文末。）
+**Pick your language and theme.** The interface is available in English and Chinese, with light and dark themes.
 
-## 你的数据，只属于你
+**Stay local and offline.** There is no server and no account. Your data never leaves the device.
 
-- **本地优先**：数据全部存在你的设备上，不经过任何服务器，也不需要注册登录。
-- **备份 / 迁移**：在应用里「导出」得到一个 JSON 文件即可保存或搬到另一台设备；「导入」会与现有数据合并，冲突时会提示，不会静默覆盖。
-- 桌面版还可以直接复制 `data\` 文件夹作为备份。
+## Getting started
 
-## 更新桌面版
+### Desktop (Windows portable, recommended)
 
-要更新到新版本：用新版**整体替换**旧的 `Chronoscope` 文件夹，但把旧文件夹里的 `data\` 复制进新文件夹——这样你的数据就会原样保留。稳妥起见，也可以先在应用里「导出」一份 JSON 备份。
+1. Unzip the `Chronoscope` folder somewhere writable, such as your desktop, your documents folder, or a USB drive. Avoid read-only locations like `C:\Program Files\`.
+2. Run `Chronoscope.exe` inside that folder.
 
-## 从源码运行 / 构建
+Nothing is installed, nothing runs in the background, and nothing goes online. All of your data lives in the `data\` subfolder next to `Chronoscope.exe`, so the data travels with the folder wherever you copy it, and copying the folder is a complete backup.
+
+### Web
+
+Chronoscope is also a PWA. Open it in a browser and you can install it to your desktop and use it offline like a standalone app. In this case the data is stored in the browser. See below for running it locally.
+
+## Your data belongs to you
+
+Everything is stored on your device. No server sees it, and there is no sign-up.
+
+To back up or migrate, use Export in the app to get a JSON file, then use Import on the other machine. Import merges with the existing data and prompts you on conflicts. On the desktop version you can also just copy the `data\` folder.
+
+## Updating the desktop version
+
+Replace the old `Chronoscope` folder with the new one, then copy the `data\` folder from the old version into the new one. Your data carries over untouched. If you want to be careful, export a JSON backup from inside the app first.
+
+## Running from source
 
 ```bash
 npm install
-npm run dev             # 在浏览器里启动（开发 / 网页版）
-npm run electron:build  # 打包出 Windows 便携版 → release/Chronoscope-<版本>-win.zip
+npm run dev             # start the dev server in a browser
+npm run electron:build  # build the Windows portable app into release/
 ```
 
-打包便携版需要系统装有 `7z`（用于压包）；无需 wine。
+Building the portable package needs `7z` on your system for the zip step. Wine is not required.

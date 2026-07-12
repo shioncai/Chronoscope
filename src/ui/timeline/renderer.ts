@@ -6,6 +6,10 @@ export interface TimelineColors {
   text: string
   muted: string
   border: string
+  /** The edge of a surface that floats on the canvas (--bg). Equals --border in
+      day; at night it is lighter, because --border is only 1.4:1 on --bg there.
+      The overview band uses it for the same reason the FAB does. */
+  floatBorder: string
   accent: string
   deepTime: string
 }
@@ -224,7 +228,7 @@ export function drawScene(
   // do this job as a side effect; it left with the amber.)
   ctx.fillStyle = colors.surface
   ctx.fillRect(0, layout.overviewTop, scene.width, layout.overviewHeight)
-  ctx.fillStyle = colors.border
+  ctx.fillStyle = colors.floatBorder
   ctx.fillRect(0, layout.overviewTop, scene.width, 1)
 
   // density markers — time depth is encoded in LIGHTNESS, not hue: faint grey in
@@ -238,9 +242,15 @@ export function drawScene(
     const depth = scene.width > 0 ? m.x / scene.width : 0
     ctx.strokeStyle = mixHex(colors.deepTime, colors.accent, depth)
     const half = maxHalf * densityHeight(m.count, maxCount)
+    // Snap to the half-pixel grid. m.x is a float, and a 1px stroke on a
+    // fractional x straddles two columns and antialiases to about half strength —
+    // measured in a real browser, that cost the deep-time markers their 3:1
+    // against --surface (1.88:1 instead of 3.8:1). Lightness is the only channel
+    // these markers have left, so half of it is not something we can spend.
+    const x = Math.floor(m.x) + 0.5
     ctx.beginPath()
-    ctx.moveTo(m.x, midY - half)
-    ctx.lineTo(m.x, midY + half)
+    ctx.moveTo(x, midY - half)
+    ctx.lineTo(x, midY + half)
     ctx.stroke()
   }
 

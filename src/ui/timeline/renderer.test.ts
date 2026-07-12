@@ -4,7 +4,7 @@ import type { TimelineScene } from './scene'
 
 const COLORS: TimelineColors = {
   bg: '#000', surface: '#111', text: '#fff', muted: '#888',
-  border: '#333', accent: '#0aa', deepTime: '#a40',
+  border: '#333', floatBorder: '#555', accent: '#0aa', deepTime: '#a40',
 }
 
 // Minimal recording double for a 2D context — records method calls (with arg
@@ -174,15 +174,26 @@ describe('renderer', () => {
     expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.accent, 0.1))
     expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.accent, 0.9))
   })
-  it('rules the overview band off the canvas with a 1px border line', () => {
+  it('rules the overview band off the canvas with a 1px float-border line', () => {
     const ctx = fakeCtx()
     const layout = computeLayout(400)
     drawScene(ctx, scene, COLORS, layout)
-    // --surface is only 1.16:1 on --bg at night; the fill alone cannot separate
-    // the band from the canvas, so a 1px --border top rule does it.
-    expect(ctx.fills).toContain(COLORS.border)
+    // --surface is only 1.16:1 on --bg at night, so the fill alone cannot separate
+    // the band from the canvas. It uses --float-border, not --border: measured in a
+    // real browser, --border is only 1.4:1 on --bg at night. Same reason the FAB does.
+    expect(ctx.fills).toContain(COLORS.floatBorder)
     const rects = (ctx.args.fillRect ?? []) as unknown[][]
     expect(rects).toContainEqual([0, layout.overviewTop, scene.width, 1])
+  })
+  it('snaps the density markers to the half-pixel grid so they render at full strength', () => {
+    const ctx = fakeCtx()
+    // markers sit at x=100 and x=900 — a 1px stroke on an integer x straddles two
+    // columns and antialiases to ~half strength, which silently costs the deep-time
+    // markers their 3:1 against --surface. Lightness is all they have left.
+    drawScene(ctx, scene, COLORS, computeLayout(400))
+    const xs = (ctx.args.moveTo ?? []).map((a) => a[0] as number)
+    expect(xs).toContain(100.5)
+    expect(xs).toContain(900.5)
   })
   it('outlines a selected span with a bg halo and a text ring', () => {
     const ctx = fakeCtx()

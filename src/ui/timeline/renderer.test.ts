@@ -4,7 +4,7 @@ import type { TimelineScene } from './scene'
 
 const COLORS: TimelineColors = {
   bg: '#000', surface: '#111', text: '#fff', muted: '#888',
-  border: '#333', accent: '#0aa', now: '#0ff', deepTime: '#a40',
+  border: '#333', floatBorder: '#555', accent: '#0aa', deepTime: '#a40',
 }
 
 // Minimal recording double for a 2D context — records method calls (with arg
@@ -156,19 +156,44 @@ describe('renderer', () => {
     drawScene(ctx, scene, COLORS, computeLayout(400))
     const count = (name: string) => ctx.calls.filter((c) => c.startsWith(name + '(')).length
     expect(count('clearRect')).toBe(1)
-    expect(count('fillRect')).toBe(5) // bg + span glyph + overview band + band wash + lens fill
+    expect(count('fillRect')).toBe(5) // bg + span glyph + overview band + band top rule + lens fill
     expect(count('arc')).toBe(3) // one point glyph + its selection halo and ring
     expect(count('strokeRect')).toBe(1) // lens border
     expect(count('fillText')).toBe(6) // 2 tick labels + 2 glyph titles + 2 overview range labels
   })
-  it('washes the overview with a deep-time→now gradient and colors markers by depth', () => {
+  it('draws no gradient in the overview band — the depth cue is lightness, not hue', () => {
     const ctx = fakeCtx()
     drawScene(ctx, scene, COLORS, computeLayout(400))
     const count = (name: string) => ctx.calls.filter((c) => c.startsWith(name + '(')).length
-    expect(count('createLinearGradient')).toBe(1)
+    expect(count('createLinearGradient')).toBe(0)
+  })
+  it('ramps the density markers from deep-time to accent by depth', () => {
+    const ctx = fakeCtx()
+    drawScene(ctx, scene, COLORS, computeLayout(400))
     // markers sit at x=100 and x=900 over width 1000 → depth 0.1 and 0.9
-    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.1))
-    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.now, 0.9))
+    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.accent, 0.1))
+    expect(ctx.styles).toContain(mixHex(COLORS.deepTime, COLORS.accent, 0.9))
+  })
+  it('rules the overview band off the canvas with a 1px float-border line', () => {
+    const ctx = fakeCtx()
+    const layout = computeLayout(400)
+    drawScene(ctx, scene, COLORS, layout)
+    // --surface is only 1.16:1 on --bg at night, so the fill alone cannot separate
+    // the band from the canvas. It uses --float-border, not --border: measured in a
+    // real browser, --border is only 1.4:1 on --bg at night. Same reason the FAB does.
+    expect(ctx.fills).toContain(COLORS.floatBorder)
+    const rects = (ctx.args.fillRect ?? []) as unknown[][]
+    expect(rects).toContainEqual([0, layout.overviewTop, scene.width, 1])
+  })
+  it('snaps the density markers to the half-pixel grid so they render at full strength', () => {
+    const ctx = fakeCtx()
+    // markers sit at x=100 and x=900 — a 1px stroke on an integer x straddles two
+    // columns and antialiases to ~half strength, which silently costs the deep-time
+    // markers their 3:1 against --surface. Lightness is all they have left.
+    drawScene(ctx, scene, COLORS, computeLayout(400))
+    const xs = (ctx.args.moveTo ?? []).map((a) => a[0] as number)
+    expect(xs).toContain(100.5)
+    expect(xs).toContain(900.5)
   })
   it('outlines a selected span with a bg halo and a text ring', () => {
     const ctx = fakeCtx()
@@ -213,16 +238,11 @@ describe('renderer', () => {
     expect(a.lineWidths).toContain(2) // halo = 2 * scale
     expect(b.lineWidths).toContain(4)
   })
-  it('paints the lens with accent, leaving --now for data only', () => {
+  it('paints the lens with accent — the chrome carries no hue at all', () => {
     const ctx = fakeCtx()
     drawScene(ctx, scene, COLORS, computeLayout(400))
-    // the lens is navigation chrome — it must be achromatic. In COLORS,
-    // accent='#0aa' and now='#0ff'; the markers use mixHex(deepTime, now, d)
-    // which never yields '#0ff', so a '#0ff' strokeStyle could only be the lens.
     expect(ctx.styles).toContain(COLORS.accent)
-    expect(ctx.styles).not.toContain(COLORS.now)
     expect(ctx.fills).toContain(COLORS.accent) // its translucent fill too
-    expect(ctx.fills).toContain(COLORS.now) // --now survives as the selected glyph
   })
   it('draws more line segments when endpoints have fuzz (error-bar caps)', () => {
     const withW = fakeCtx()
@@ -248,6 +268,54 @@ describe('renderer', () => {
     drawScene(ctx, s, COLORS, computeLayout(400))
     expect(ctx.fills).toContain('#abcdef') // categorized glyph uses its color
     expect(ctx.fills).toContain(COLORS.muted) // uncategorized glyph falls back to muted gray
+  })
+  it('keeps a selected glyph on its own folder colour — selection never overwrites it', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: true, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306 } }],
+        rowCount: 1,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    expect(ctx.fills).toContain('#7a5aa6')
+  })
+  it('draws the selected glyph title at weight 600, and leaves the others alone', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [
+          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306 } },
+          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 1, selected: true, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606 } },
+        ],
+        rowCount: 2,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    expect(ctx.textDraws.find((d) => d.text === 'B')?.font).toContain('600')
+    expect(ctx.textDraws.find((d) => d.text === 'A')?.font).not.toContain('600')
+  })
+  it('does not leak the bold weight onto glyphs drawn after the selected one', () => {
+    const ctx = fakeCtx()
+    const s: TimelineScene = {
+      ...scene,
+      detail: {
+        ...scene.detail,
+        glyphs: [
+          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 0, selected: true, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606 } },
+          { eventId: 'c', kind: 'span', xStart: 700, xEnd: 800, whiskers: [], row: 1, selected: false, color: '#4f8a5b', label: { text: 'C', side: 'right', x: 806 } },
+        ],
+        rowCount: 2,
+      },
+    }
+    drawScene(ctx, s, COLORS, computeLayout(400))
+    // ctx.font is set once outside the glyph loop — a naive `if (selected) bold`
+    // would leave every later title bold. C comes after B, so it is the canary.
+    expect(ctx.textDraws.find((d) => d.text === 'C')?.font).not.toContain('600')
   })
   it('offsets glyph drawing by the scroll position', () => {
     const a = fakeCtx(); drawScene(a, scene, COLORS, computeLayout(400), 0)

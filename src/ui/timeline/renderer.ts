@@ -6,8 +6,11 @@ export interface TimelineColors {
   text: string
   muted: string
   border: string
+  /** The edge of a surface that floats on the canvas (--bg). Equals --border in
+      day; at night it is lighter, because --border is only 1.4:1 on --bg there.
+      The overview band uses it for the same reason the FAB does. */
+  floatBorder: string
   accent: string
-  now: string
   deepTime: string
 }
 
@@ -32,13 +35,15 @@ const OVERVIEW_HEIGHT = 48
 // the text above the band's top edge at high zoom).
 const OVERVIEW_LABEL_PX = 11
 
-// Selection is signalled by colour (--now) *and* shape, because a user's folder
-// colour can legitimately be the same amber. The halo is drawn in the canvas
-// background colour, so it isolates the glyph from its neighbours; the ring
-// then draws the actual outline. Both live entirely outside the glyph — the
-// fill is never covered. Widths are in unscaled px and multiplied by
-// layout.scale. The row gap is 8 * scale px (rowHeight 16 − barHeight 8), so
-// the 3 * scale px of outline fits.
+// Selection is signalled by SHAPE and WEIGHT, never by colour — the glyph keeps
+// its folder colour, because overwriting the colour the user chose is exactly
+// what this replaced. The halo is drawn in the canvas background colour, so it
+// isolates the glyph from its neighbours AND guarantees the ring can never merge
+// into a near-black or near-white fill; the ring then draws the actual outline.
+// Both live entirely outside the glyph — the fill is never covered. Widths are
+// in unscaled px and multiplied by layout.scale. The row gap is 8 * scale px
+// (rowHeight 16 − barHeight 8), so the 3 * scale px of outline fits.
+// The other half of the signal is the title at weight 600 (see the label block).
 const SELECT_HALO = 2
 const SELECT_RING = 1
 
@@ -116,7 +121,7 @@ export function drawScene(
   ctx.clip()
   for (const g of scene.detail.glyphs) {
     const y = layout.glyphTop + g.row * layout.rowHeight - scrollY
-    const color = g.selected ? colors.now : (g.color ?? colors.muted)
+    const color = g.color ?? colors.muted
     const r = layout.dotRadius
     const bh = layout.barHeight
 
@@ -188,8 +193,13 @@ export function drawScene(
       ctx.stroke()
     }
 
-    // title — scene already chose the side and (if needed) truncated it
+    // title — scene already chose the side and (if needed) truncated it. The
+    // selected title carries weight 600: it is the second, achromatic half of the
+    // selection signal (the ink ring is the first). ctx.font is set once outside
+    // this loop, so it must be re-set on EVERY glyph — otherwise the bold leaks
+    // onto every title drawn after the selected one.
     if (g.label.side !== 'none' && g.label.text) {
+      ctx.font = `${g.selected ? '600 ' : ''}${layout.fontSize}px ui-monospace, monospace`
       ctx.fillStyle = colors.text
       ctx.textAlign = g.label.side === 'left' ? 'right' : 'left'
       ctx.fillText(g.label.text, g.label.x, y + bh)
@@ -212,32 +222,39 @@ export function drawScene(
     ctx.globalAlpha = 1
   }
 
-  // overview band — surface, then a faint deep-time→now temperature wash
+  // overview band — bare --surface. The 1px --border top rule is structural, not
+  // decoration: --surface is only 1.16:1 against --bg at night, so the fill alone
+  // cannot separate the band from the canvas. (An amber temperature wash used to
+  // do this job as a side effect; it left with the amber.)
   ctx.fillStyle = colors.surface
   ctx.fillRect(0, layout.overviewTop, scene.width, layout.overviewHeight)
-  const wash = ctx.createLinearGradient(0, 0, scene.width, 0)
-  wash.addColorStop(0, colors.deepTime)
-  wash.addColorStop(1, colors.now)
-  ctx.globalAlpha = 0.1
-  ctx.fillStyle = wash
-  ctx.fillRect(0, layout.overviewTop, scene.width, layout.overviewHeight)
-  ctx.globalAlpha = 1
+  ctx.fillStyle = colors.floatBorder
+  ctx.fillRect(0, layout.overviewTop, scene.width, 1)
 
+  // density markers — time depth is encoded in LIGHTNESS, not hue: faint grey in
+  // deep time, full-strength ink (day) / moonlight (night) at the present. Do not
+  // mix a saturated colour back into --deep-time; blending a desaturated warm grey
+  // into a saturated amber is what made the old band look like khaki mud.
   const midY = layout.overviewTop + layout.overviewHeight / 2
   const maxHalf = layout.overviewHeight / 2 - 6
   const maxCount = scene.overview.markers.reduce((m, k) => Math.max(m, k.count), 1)
   for (const m of scene.overview.markers) {
     const depth = scene.width > 0 ? m.x / scene.width : 0
-    ctx.strokeStyle = mixHex(colors.deepTime, colors.now, depth)
+    ctx.strokeStyle = mixHex(colors.deepTime, colors.accent, depth)
     const half = maxHalf * densityHeight(m.count, maxCount)
+    // Snap to the half-pixel grid. m.x is a float, and a 1px stroke on a
+    // fractional x straddles two columns and antialiases to about half strength —
+    // measured in a real browser, that cost the deep-time markers their 3:1
+    // against --surface (1.88:1 instead of 3.8:1). Lightness is the only channel
+    // these markers have left, so half of it is not something we can spend.
+    const x = Math.floor(m.x) + 0.5
     ctx.beginPath()
-    ctx.moveTo(m.x, midY - half)
-    ctx.lineTo(m.x, midY + half)
+    ctx.moveTo(x, midY - half)
+    ctx.lineTo(x, midY + half)
     ctx.stroke()
   }
 
-  // lens window — navigation chrome, so it is achromatic (--accent), not --now.
-  // Keeping --now off the chrome leaves it meaning exactly one thing: focus.
+  // lens window — navigation chrome, and the chrome is achromatic (--accent).
   const { x0, x1 } = scene.overview.lens
   ctx.globalAlpha = 0.10
   ctx.fillStyle = colors.accent

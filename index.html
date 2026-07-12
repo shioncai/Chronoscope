@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#11161d" />
+    <!-- The theme follows the system until the user overrides it, so ship both
+         colours and let the browser pick before React mounts. AppShell then
+         collapses these onto the active theme (see state/theme.ts). Values
+         mirror --bg in src/ui/styles/tokens.css. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0efec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121211" />
     <title>Chronoscope</title>
   </head>
   <body>

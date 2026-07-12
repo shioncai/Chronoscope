@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
-import { AppStoreProvider, useAppState, applyTheme, persistTheme, applyLocale, persistLocale, type AppStore } from '../../state'
+import { AppStoreProvider, useAppState, applyTheme, applyThemeColor, persistTheme, applyLocale, persistLocale, type AppStore } from '../../state'
 import { TopBar } from './TopBar'
 import { Sidebar } from './Sidebar'
 import { ListView } from '../list/ListView'
@@ -75,6 +75,7 @@ function ShellBody() {
   // interaction.
   useLayoutEffect(() => {
     applyTheme(document.documentElement, state.theme)
+    applyThemeColor(Array.from(document.querySelectorAll('meta[name="theme-color"]')), state.theme)
     persistTheme(window.localStorage, state.theme)
   }, [state.theme])
 

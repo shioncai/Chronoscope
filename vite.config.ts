@@ -24,8 +24,14 @@ const pwa = process.env.VITEST || process.env.ELECTRON
           name: 'Chronoscope',
           short_name: 'Chronoscope',
           description: 'A cross-scale event timeline, from deep time to this afternoon.',
-          theme_color: '#11161d',
-          background_color: '#11161d',
+          // A Web App Manifest has no media variants, so unlike the <meta> pair
+          // in index.html these cannot follow the system theme — one value has
+          // to serve both. Day paper wins: background_color is only the splash
+          // behind the install, and theme_color is superseded by the document's
+          // <meta name="theme-color"> as soon as the app loads. Mirrors day --bg
+          // in src/ui/styles/tokens.css.
+          theme_color: '#f0efec',
+          background_color: '#f0efec',
           display: 'standalone',
           start_url: '/',
           icons: [

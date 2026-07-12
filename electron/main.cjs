@@ -1,7 +1,7 @@
 // Electron host for Chronoscope — a thin shell around the existing web app.
 // Responsibilities: (1) keep ALL data inside the app's own folder,
 // (2) serve the built renderer over a stable app:// origin, (3) open a window.
-const { app, protocol, BrowserWindow } = require('electron')
+const { app, protocol, BrowserWindow, nativeTheme } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 
@@ -60,7 +60,13 @@ function createWindow() {
     height: 800,
     minWidth: 640,
     minHeight: 480,
-    backgroundColor: '#11161d',
+    // Painted before the renderer's first frame. The app's own default is the
+    // system preference (see resolveInitialTheme), so match it here or the
+    // window flashes the wrong theme on launch. A stored override can still
+    // disagree — main has no access to the renderer's localStorage — but that
+    // flash lasts one paint, where a hard-coded colour was wrong for every
+    // launch of the other theme. Values mirror --bg in src/ui/styles/tokens.css.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#121211' : '#f0efec',
     title: 'Chronoscope',
     icon: path.join(__dirname, '..', 'build', 'icon.ico'),
     // Hide Electron's generic default menu (File/Edit/View/Window). It offers

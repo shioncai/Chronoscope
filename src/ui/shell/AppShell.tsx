@@ -6,6 +6,7 @@ import { ListView } from '../list/ListView'
 import { TimelineView } from '../timeline/TimelineView'
 import { EventEditor } from '../editor/EventEditor'
 import { useFocusTrap } from './useFocusTrap'
+import { useBackHandler } from './useBackHandler'
 import type { Id } from '../../domain/model'
 import { useT } from '../../i18n/useT'
 
@@ -67,6 +68,10 @@ function ShellBody() {
         ? window.matchMedia('(min-width: 641px)').matches
         : false,
   )
+
+  // Below any modal in the stack: back closes the topmost modal first, and only
+  // once they're all gone does it close the drawer.
+  useBackHandler(sidebarOpen, () => setSidebarOpen(false))
 
   // useLayoutEffect (not useEffect): the DOM `data-theme` must be set during the
   // commit phase, before TimelineView's passive draw effect reads the CSS

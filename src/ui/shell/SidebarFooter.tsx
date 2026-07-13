@@ -5,6 +5,7 @@ import { ImportResultDialog } from './ImportResultDialog'
 import { LanguageMenu } from './LanguageMenu'
 import { useT, useLocale } from '../../i18n/useT'
 import { SUPPORTED_LOCALES } from '../../i18n/locales'
+import { saveTextFile } from '../../platform'
 
 function todayStamp(): string {
   const d = new Date()
@@ -27,13 +28,7 @@ export function SidebarFooter() {
 
   function doExport() {
     const text = JSON.stringify(app.exportData(), null, 2)
-    const blob = new Blob([text], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `chronoscope-${todayStamp()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    void saveTextFile(`chronoscope-${todayStamp()}.json`, text)
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {

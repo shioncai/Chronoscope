@@ -34,3 +34,13 @@ release/
 .env
 .env.local
 .env.*.local
+
+# Android build output & signing secrets (the keystore lives outside the repo)
+android/app/build/
+android/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins/build/
+android/local.properties
+android/keystore.properties
+*.jks
+*.keystore

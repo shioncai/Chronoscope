@@ -1,11 +1,12 @@
 import { useFocusTrap } from './useFocusTrap'
+import { ModalOverlay } from './ModalOverlay'
 import { useT } from '../../i18n/useT'
 
 export function AboutModal({ onClose }: { onClose: () => void }) {
   const ref = useFocusTrap<HTMLDivElement>(true, onClose)
   const t = useT()
   return (
-    <div className="modal-overlay modal-overlay--center" onClick={onClose}>
+    <ModalOverlay center onClose={onClose}>
       <div className="info-card" ref={ref} role="dialog" aria-modal="true" aria-label={t('sidebar.about')}
         onClick={(e) => e.stopPropagation()}>
         <div className="logo display">Chronoscope</div>
@@ -18,6 +19,6 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
         </div>
         <button type="button" className="close" onClick={onClose}>{t('common.close')}</button>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

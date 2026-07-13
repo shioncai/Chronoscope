@@ -12,6 +12,7 @@ import './ui/styles/chrome.css'
 import { openDatabase, getOrCreateNodeId, createClock } from './data'
 import { createAppStore, resolveInitialTheme, resolveInitialLocale, type AppStore } from './state'
 import { decimalFromCivil } from './domain/time'
+import { initAndroidBackButton } from './platform'
 
 async function bootstrap(): Promise<{ app: AppStore }> {
   // openDatabase() returns { db, events, categories, tags }; the object as a
@@ -37,6 +38,8 @@ async function bootstrap(): Promise<{ app: AppStore }> {
   )
   const app = createAppStore({ db: opened, clock, nowYear, theme, locale })
   await app.load()
+
+  initAndroidBackButton()
 
   return { app }
 }

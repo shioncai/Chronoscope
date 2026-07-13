@@ -111,3 +111,36 @@ function formatEn(tp: TimePoint): string {
 export function formatTimePoint(tp: TimePoint, locale: Locale = 'zh'): string {
   return locale === 'en' ? formatEn(tp) : formatZh(tp)
 }
+
+/**
+ * The same moment, in the least room that still tells the truth — for a column
+ * too narrow for a phrase. The sidebar tree is one: an event row there is about
+ * 160px once the folder indent is paid for, and "~445 million years ago" claims
+ * nearly all of it, which is what used to squeeze the event's own title out of
+ * its row.
+ *
+ * Only deep time is rewritten, into the unit the editor already accepts as
+ * input: ~445 Ma, ~4.6 Ga. That is shorter than the prose in either language,
+ * and — unlike the prose, where English runs three times the length of Chinese —
+ * it is the same width in both. Everything else is already short and is left
+ * reading exactly as it does elsewhere in the app.
+ */
+export function formatTimePointShort(tp: TimePoint, locale: Locale = 'zh'): string {
+  if (!('ago' in tp)) return formatTimePoint(tp, locale)
+
+  const abs = Math.abs(tp.ago)
+  // Below a millennium there is no unit to collapse into, and "~800 yr" would
+  // read as the year 800. The prose is short enough there anyway.
+  if (abs < 1e3) return formatTimePoint(tp, locale)
+
+  const [n, unit] =
+    abs >= 1e9
+      ? [oneDecimal(abs / 1e9), 'Ga']
+      : abs >= 1e6
+        ? [oneDecimal(abs / 1e6), 'Ma']
+        : [oneDecimal(abs / 1e3), 'ka']
+  const magnitude = `~${n} ${unit}`
+
+  if (tp.ago > 0) return magnitude // the past: the overwhelmingly common case
+  return locale === 'en' ? `in ${magnitude}` : `${magnitude}后`
+}

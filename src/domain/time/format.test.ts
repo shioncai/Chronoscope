@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { fromYear, fromCivil, fromAgo } from './timepoint'
-import { formatTimePoint } from './format'
+import { formatTimePoint, formatTimePointShort } from './format'
 
 describe('formatTimePoint', () => {
   it('formats civil precisions', () => {
@@ -63,5 +63,33 @@ describe('formatTimePoint (English)', () => {
     expect(formatTimePoint(fromAgo(3000, 'ka'), 'en')).toBe('~3,000 years ago')
     expect(formatTimePoint(fromAgo(0, 'Ga'), 'en')).toBe('now')
     expect(formatTimePoint(fromAgo(-1e9, 'Ga'), 'en')).toBe('~1 billion years from now')
+  })
+})
+
+describe('formatTimePointShort', () => {
+  // The sidebar tree gives an event row ~160px at depth. "~445 million years ago"
+  // alone needs most of that, so the title was squeezed to nothing. The compact
+  // form is shorter than the prose in EITHER language, and — unlike the prose —
+  // it is the same width in both.
+  it('collapses deep time to its own unit', () => {
+    expect(formatTimePointShort(fromAgo(445e6, 'Ma'), 'en')).toBe('~445 Ma')
+    expect(formatTimePointShort(fromAgo(445e6, 'Ma'), 'zh')).toBe('~445 Ma')
+    expect(formatTimePointShort(fromAgo(4.6e9, 'Ga'), 'en')).toBe('~4.6 Ga')
+    expect(formatTimePointShort(fromAgo(12e3, 'ka'), 'en')).toBe('~12 ka')
+  })
+
+  it('marks the future, which would otherwise read as the past', () => {
+    expect(formatTimePointShort(fromAgo(-5e9, 'Ga'), 'en')).toBe('in ~5 Ga')
+    expect(formatTimePointShort(fromAgo(-5e9, 'Ga'), 'zh')).toBe('~5 Ga后')
+  })
+
+  it('leaves everything already short exactly as it reads elsewhere', () => {
+    expect(formatTimePointShort(fromYear(1969, 'year'), 'en')).toBe('1969')
+    expect(formatTimePointShort(fromCivil({ y: 2026, mo: 6, d: 21 }, 'day'), 'en')).toBe('2026-06-21')
+    expect(formatTimePointShort(fromYear(1969, 'year'), 'zh')).toBe('1969年')
+    expect(formatTimePointShort(fromAgo(0, 'Ga'), 'en')).toBe('now')
+    // under a millennium the prose is short already, and "~800 yr" would be
+    // ambiguous with the year 800
+    expect(formatTimePointShort(fromAgo(800, 'ka'), 'en')).toBe('~800 years ago')
   })
 })

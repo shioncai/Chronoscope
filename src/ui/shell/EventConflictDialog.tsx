@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAppState, eventDiffFields, type EventDiffField } from '../../state'
 import { formatTimeRange } from '../list/timeText'
 import { useFocusTrap } from './useFocusTrap'
+import { ModalOverlay } from './ModalOverlay'
 import { useT, useLocale } from '../../i18n/useT'
 import type { MessageKey } from '../../i18n/catalog'
 import type { EventRecord, Id } from '../../domain/model'
@@ -51,7 +52,7 @@ export function EventConflictDialog({
   }
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <ModalOverlay onClose={onCancel}>
       <div className="info-card conflict-card" ref={ref} role="dialog" aria-modal="true" aria-label={title}
         onClick={(e) => e.stopPropagation()}>
         <div className="logo display">{title}</div>
@@ -101,6 +102,6 @@ export function EventConflictDialog({
           <button type="button" className="primary" onClick={() => onResolve(choices)}>{t('common.confirm')}</button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

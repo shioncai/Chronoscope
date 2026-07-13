@@ -6,7 +6,10 @@
 :root { --radius: 10px; }
 
 /* ---------- top bar ---------- */
-.topbar{position:relative;display:flex;align-items:center;gap:14px;flex:0 0 auto;height:54px;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--border);transition:background .35s ease,border-color .35s ease;}
+/* The bar grows by the status-bar inset and pads its content down past it, so
+   the panel colour still reaches the top edge of the screen instead of leaving
+   a strip of bare background behind the status bar. */
+.topbar{position:relative;display:flex;align-items:center;gap:14px;flex:0 0 auto;height:calc(var(--topbar-h) + var(--safe-top));padding:var(--safe-top) 16px 0;background:var(--panel);border-bottom:1px solid var(--border);transition:background .35s ease,border-color .35s ease;}
 .topbar .title{font-family:var(--font-display);font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;font-size:17px;transition:background .18s,color .18s,transform .18s;}
 .icon-btn:hover{background:var(--hover);color:var(--text);}
@@ -38,6 +41,8 @@
 .func-row{display:flex;align-items:center;gap:11px;width:100%;height:38px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;text-align:left;transition:background .15s;}
 .func-row:hover{background:var(--hover);}
 .func-row .fr-icon{flex:0 0 auto;width:18px;color:var(--muted);font-size:15px;text-align:center;}
+/* the drawn icons (export/import) sit on the same 18px column as the typed ones */
+.func-row .fr-icon svg{display:block;width:16px;height:16px;margin:0 auto;}
 .func-row .fr-label{flex:1;min-width:0;}
 .switch{flex:0 0 auto;width:36px;height:20px;border-radius:999px;background:var(--border);position:relative;transition:background .25s;}
 .switch.on{background:var(--accent);}
@@ -145,7 +150,7 @@
    action" is said by size (48 vs 36) and shape, not by shouting in colour.
    Hover cannot be `filter: brightness()` any more — brightening a near-white
    paper disc clips to white and the feedback silently vanishes in day. */
-.fab{position:absolute;right:22px;bottom:60px;width:48px;height:48px;border:1px solid var(--float-border);border-radius:50%;background:var(--float);color:var(--text);font-size:23px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--fab-shadow);transition:transform .24s cubic-bezier(.2,.7,.3,1),box-shadow .24s ease,background-color .24s ease;z-index:8;}
+.fab{position:absolute;right:22px;bottom:calc(60px + var(--safe-bottom));width:48px;height:48px;border:1px solid var(--float-border);border-radius:50%;background:var(--float);color:var(--text);font-size:23px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--fab-shadow);transition:transform .24s cubic-bezier(.2,.7,.3,1),box-shadow .24s ease,background-color .24s ease;z-index:8;}
 .fab span{display:block;transition:transform .34s cubic-bezier(.2,.7,.3,1);}
 /* border-color is repeated on purpose — it does not change on hover. Without it
    the global `button:hover{border-color:var(--accent)}` below paints an ink (day)
@@ -159,7 +164,7 @@
 /* ---------- timeline display-zoom stepper (sits above the FAB) ---------- */
 /* center X = 28 + 36/2 = 46px from the right edge — matches the FAB's center
    (22 + 48/2 = 46), so the stepper and FAB stack on one vertical axis */
-.tl-zoom{position:absolute;right:28px;bottom:116px;z-index:8;display:flex;flex-direction:column;align-items:stretch;width:36px;border-radius:18px;background:var(--float);border:1px solid var(--float-border);box-shadow:var(--fab-shadow);overflow:hidden;}
+.tl-zoom{position:absolute;right:28px;bottom:calc(116px + var(--safe-bottom));z-index:8;display:flex;flex-direction:column;align-items:stretch;width:36px;border-radius:18px;background:var(--float);border:1px solid var(--float-border);box-shadow:var(--fab-shadow);overflow:hidden;}
 .tl-zoom button{border:0;background:transparent;color:var(--text);font-size:16px;line-height:1;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .tl-zoom button:hover{background:var(--accent-soft);}
 /* dividers sit ON the float surface, so they follow it — --border-soft would be
@@ -393,12 +398,16 @@ legend {
 @media (max-width: 640px) {
   .sidebar {
     position: fixed;
-    top: 52px;
+    /* measured off the bar rather than restating its height — the two had
+       already drifted apart (52 vs 54) before the bar's height became dynamic */
+    top: calc(var(--topbar-h) + var(--safe-top));
     bottom: 0;
     left: 0;
     z-index: 40;
     /* cap the drawer to the viewport regardless of the saved desktop width */
     width: min(var(--sidebar-w), 86vw);
+    /* keep the footer's export/import/about rows above the gesture bar */
+    padding-bottom: var(--safe-bottom);
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     box-shadow: var(--shadow);
@@ -409,7 +418,7 @@ legend {
   .drawer-backdrop {
     display: block;
     position: fixed;
-    inset: 52px 0 0 0;
+    inset: calc(var(--topbar-h) + var(--safe-top)) 0 0 0;
     z-index: 39;
     background: rgb(0 0 0 / 0.4);
   }
@@ -430,12 +439,14 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
    bottom-center of the content area (like the FAB) as the list scrolls. */
 .list-pane{position:relative;height:100%;display:flex;flex-direction:column;overflow:hidden;}
 .list-scroll{flex:1;min-height:0;overflow:auto;}
-.batch-bar{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;flex-wrap:nowrap;align-items:center;gap:5px;padding:8px 10px;max-width:calc(100% - 24px);background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);z-index:9;animation:slideUp .24s cubic-bezier(.34,1.56,.64,1);}
+.batch-bar{position:absolute;left:50%;bottom:calc(26px + var(--safe-bottom));transform:translateX(-50%);display:flex;flex-wrap:nowrap;align-items:center;gap:5px;padding:8px 10px;max-width:calc(100% - 24px);background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);z-index:9;animation:slideUp .24s cubic-bezier(.34,1.56,.64,1);}
 .batch-bar > *{flex:0 0 auto;}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .batch-bar .bb-count{font-size:13px;font-weight:600;color:var(--muted);padding:0 8px;white-space:nowrap;}
 .batch-bar .bb-sep{width:1px;height:22px;background:var(--border);margin:0 3px;}
 .batch-bar .bb-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s;}
+.batch-bar .bb-btn svg{flex:0 0 auto;width:16px;height:16px;}
+.batch-bar .bb-caret{font-size:9px;opacity:.65;}
 .batch-bar .bb-btn:hover{background:var(--hover);}
 .batch-bar .bb-btn.danger{color:var(--danger);}
 .batch-bar .bb-btn.danger:hover{background:var(--danger);color:#fff;}
@@ -443,6 +454,23 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .batch-bar .bb-cancel:hover{background:var(--hover);color:var(--text);}
 .batch-bar .menu-anchor{position:relative;display:inline-flex;}
 .batch-bar .menu-anchor .move-menu{position:absolute;bottom:100%;left:0;margin:0 0 8px;z-index:10;min-width:9em;}
+
+/* Phone: drop the labels and keep the icons. The bar is nowrap with
+   non-shrinking children, so its tail — Remove tag, Delete, the cancel — used to
+   fall clean off the right edge, out of reach; the labels are what overran, and
+   they are also the only part whose width depends on the language. Without them
+   four actions and a count sit on one row at any width, in Chinese or English
+   alike. The name lives on aria-label, so nothing is lost to a screen reader.
+   AppShell stands the FAB down while a selection is live, so the two floats
+   don't fight over the same corner.
+
+   This block must stay AFTER the rules above: a media query adds no specificity,
+   so an earlier one would simply lose to them. */
+@media (max-width: 640px) {
+  .batch-bar .bb-label { display: none; }
+  .batch-bar .bb-btn { padding: 0 9px; gap: 3px; }
+  .batch-bar .bb-count { padding: 0 6px; }
+}
 .tag-menu .empty { padding: 4px 6px; color: var(--muted); font-size: 13px; }
 
 /* ---------- pill component & inline form styles ---------- */
@@ -542,8 +570,22 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
    near-miss on the small checkbox no longer opens the editor. */
 .event-row .ev-main{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:9px;padding:0;margin:0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;}
 .event-row .ev-main:hover{border-color:transparent;}
-.event-row .ev-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.event-row .ev-time{flex:0 0 auto;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums;}
+/* The title has first claim on the row; the time yields.
+   It used to be the other way round: the time could not shrink at all while the
+   title could shrink to nothing, so one long enough time string — and English
+   deep time is long, "~445 million years ago" — left the row showing a date and
+   no event. Now the time gives way first (it shrinks far faster, and ellipsizes),
+   and it keeps a small floor so it can never vanish outright, which is exactly
+   the fate the title used to suffer. */
+.event-row .ev-label{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* The title has first claim on the row and the time yields — the exact reverse of
+   what this used to do, where the time could not shrink at all while the title
+   could shrink to nothing, so one long enough time ("~445 million years ago" —
+   English deep time) left the row showing a date and no event at all.
+   The time gives way *entirely* rather than part-way: it shrinks 100x faster than
+   the title and has no floor, so it either prints in full or steps aside. A time
+   squeezed down to "~4…" is not an abbreviation, it is noise. */
+.event-row .ev-time{flex:0 100 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums;}
 /* language switcher: popover trigger row + its flyout menu, matching the
    ColorPicker/HsvPicker portal-flyout pattern (positioned via useFlyout). */
 .func-row .fr-value{margin-left:auto;color:var(--muted);font-size:0.85em;}

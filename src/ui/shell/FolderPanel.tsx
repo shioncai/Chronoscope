@@ -7,7 +7,7 @@ import {
 } from '../../state'
 import type { Id, EventRecord } from '../../domain/model'
 import type { Locale } from '../../domain/locale'
-import { formatTimePoint, instantOf } from '../../domain/time'
+import { formatTimePointShort, instantOf } from '../../domain/time'
 import { ColorPicker } from './ColorPicker'
 import { AddFolderForm } from './AddFolderForm'
 import { Checkbox } from './Checkbox'
@@ -37,8 +37,14 @@ function buildRows(
   return out
 }
 
+// The short form, not the prose: a tree row is barely 160px wide once the folder
+// indent is paid for, and the title has first claim on it.
 const eventTime = (e: EventRecord, locale: Locale): string =>
-  e.start ? formatTimePoint(e.start, locale) : e.end ? formatTimePoint(e.end, locale) : '—'
+  e.start
+    ? formatTimePointShort(e.start, locale)
+    : e.end
+      ? formatTimePointShort(e.end, locale)
+      : '—'
 
 export interface FolderPanelProps {
   onEdit: (id: Id) => void

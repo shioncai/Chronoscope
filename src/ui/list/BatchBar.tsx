@@ -14,6 +14,44 @@ import type { Id } from '../../domain/model'
 
 type OpenMenu = 'folder' | 'addTag' | 'removeTag' | null
 
+// The bar's actions carry an icon as well as a label, because on a phone the
+// labels are dropped (see the media query in chrome.css) and the icon is all
+// that is left: it is what lets four actions and a count sit on one row at any
+// width, in either language. The accessible name always comes from aria-label,
+// so hiding the text costs nothing.
+const svg = { viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
+
+const FolderIcon = () => (
+  <svg {...svg} aria-hidden="true">
+    <path d="M1.8 12.6V3.9a.9.9 0 0 1 .9-.9h2.9l1.4 1.8h6.3a.9.9 0 0 1 .9.9v6.9a.9.9 0 0 1-.9.9H2.7a.9.9 0 0 1-.9-.9Z" />
+  </svg>
+)
+// a tag, with the sign that says which way it goes
+const TagIcon = ({ sign }: { sign: 'plus' | 'minus' }) => (
+  <svg {...svg} aria-hidden="true">
+    <path d="M6.9 1.6h3.4a.9.9 0 0 1 .9.9V6a.9.9 0 0 1-.27.64l-4.5 4.5a.9.9 0 0 1-1.27 0L1.5 7.44a.9.9 0 0 1 0-1.27l4.5-4.5a.9.9 0 0 1 .64-.27Z" />
+    <circle cx="8.9" cy="4" r=".85" />
+    <line x1="10.4" y1="12.6" x2="14.4" y2="12.6" />
+    {sign === 'plus' && <line x1="12.4" y1="10.6" x2="12.4" y2="14.6" />}
+  </svg>
+)
+const TrashIcon = () => (
+  <svg {...svg} aria-hidden="true">
+    <line x1="2.4" y1="4" x2="13.6" y2="4" />
+    <path d="M5.6 4V2.4h4.8V4" />
+    <path d="M3.9 4v9.1a.9.9 0 0 0 .9.9h6.4a.9.9 0 0 0 .9-.9V4" />
+    <line x1="6.6" y1="6.6" x2="6.6" y2="11.4" />
+    <line x1="9.4" y1="6.6" x2="9.4" y2="11.4" />
+  </svg>
+)
+const RestoreIcon = () => (
+  <svg {...svg} aria-hidden="true">
+    <path d="M2.8 8a5.2 5.2 0 1 0 1.6-3.75" />
+    <polyline points="2.1,2.2 2.1,5.6 5.5,5.6" />
+  </svg>
+)
+const Caret = () => <span className="bb-caret" aria-hidden="true">▾</span>
+
 // Batch action bar for the list view's checkbox selection. Reads the
 // selection from the store and calls the store's batch ops directly
 // (same pattern as the Sidebar). Renders nothing when nothing is checked.
@@ -57,11 +95,13 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
         <div className="batch-bar">
           <span className="bb-count">{t('list.selectedCount', { n: ids.length })}</span>
           <span className="bb-sep" />
-          <button type="button" className="bb-btn" onClick={() => void restore()}>
-            {t('common.restore')}
+          <button type="button" className="bb-btn" aria-label={t('common.restore')} onClick={() => void restore()}>
+            <RestoreIcon />
+            <span className="bb-label">{t('common.restore')}</span>
           </button>
-          <button type="button" className="bb-btn danger" onClick={purge}>
-            {t('common.purge')}
+          <button type="button" className="bb-btn danger" aria-label={t('common.purge')} onClick={purge}>
+            <TrashIcon />
+            <span className="bb-label">{t('common.purge')}</span>
           </button>
           <span className="bb-sep" />
           <button
@@ -129,9 +169,12 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
             className="bb-btn"
             aria-haspopup="menu"
             aria-expanded={open === 'folder'}
+            aria-label={t('list.moveToFolder')}
             onClick={() => toggle('folder')}
           >
-            {t('list.moveToFolder')}
+            <FolderIcon />
+            <span className="bb-label">{t('list.moveToFolder')}</span>
+            <Caret />
           </button>
           {open === 'folder' && (
             <MoveMenu targets={folders} topLabel={t('common.uncategorized')} onMove={move} />
@@ -143,9 +186,12 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
             className="bb-btn"
             aria-haspopup="menu"
             aria-expanded={open === 'addTag'}
+            aria-label={t('list.addTag')}
             onClick={() => toggle('addTag')}
           >
-            {t('list.addTag')}
+            <TagIcon sign="plus" />
+            <span className="bb-label">{t('list.addTag')}</span>
+            <Caret />
           </button>
           {open === 'addTag' && <TagMenu tags={allTags} onPick={addTag} emptyLabel={t('list.noTags')} />}
         </span>
@@ -155,16 +201,20 @@ export function BatchBar({ trash = false }: { trash?: boolean }) {
             className="bb-btn"
             aria-haspopup="menu"
             aria-expanded={open === 'removeTag'}
+            aria-label={t('list.removeTag')}
             onClick={() => toggle('removeTag')}
           >
-            {t('list.removeTag')}
+            <TagIcon sign="minus" />
+            <span className="bb-label">{t('list.removeTag')}</span>
+            <Caret />
           </button>
           {open === 'removeTag' && (
             <TagMenu tags={removableTags} onPick={removeTag} emptyLabel={t('list.noTags')} />
           )}
         </span>
-        <button type="button" className="bb-btn danger" onClick={del}>
-          {t('common.delete')}
+        <button type="button" className="bb-btn danger" aria-label={t('common.delete')} onClick={del}>
+          <TrashIcon />
+          <span className="bb-label">{t('common.delete')}</span>
         </button>
         <span className="bb-sep" />
         <button

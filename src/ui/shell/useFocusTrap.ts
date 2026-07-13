@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useBackHandler } from './useBackHandler'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -11,6 +12,12 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onEscape: (
   useEffect(() => {
     escRef.current = onEscape
   })
+
+  // Android's back button means the same thing as Escape here. Registering at
+  // the trap covers every modal in the app — editor, about, import result,
+  // conflict — and the stack's LIFO order reproduces the innermost-first
+  // behaviour the Escape handler already has.
+  useBackHandler(active, () => escRef.current())
 
   useEffect(() => {
     if (!active) return

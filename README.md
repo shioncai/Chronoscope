@@ -31,6 +31,12 @@ Chronoscope puts events of wildly different scales on a single axis. The formati
 
 Nothing is installed, nothing runs in the background, and nothing goes online. All of your data lives in the `data\` subfolder next to `Chronoscope.exe`, so the data travels with the folder wherever you copy it, and copying the folder is a complete backup.
 
+### Android
+
+Download the APK from the releases page and open it. Android will ask you to allow installing from an unknown source, since this does not come from the Play Store.
+
+The app is fully offline and asks for no permissions beyond the one its own web view needs. Android keeps app data in a private sandbox, so — unlike the desktop version — **uninstalling the app erases your events**. Export a JSON backup before you uninstall.
+
 ### Web
 
 Chronoscope is also a PWA. Open it in a browser and you can install it to your desktop and use it offline like a standalone app. In this case the data is stored in the browser. See below for running it locally.
@@ -51,6 +57,7 @@ Replace the old `Chronoscope` folder with the new one, then copy the `data\` fol
 npm install
 npm run dev             # start the dev server in a browser
 npm run electron:build  # build the Windows portable app into release/
+npm run android:build   # build the signed Android APK into release/
 ```
 
-Building the portable package needs `7z` on your system for the zip step. Wine is not required.
+Building the Windows package needs `7z` on your system for the zip step. Wine is not required. Building the APK needs a JDK and the Android command-line SDK, and signing needs a keystore of your own.

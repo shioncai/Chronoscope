@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore, useAppState, visibleEvents } from '../../state'
 import { instantOf, type LinearView } from '../../domain/time'
 import { initialView, zoomView, panView, clampView, viewFromLensCenter, panViewByLensDrag, clampScroll } from './view'
-import { spanOf, pinchScale, midpoint } from './gesture'
+import { spreadOf, pinchScale, midpointOf, type Finger } from './gesture'
 import { buildScene, type TimelineScene } from './scene'
 import { drawScene, computeLayout, type TimelineColors } from './renderer'
 import type { Id } from '../../domain/model'
@@ -135,8 +135,11 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
 
   // pointer interactions
   const drag = useRef<{ x: number; y: number; mode: 'pan' | 'lens' | 'overviewPan'; moved: boolean } | null>(null)
-  // active pointers by id → clientX, for multi-touch pinch
-  const pointers = useRef(new Map<number, number>())
+  // every finger currently on the glass, by pointer id. Kept live on each move:
+  // the pinch math reads it, and a finger still on record at its landing point
+  // would make the next finger's arrival measure the opening spread against a
+  // stale coordinate.
+  const pointers = useRef(new Map<number, Finger>())
 
   const fractionAt = (clientX: number): number => {
     const rect = canvasRef.current?.getBoundingClientRect()
@@ -202,7 +205,7 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
-    pointers.current.set(e.pointerId, e.clientX)
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (pointers.current.size >= 2) {
       drag.current = null // a pinch began; stop panning/lens-dragging
       ;(e.target as Element).setPointerCapture?.(e.pointerId)
@@ -225,20 +228,41 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
   const onPointerMove = (e: React.PointerEvent) => {
     if (pointers.current.size >= 2) {
       const prev = [...pointers.current.values()]
-      pointers.current.set(e.pointerId, e.clientX)
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
       const next = [...pointers.current.values()]
-      const pinch = pinchScale(spanOf(prev), spanOf(next))
-      if (pinch !== 1) {
-        const rect = canvasRef.current?.getBoundingClientRect()
-        const width = rect?.width || 1
-        const frac = Math.min(Math.max((midpoint(next) - (rect?.left ?? 0)) / width, 0), 1)
-        // fingers apart (pinch > 1) → zoom in → factor < 1
-        setView((v) => clampView(zoomView(v, frac, 1 / pinch), bounds.min, bounds.max))
+      const rect = canvasRef.current?.getBoundingClientRect()
+      const width = rect?.width || 1
+      const left = rect?.left ?? 0
+
+      // Scale by how much further apart the fingers actually are — their real
+      // distance, not its shadow on the time axis (see spreadOf).
+      const pinch = pinchScale(spreadOf(prev), spreadOf(next))
+
+      // And a pinch is a scale AND a translation. Zoom about where the fingers'
+      // midpoint WAS, then slide by however far that midpoint travelled, so
+      // whatever sat under the hand stays under it. Scaling about the *new*
+      // midpoint and stopping there lets the timeline creep out from under the
+      // fingers, a little more each frame — fine when the pinch is short,
+      // chaotic when it is long. It also left a two-finger drag (spread
+      // unchanged, so pinch === 1) doing nothing at all.
+      const m0 = midpointOf(prev)
+      const m1 = midpointOf(next)
+      const f0 = (m0.x - left) / width
+      const f1 = (m1.x - left) / width
+      setView((v) => clampView(panView(zoomView(v, f0, 1 / pinch), f0 - f1), bounds.min, bounds.max))
+
+      // the vertical half of that translation: two fingers scroll the rows, the
+      // same as one finger does
+      const dy = m1.y - m0.y
+      if (dy !== 0) {
+        const { contentH, visibleH } = scrollMetrics()
+        setScrollY((yv) => clampScroll(yv - dy, contentH, visibleH))
       }
       return
     }
     const d = drag.current
     if (!d) return
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     const rect = canvasRef.current?.getBoundingClientRect()
     const width = rect?.width || 1
     const dxFrac = (e.clientX - d.x) / width
@@ -266,6 +290,15 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
     pointers.current.delete(e.pointerId)
     const d = drag.current
     drag.current = null
+    // A pinch that loses a finger becomes a one-finger pan — not a dead gesture
+    // that ignores the hand still on the glass. Re-arm from where the survivor
+    // actually is, so it takes over without a jump. `moved` starts true: this is
+    // the tail of a drag, never a tap, and it must not select a glyph on release.
+    if (pointers.current.size === 1) {
+      const survivor = [...pointers.current.values()][0]
+      drag.current = { x: survivor.x, y: survivor.y, mode: 'pan', moved: true }
+      return
+    }
     if (!d || d.moved) return
     // a click (no drag): hit-test detail glyphs
     const rect = canvasRef.current?.getBoundingClientRect()

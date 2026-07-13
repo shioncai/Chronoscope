@@ -445,6 +445,8 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .batch-bar .bb-count{font-size:13px;font-weight:600;color:var(--muted);padding:0 8px;white-space:nowrap;}
 .batch-bar .bb-sep{width:1px;height:22px;background:var(--border);margin:0 3px;}
 .batch-bar .bb-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s;}
+.batch-bar .bb-btn svg{flex:0 0 auto;width:16px;height:16px;}
+.batch-bar .bb-caret{font-size:9px;opacity:.65;}
 .batch-bar .bb-btn:hover{background:var(--hover);}
 .batch-bar .bb-btn.danger{color:var(--danger);}
 .batch-bar .bb-btn.danger:hover{background:var(--danger);color:#fff;}
@@ -453,28 +455,21 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .batch-bar .menu-anchor{position:relative;display:inline-flex;}
 .batch-bar .menu-anchor .move-menu{position:absolute;bottom:100%;left:0;margin:0 0 8px;z-index:10;min-width:9em;}
 
-/* Phone: the bar is nowrap with non-shrinking children, so its tail — Remove
-   tag, Delete, and the cancel — used to fall clean off the right edge, out of
-   reach. English labels are the longer ones and lost the most. Take the full
-   width and allow a second row. The separators are decoration and land in silly
-   places once it wraps, so they go. AppShell stands the FAB down while a
-   selection is live, which is what makes room for the taller bar.
+/* Phone: drop the labels and keep the icons. The bar is nowrap with
+   non-shrinking children, so its tail — Remove tag, Delete, the cancel — used to
+   fall clean off the right edge, out of reach; the labels are what overran, and
+   they are also the only part whose width depends on the language. Without them
+   four actions and a count sit on one row at any width, in Chinese or English
+   alike. The name lives on aria-label, so nothing is lost to a screen reader.
+   AppShell stands the FAB down while a selection is live, so the two floats
+   don't fight over the same corner.
 
    This block must stay AFTER the rules above: a media query adds no specificity,
    so an earlier one would simply lose to them. */
 @media (max-width: 640px) {
-  .batch-bar {
-    left: 10px;
-    right: 10px;
-    transform: none;
-    max-width: none;
-    flex-wrap: wrap;
-    justify-content: center;
-    row-gap: 4px;
-  }
-  .batch-bar .bb-sep { display: none; }
-  .batch-bar .bb-btn { padding: 0 10px; }
-  .batch-bar .bb-count { padding: 0 4px; }
+  .batch-bar .bb-label { display: none; }
+  .batch-bar .bb-btn { padding: 0 9px; gap: 3px; }
+  .batch-bar .bb-count { padding: 0 6px; }
 }
 .tag-menu .empty { padding: 4px 6px; color: var(--muted); font-size: 13px; }
 

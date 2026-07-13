@@ -1,4 +1,5 @@
 import { useFocusTrap } from './useFocusTrap'
+import { ModalOverlay } from './ModalOverlay'
 import { useT } from '../../i18n/useT'
 import type { MessageKey } from '../../i18n/catalog'
 import type { ImportOutcome, ImportSummary } from '../../state'
@@ -18,7 +19,7 @@ export function ImportResultDialog({ outcome, onClose }: { outcome: ImportOutcom
   const t = useT()
   const ref = useFocusTrap<HTMLDivElement>(true, onClose)
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <ModalOverlay onClose={onClose}>
       <div className="info-card" ref={ref} role="dialog" aria-modal="true" aria-label={t('import.result')}
         onClick={(e) => e.stopPropagation()}>
         {outcome.ok ? (
@@ -38,6 +39,6 @@ export function ImportResultDialog({ outcome, onClose }: { outcome: ImportOutcom
         )}
         <button type="button" className="close" onClick={onClose}>{t('common.close')}</button>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

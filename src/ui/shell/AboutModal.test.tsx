@@ -40,10 +40,16 @@ describe('AboutModal', () => {
     expect(screen.getByText(/^v\d+\.\d+\.\d+ ·/)).toBeTruthy()
   })
 
-  it('centers its overlay via the modal-overlay--center modifier', () => {
+  // Portalled to the body, not left where it was rendered: the sidebar that
+  // renders this is a transformed element on a phone, and a transformed ancestor
+  // captures fixed positioning — About used to centre on the drawer, not the app.
+  it('mounts its overlay on the body, centered', () => {
     const { container } = renderModal(() => {})
-    const overlay = container.querySelector('.modal-overlay')
-    expect(overlay?.classList.contains('modal-overlay--center')).toBe(true)
+    expect(container.querySelector('.modal-overlay')).toBeNull()
+
+    const overlay = document.body.querySelector('.modal-overlay')
+    expect(overlay).not.toBeNull()
+    expect(overlay!.classList.contains('modal-overlay--center')).toBe(true)
   })
 
   it('renders in English after switching locale', () => {

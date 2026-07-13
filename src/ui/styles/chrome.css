@@ -41,6 +41,8 @@
 .func-row{display:flex;align-items:center;gap:11px;width:100%;height:38px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;text-align:left;transition:background .15s;}
 .func-row:hover{background:var(--hover);}
 .func-row .fr-icon{flex:0 0 auto;width:18px;color:var(--muted);font-size:15px;text-align:center;}
+/* the drawn icons (export/import) sit on the same 18px column as the typed ones */
+.func-row .fr-icon svg{display:block;width:16px;height:16px;margin:0 auto;}
 .func-row .fr-label{flex:1;min-width:0;}
 .switch{flex:0 0 auto;width:36px;height:20px;border-radius:999px;background:var(--border);position:relative;transition:background .25s;}
 .switch.on{background:var(--accent);}
@@ -450,6 +452,30 @@ input.cb-native, .event-editor input[type='checkbox']{width:16px;height:16px;acc
 .batch-bar .bb-cancel:hover{background:var(--hover);color:var(--text);}
 .batch-bar .menu-anchor{position:relative;display:inline-flex;}
 .batch-bar .menu-anchor .move-menu{position:absolute;bottom:100%;left:0;margin:0 0 8px;z-index:10;min-width:9em;}
+
+/* Phone: the bar is nowrap with non-shrinking children, so its tail — Remove
+   tag, Delete, and the cancel — used to fall clean off the right edge, out of
+   reach. English labels are the longer ones and lost the most. Take the full
+   width and allow a second row. The separators are decoration and land in silly
+   places once it wraps, so they go. AppShell stands the FAB down while a
+   selection is live, which is what makes room for the taller bar.
+
+   This block must stay AFTER the rules above: a media query adds no specificity,
+   so an earlier one would simply lose to them. */
+@media (max-width: 640px) {
+  .batch-bar {
+    left: 10px;
+    right: 10px;
+    transform: none;
+    max-width: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 4px;
+  }
+  .batch-bar .bb-sep { display: none; }
+  .batch-bar .bb-btn { padding: 0 10px; }
+  .batch-bar .bb-count { padding: 0 4px; }
+}
 .tag-menu .empty { padding: 4px 6px; color: var(--muted); font-size: 13px; }
 
 /* ---------- pill component & inline form styles ---------- */

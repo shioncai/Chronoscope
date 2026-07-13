@@ -73,6 +73,10 @@ function ShellBody() {
   // once they're all gone does it close the drawer.
   useBackHandler(sidebarOpen, () => setSidebarOpen(false))
 
+  // the batch bar is up (it renders only for a non-empty selection, and only in
+  // the list)
+  const batchActive = state.view === 'list' && state.checkedIds.length > 0
+
   // useLayoutEffect (not useEffect): the DOM `data-theme` must be set during the
   // commit phase, before TimelineView's passive draw effect reads the CSS
   // variables via getComputedStyle. With a passive effect here the canvas
@@ -104,10 +108,16 @@ function ShellBody() {
         {sidebarOpen && <div className="drawer-backdrop" onClick={() => setSidebarOpen(false)} />}
         {/* FAB lives on the non-scrolling .body (not inside .view-area), so its
             position is identical in both views and it never scrolls with the
-            list or shifts with the list's scrollbar. */}
-        <button type="button" className="fab" aria-label={t('common.newEvent')} onClick={() => setEditor('new')}>
-          <span aria-hidden="true">＋</span>
-        </button>
+            list or shifts with the list's scrollbar.
+
+            It stands down while rows are checked: that is the batch bar's space,
+            and on a phone the bar needs two rows to fit its actions. "Add an
+            event" is also not what the hand is reaching for mid-selection. */}
+        {!batchActive && (
+          <button type="button" className="fab" aria-label={t('common.newEvent')} onClick={() => setEditor('new')}>
+            <span aria-hidden="true">＋</span>
+          </button>
+        )}
       </div>
       {editor !== null && (
         <div className="modal-overlay" onClick={() => setEditor(null)}>

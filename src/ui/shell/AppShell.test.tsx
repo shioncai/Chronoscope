@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AppShell } from './AppShell'
 import { createAppStore, type AppStore } from '../../state'
@@ -53,6 +53,21 @@ describe('AppShell', () => {
     render(<AppShell app={app} />)
     await userEvent.click(screen.getByLabelText('新建事件'))
     expect(screen.getByRole('dialog', { name: '新建事件' })).toBeTruthy()
+  })
+
+  // The batch bar needs a second row on a phone to fit its actions, and that row
+  // lands exactly where the FAB floats. Mid-selection, "add an event" is not what
+  // the hand is reaching for anyway.
+  it('stands the FAB down while rows are checked, and brings it back', async () => {
+    const id = await app.createEvent({ title: '登月', start: { year: 1969, precision: 'year' } })
+    render(<AppShell app={app} />)
+    expect(screen.queryByLabelText('新建事件')).not.toBeNull()
+
+    act(() => app.toggleChecked(id))
+    expect(screen.queryByLabelText('新建事件')).toBeNull()
+
+    act(() => app.toggleChecked(id))
+    expect(screen.queryByLabelText('新建事件')).not.toBeNull()
   })
 
   it('dragging the resize handle commits a clamped width to localStorage', () => {

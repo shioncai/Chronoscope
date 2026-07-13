@@ -17,7 +17,8 @@
     "electron:build": "ELECTRON=1 vite build && electron-builder --win && node scripts/pack-portable.mjs",
     "electron:dev": "ELECTRON_RENDERER_URL=http://localhost:5173 electron .",
     "android:sync": "CAPACITOR=1 vite build && cap sync android",
-    "android:dev": "CAPACITOR=1 vite build && cap run android"
+    "android:dev": "CAPACITOR=1 vite build && cap run android",
+    "android:build": "npm run android:sync && cd android && ./gradlew assembleRelease && cd .. && node scripts/pack-apk.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

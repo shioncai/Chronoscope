@@ -151,7 +151,21 @@ body {
    design — sidebar/topbar styling, spacing, the Deep Time Instrument look —
    is Plan 6; this is only the height/flex skeleton the canvas requires. */
 html, body, #root { height: 100%; }
-.app-shell { --sidebar-w: 248px; display: flex; flex-direction: column; height: 100%; }
+/* --topbar-h is the top bar's *content* height; the bar itself grows by the
+   status-bar inset on top of it. Anything that aligns under the bar (the mobile
+   drawer, its backdrop) measures from --topbar-h + --safe-top rather than
+   repeating a hard-coded number. The insets read 0 everywhere except a device
+   with a cutout or a gesture bar (and only when index.html asks for
+   viewport-fit=cover), so desktop and the browser are unaffected. */
+.app-shell {
+  --sidebar-w: 248px;
+  --topbar-h: 54px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 .app-shell .body { flex: 1; display: flex; min-height: 0; position: relative; }
 .sidebar { flex: 0 0 auto; overflow: auto; }
 .view-area { flex: 1; min-height: 0; overflow: auto; }

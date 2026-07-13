@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore, useAppState, visibleEvents } from '../../state'
 import { instantOf, type LinearView } from '../../domain/time'
 import { initialView, zoomView, panView, clampView, viewFromLensCenter, panViewByLensDrag, clampScroll } from './view'
-import { spanOf, pinchScale, midpoint } from './gesture'
+import { spreadOf, pinchScale, midpointOf, type Finger } from './gesture'
 import { buildScene, type TimelineScene } from './scene'
 import { drawScene, computeLayout, type TimelineColors } from './renderer'
 import type { Id } from '../../domain/model'
@@ -136,12 +136,10 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
   // pointer interactions
   const drag = useRef<{ x: number; y: number; mode: 'pan' | 'lens' | 'overviewPan'; moved: boolean } | null>(null)
   // every finger currently on the glass, by pointer id. Kept live on each move:
-  // the pinch math reads it, and a finger still on record at its landing x would
-  // make the next finger's arrival measure the opening span against a stale
-  // coordinate. y is carried so a pinch that loses a finger can hand the
-  // survivor back to panning without jumping.
-  const pointers = useRef(new Map<number, { x: number; y: number }>())
-  const xsOf = (ps: { x: number }[]) => ps.map((p) => p.x)
+  // the pinch math reads it, and a finger still on record at its landing point
+  // would make the next finger's arrival measure the opening spread against a
+  // stale coordinate.
+  const pointers = useRef(new Map<number, Finger>())
 
   const fractionAt = (clientX: number): number => {
     const rect = canvasRef.current?.getBoundingClientRect()
@@ -229,23 +227,37 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (pointers.current.size >= 2) {
-      const prev = xsOf([...pointers.current.values()])
+      const prev = [...pointers.current.values()]
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      const next = xsOf([...pointers.current.values()])
+      const next = [...pointers.current.values()]
       const rect = canvasRef.current?.getBoundingClientRect()
       const width = rect?.width || 1
       const left = rect?.left ?? 0
-      const pinch = pinchScale(spanOf(prev), spanOf(next))
-      // A pinch is a scale AND a translation. Zoom about where the fingers'
-      // midpoint WAS, then slide the view by however far that midpoint travelled,
-      // so whatever sat under the hand stays under it. Scaling about the *new*
-      // midpoint and stopping there — which is what this did — lets the timeline
-      // creep out from under the fingers, a little more with every frame: short
-      // pinches looked fine, long ones were chaos. It also left a two-finger drag
-      // (span unchanged, so pinch === 1) doing nothing whatsoever.
-      const f0 = (midpoint(prev) - left) / width
-      const f1 = (midpoint(next) - left) / width
+
+      // Scale by how much further apart the fingers actually are — their real
+      // distance, not its shadow on the time axis (see spreadOf).
+      const pinch = pinchScale(spreadOf(prev), spreadOf(next))
+
+      // And a pinch is a scale AND a translation. Zoom about where the fingers'
+      // midpoint WAS, then slide by however far that midpoint travelled, so
+      // whatever sat under the hand stays under it. Scaling about the *new*
+      // midpoint and stopping there lets the timeline creep out from under the
+      // fingers, a little more each frame — fine when the pinch is short,
+      // chaotic when it is long. It also left a two-finger drag (spread
+      // unchanged, so pinch === 1) doing nothing at all.
+      const m0 = midpointOf(prev)
+      const m1 = midpointOf(next)
+      const f0 = (m0.x - left) / width
+      const f1 = (m1.x - left) / width
       setView((v) => clampView(panView(zoomView(v, f0, 1 / pinch), f0 - f1), bounds.min, bounds.max))
+
+      // the vertical half of that translation: two fingers scroll the rows, the
+      // same as one finger does
+      const dy = m1.y - m0.y
+      if (dy !== 0) {
+        const { contentH, visibleH } = scrollMetrics()
+        setScrollY((yv) => clampScroll(yv - dy, contentH, visibleH))
+      }
       return
     }
     const d = drag.current

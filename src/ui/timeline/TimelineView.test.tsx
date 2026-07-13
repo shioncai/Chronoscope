@@ -143,6 +143,50 @@ describe('TimelineView', () => {
       expect(yearUnder(THUMB)).toBeCloseTo(pinned, 6)
     })
 
+    // A pinch of a given size must zoom by the same amount whichever way the
+    // hand is turned. The scale used to come from the fingers' x gap alone, so
+    // an up-and-down pinch had nothing to measure.
+    it('zooms on a vertical pinch by the distance the fingers actually travelled', async () => {
+      const canvas = await pinchable()
+      fireEvent.pointerDown(canvas, { pointerId: 1, clientX: 500, clientY: 100 })
+      fireEvent.pointerDown(canvas, { pointerId: 2, clientX: 500, clientY: 200 })
+      const before = width()
+
+      // stacked fingers, spread apart vertically: 100px -> 300px
+      fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 500, clientY: 50 })
+      fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 500, clientY: 250 })
+      fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 500, clientY: 0 })
+      fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 500, clientY: 300 })
+
+      expect(before / width()).toBeCloseTo(300 / 100, 3)
+    })
+
+    // The chaos itself. Near-vertical fingers wobble a few px sideways, and the
+    // old x-gap measure turned that noise into a scale factor: a single frame
+    // could zoom 13x in or 14x out. Every step here must stay sane.
+    it('does not flail when near-vertical fingers wobble sideways', async () => {
+      const canvas = await pinchable()
+      fireEvent.pointerDown(canvas, { pointerId: 1, clientX: 498, clientY: 150 })
+      fireEvent.pointerDown(canvas, { pointerId: 2, clientX: 502, clientY: 250 })
+
+      // hold the separation at ~100px and just let the hand wobble in x
+      const wobble: Array<[number, number, number, number]> = [
+        [1, 505, 150, 0],
+        [2, 495, 250, 0],
+        [1, 493, 151, 0],
+        [2, 506, 249, 0],
+        [1, 501, 150, 0],
+        [2, 499, 251, 0],
+      ]
+      for (const [id, x, y] of wobble) {
+        const w = width()
+        fireEvent.pointerMove(canvas, { pointerId: id, clientX: x, clientY: y })
+        const ratio = w / width()
+        expect(ratio).toBeGreaterThan(0.85)
+        expect(ratio).toBeLessThan(1.18)
+      }
+    })
+
     it('zooms by exactly the span ratio', async () => {
       const canvas = await pinchable()
       fireEvent.pointerDown(canvas, { pointerId: 1, clientX: 400, clientY: 100 })

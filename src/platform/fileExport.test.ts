@@ -2,6 +2,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { saveTextFile } from './fileExport'
 
+// Pin these to the web branch. The native branch is thin glue over two Capacitor
+// plugins; asserting it against a mock of the very API under test would prove
+// nothing, so it is verified on the device instead.
+vi.mock('@capacitor/core', () => ({
+  Capacitor: { isNativePlatform: () => false },
+}))
+
 describe('saveTextFile (web)', () => {
   let clicked: HTMLAnchorElement | null = null
 

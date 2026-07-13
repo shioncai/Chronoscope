@@ -1,0 +1,21 @@
+[package]
+name = "chronoscope"
+version = "0.2.0"
+description = "A cross-scale event timeline, from deep time to this afternoon."
+authors = ["ShionChoy"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+# The whole point of this shell is that it is small — it exists so Windows users
+# do not download a second copy of Chromium.
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

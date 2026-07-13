@@ -9,7 +9,12 @@ const { version } = JSON.parse(readFileSync('package.json', 'utf8'))
 const releaseDir = 'release'
 const unpacked = `${releaseDir}/win-unpacked`
 const folder = `${releaseDir}/Chronoscope`
-const zipName = `Chronoscope-v${version}-win.zip`
+// The plain `-win` name now belongs to the Tauri build, which is the one people
+// should get. This is the 140MB self-contained fallback: for a machine without
+// WebView2, and for a user whose data was written by this engine — the two shells
+// store IndexedDB in different formats, so copying `data\` between them does not
+// carry events across.
+const zipName = `Chronoscope-v${version}-win-electron.zip`
 
 if (!existsSync(unpacked)) {
   console.error(`Missing ${unpacked}. Run "electron-builder --win" first.`)

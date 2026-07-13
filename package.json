@@ -18,7 +18,9 @@
     "electron:dev": "ELECTRON_RENDERER_URL=http://localhost:5173 electron .",
     "android:sync": "CAPACITOR=1 vite build && cap sync android",
     "android:dev": "CAPACITOR=1 vite build && cap run android",
-    "android:build": "npm run android:sync && cd android && ./gradlew assembleRelease && cd .. && node scripts/pack-apk.mjs"
+    "android:build": "npm run android:sync && cd android && ./gradlew assembleRelease && cd .. && node scripts/pack-apk.mjs",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "TAURI=1 vite build && cd src-tauri && cargo xwin build --release --target x86_64-pc-windows-msvc && cd .. && node scripts/pack-tauri.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

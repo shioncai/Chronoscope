@@ -70,7 +70,8 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "build/icon.ico"
+      "build/icon.ico",
+      "!node_modules/**/*"
     ],
     "win": {
       "target": [

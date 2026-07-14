@@ -20,7 +20,7 @@
     "android:dev": "CAPACITOR=1 vite build && cap run android",
     "android:build": "npm run android:sync && cd android && ./gradlew assembleRelease && cd .. && node scripts/pack-apk.mjs",
     "tauri:dev": "tauri dev",
-    "tauri:build": "TAURI=1 vite build && cd src-tauri && cargo xwin build --release --target x86_64-pc-windows-msvc && cd .. && node scripts/pack-tauri.mjs"
+    "tauri:build": "TAURI=1 vite build && cd src-tauri && cargo xwin build --release --features custom-protocol --target x86_64-pc-windows-msvc && cd .. && node scripts/pack-tauri.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

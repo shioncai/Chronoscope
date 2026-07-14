@@ -10,11 +10,11 @@ const { version } = JSON.parse(
 ) as { version: string }
 
 // VitePWA is build/dev-only; exclude it under Vitest so the unit suite never
-// loads Workbox or a virtual SW module. Also exclude it for the ELECTRON and
-// CAPACITOR builds: both are native shells that already ship the assets locally,
-// so a Service Worker is redundant and only risks serving a stale app after an
-// update.
-const pwa = process.env.VITEST || process.env.ELECTRON || process.env.CAPACITOR
+// loads Workbox or a virtual SW module. Also exclude it for the ELECTRON,
+// CAPACITOR and TAURI builds: all three are native shells that already ship the
+// assets locally, so a Service Worker is redundant and only risks serving a stale
+// app after an update.
+const pwa = process.env.VITEST || process.env.ELECTRON || process.env.CAPACITOR || process.env.TAURI
   ? []
   : [
       VitePWA({

@@ -18,7 +18,9 @@
     "electron:dev": "ELECTRON_RENDERER_URL=http://localhost:5173 electron .",
     "android:sync": "CAPACITOR=1 vite build && cap sync android",
     "android:dev": "CAPACITOR=1 vite build && cap run android",
-    "android:build": "npm run android:sync && cd android && ./gradlew assembleRelease && cd .. && node scripts/pack-apk.mjs"
+    "android:build": "npm run android:sync && cd android && ./gradlew assembleRelease && cd .. && node scripts/pack-apk.mjs",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "TAURI=1 vite build && cd src-tauri && cargo xwin build --release --features custom-protocol --target x86_64-pc-windows-msvc && cd .. && node scripts/pack-tauri.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
@@ -29,6 +31,8 @@
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1",
     "dexie": "^4.4.4",
     "micromark": "^4.0.2",
     "micromark-extension-gfm": "^3.0.0",
@@ -39,6 +43,7 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.1",
     "@eslint/js": "^10.0.1",
+    "@tauri-apps/cli": "^2.11.4",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.12.3",

@@ -1,0 +1,36 @@
+[package]
+name = "chronoscope"
+version = "0.2.0"
+description = "A cross-scale event timeline, from deep time to this afternoon."
+authors = ["ShionChoy"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2.7.1"
+tauri-plugin-fs = "2.5.1"
+
+# This is how Tauri tells a release build from `tauri dev`:
+#
+#     dev: cfg!(not(feature = "custom-protocol"))   — tauri-macros/src/context.rs
+#
+# Without it, generate_context!() compiles the app in DEV mode: it does not embed
+# the frontend at all and points the window at devUrl, so a double-clicked exe
+# shows "localhost refused to connect". The `tauri build` CLI passes this feature
+# for you — but we call cargo directly, because cross-compiling from WSL means
+# going through cargo-xwin, so we have to pass it ourselves. See tauri:build in
+# package.json. DO NOT REMOVE.
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+# The whole point of this shell is that it is small — it exists so Windows users
+# do not download a second copy of Chromium.
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

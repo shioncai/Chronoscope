@@ -26,10 +26,12 @@ Chronoscope puts events of wildly different scales on a single axis. The formati
 
 ### Desktop (Windows portable, recommended)
 
-1. Unzip the `Chronoscope` folder somewhere writable, such as your desktop, your documents folder, or a USB drive. Avoid read-only locations like `C:\Program Files\`.
+1. Download `Chronoscope-<version>-win.zip` and unzip the `Chronoscope` folder somewhere writable — your desktop, your documents folder, a USB drive. Avoid read-only locations like `C:\Program Files\`.
 2. Run `Chronoscope.exe` inside that folder.
 
 Nothing is installed, nothing runs in the background, and nothing goes online. All of your data lives in the `data\` subfolder next to `Chronoscope.exe`, so the data travels with the folder wherever you copy it, and copying the folder is a complete backup.
+
+This download is about 1 MB, because it uses the web view Windows already has. If it will not start, your machine is missing WebView2 — take `Chronoscope-<version>-win-electron.zip` instead, which is far larger but carries everything it needs.
 
 ### Android
 
@@ -51,13 +53,16 @@ To back up or migrate, use Export in the app to get a JSON file, then use Import
 
 Replace the old `Chronoscope` folder with the new one, then copy the `data\` folder from the old version into the new one. Your data carries over untouched. If you want to be careful, export a JSON backup from inside the app first.
 
+**Moving between the two Windows downloads is a different matter.** `-win` and `-win-electron` run on different web engines, which store their data in different formats, so copying `data\` across will not bring your events with it. To switch: **Export** a JSON file from the build you are leaving, then **Import** it into the one you are moving to.
+
 ## Running from source
 
 ```bash
 npm install
 npm run dev             # start the dev server in a browser
-npm run electron:build  # build the Windows portable app into release/
+npm run tauri:build     # build the small Windows app into release/
+npm run electron:build  # build the self-contained Windows app into release/
 npm run android:build   # build the signed Android APK into release/
 ```
 
-Building the Windows package needs `7z` on your system for the zip step. Wine is not required. Building the APK needs a JDK and the Android command-line SDK, and signing needs a keystore of your own.
+Packaging needs `7z` for the zip step. The Tauri build needs a Rust toolchain; the Android build needs a JDK and the Android command-line SDK, and signing it needs a keystore of your own. Wine is not required for any of them.

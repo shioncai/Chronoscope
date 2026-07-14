@@ -30,9 +30,31 @@ async function saveViaShareSheet(filename: string, text: string): Promise<void> 
   await Share.share({ title: filename, url: uri })
 }
 
+// Tauri's WebView2 drops an <a download> on the floor, exactly as Android's web
+// view does, so the desktop shell asks where to put the file — which is the
+// better desktop behaviour anyway. The dialog authorises the fs write on the one
+// path the user picked (tauri-plugin-dialog calls scope.allow_file on it), so
+// nothing wider than that single file is ever writable.
+async function saveViaSaveDialog(filename: string, text: string): Promise<void> {
+  const { save } = await import('@tauri-apps/plugin-dialog')
+  const { writeTextFile } = await import('@tauri-apps/plugin-fs')
+  const path = await save({
+    defaultPath: filename,
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  })
+  if (path) await writeTextFile(path, text) // null = the user cancelled
+}
+
+// Tauri stamps this on the window before any script runs. Checking for it costs
+// nothing and needs no import, which matters: importing the Tauri SDK to ask
+// whether we are in Tauri would pull it into the web bundle.
+const isTauri = (): boolean => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
 export async function saveTextFile(filename: string, text: string): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     await saveViaShareSheet(filename, text)
+  } else if (isTauri()) {
+    await saveViaSaveDialog(filename, text)
   } else {
     await saveViaDownload(filename, text)
   }

@@ -6,9 +6,10 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  // `android` is a generated native project; its Gradle output even contains a
-  // copy of Capacitor's own bundled JS, which is not ours to lint.
-  globalIgnores(['dist', 'android']),
+  // `android` and `src-tauri` are generated native projects, and their build
+  // output carries JS that is not ours to lint — Capacitor's own bundle in one,
+  // and Tauri's compressed copy of our own assets in the other.
+  globalIgnores(['dist', 'android', 'src-tauri']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

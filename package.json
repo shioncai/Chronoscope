@@ -31,6 +31,8 @@
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1",
     "dexie": "^4.4.4",
     "micromark": "^4.0.2",
     "micromark-extension-gfm": "^3.0.0",

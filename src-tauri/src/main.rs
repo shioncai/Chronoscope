@@ -48,6 +48,11 @@ fn main() {
     std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", data_dir());
 
     tauri::Builder::default()
+        // WebView2 silently ignores an <a download> — the same way Android's web
+        // view does — so exporting has to go out through a native save dialog.
+        // See saveViaSaveDialog in src/platform/fileExport.ts.
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             let win = app
                 .get_webview_window("main")

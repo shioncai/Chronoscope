@@ -54,6 +54,14 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
+            // The window sets `dragDropEnabled: false` in tauri.conf.json (strict
+            // JSON, so this note cannot live beside it). WebView2 hands OS-level
+            // drag events to Tauri's own file-drop handler before the page sees
+            // them, so with it enabled the sidebar's HTML5 drag-to-reparent
+            // (draggable + dragstart/dragover/drop in FolderPanel.tsx) never fires
+            // — dead in Tauri while working in the browser and Electron. Tauri's
+            // own docs: "Disabling it is required to use HTML5 drag and drop on
+            // the frontend on Windows." Do not re-enable it.
             let win = app
                 .get_webview_window("main")
                 .expect("the main window is missing from tauri.conf.json");

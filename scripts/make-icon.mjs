@@ -1,16 +1,16 @@
 // Regenerate every raster icon from the two SVG sources in public/.
 // Run: node scripts/make-icon.mjs   (dev-only deps: sharp, png-to-ico)
 //
-//   public/favicon.svg        the bare mark on transparency, in the one colour
-//                             it wears on every surface. Source for the browser
-//                             tab, the PWA `any` icons, and the Windows .ico.
-//   public/icon-maskable.svg  full-bleed OPAQUE square, mark inset to the 80%
-//                             safe zone. Source for the PWA `maskable` icon,
-//                             which the OS crops to its own shape.
+//   public/favicon.svg        rounded tile, transparent corners — the artwork
+//                             as-is. Source for the browser tab, the PWA `any`
+//                             icons, and the Windows .ico.
+//   public/icon-maskable.svg  full-bleed square, glyphs inset to the 80% safe
+//                             zone. Source for the PWA `maskable` icon, which
+//                             the OS crops to its own shape.
 //
 // apple-touch-icon is the one that must be an opaque square: iOS paints
-// transparency black and rounds the corners itself, so it gets the mark
-// flattened onto ink rather than the transparent artwork.
+// transparency black and rounds the corners itself. Flattening the rounded
+// tile onto the same paper fills the corners back in, which is the same thing.
 //
 // Tauri keeps a second icon set of its own (src-tauri/icons/ — .ico, .icns and
 // the Windows Store logos) that only its CLI can write. It does not read any of
@@ -28,14 +28,14 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import sharp from 'sharp'
 import pngToIco from 'png-to-ico'
 
-const INK = '#121211' // day/night both: the plate is a fixed artwork, not themed
+const TILE = '#e0d7c8' // the icon's own paper — a fixed artwork, not themed
 const D = 384 // rasterise the 256-unit viewBox at 1.5x so downscales stay crisp
 
 mkdirSync('build', { recursive: true })
 
 const render = (src, size, opts = {}) => {
   let img = sharp(src, { density: D }).resize(size, size)
-  if (opts.opaque) img = img.flatten({ background: INK })
+  if (opts.opaque) img = img.flatten({ background: TILE })
   return img.png().toBuffer()
 }
 

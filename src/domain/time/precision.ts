@@ -24,14 +24,6 @@ export const PRECISION_YEARS: Record<Precision, number> = {
   Ga: 1_000_000_000,
 }
 
-export function comparePrecision(a: Precision, b: Precision): number {
-  return PRECISION_ORDER.indexOf(a) - PRECISION_ORDER.indexOf(b)
-}
-
-export function isFiner(a: Precision, b: Precision): boolean {
-  return comparePrecision(a, b) < 0
-}
-
 // Deep-time precisions are displayed and stored *relative* to a fixed epoch (as
 // an `ago` offset); everything else is an absolute calendar value.
 export const RELATIVE_PRECISIONS = ['ka', 'Ma', 'Ga'] as const

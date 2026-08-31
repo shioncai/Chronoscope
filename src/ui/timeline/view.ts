@@ -64,10 +64,6 @@ export function lensFromView(view: LinearView, overview: LinearView): Lens {
   return { f0: Math.min(a, b), f1: Math.max(a, b) }
 }
 
-export function viewFromLens(lens: Lens, overview: LinearView): LinearView {
-  return { min: unprojectLinear(lens.f0, overview), max: unprojectLinear(lens.f1, overview) }
-}
-
 // Clamp a vertical scroll offset into the scrollable range. When the content is
 // shorter than the viewport there is nothing to scroll, so it pins to 0.
 export function clampScroll(scrollY: number, contentHeight: number, viewHeight: number): number {

@@ -74,6 +74,26 @@ function upsert<T extends { id: Id }>(list: T[], rec: T): T[] {
   return copy
 }
 
+// The same, for a whole batch, in ONE pass. Folding `upsert` over a batch is
+// O(list × batch) — a find + a full array copy per record — which is what a
+// bulk tag/move/delete over a large selection used to pay. Existing records
+// keep their position; genuinely new ones are appended in batch order.
+function upsertMany<T extends { id: Id }>(list: T[], recs: T[]): T[] {
+  if (recs.length === 0) return list
+  const pending = new Map(recs.map((r) => [r.id, r]))
+  const out: T[] = []
+  for (const x of list) {
+    const rec = pending.get(x.id)
+    if (rec === undefined) out.push(x)
+    else {
+      out.push(rec)
+      pending.delete(x.id)
+    }
+  }
+  for (const rec of pending.values()) out.push(rec)
+  return out
+}
+
 export function createAppStore(deps: AppStoreDeps): AppStore {
   const { db, clock, nowYear, theme, locale = 'zh' } = deps
   const genId = deps.genId ?? (() => crypto.randomUUID())
@@ -88,22 +108,18 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
     // one-time, idempotent: convert legacy absolute-stored deep-time points to
     // ago offsets and persist the change, so exports stay clean and it happens once
     const events = rawEvents.map((e) => migrateEventTimes(e, nowYear) ?? e)
-    for (let i = 0; i < rawEvents.length; i++) {
-      if (events[i] !== rawEvents[i]) await db.events.put(events[i])
-    }
+    const migrated = events.filter((e, i) => e !== rawEvents[i])
+    if (migrated.length > 0) await db.events.bulkPut(migrated)
     store.setState((s) => ({ ...s, events, categories, tags, loaded: true }))
   }
 
-  // shared tail for the non-deleting batch mutators: persist each changed
-  // record, then upsert them all in one setState. No-op when nothing changed.
+  // shared tail for the non-deleting batch mutators: persist the changed
+  // records in one write, then upsert them all in one setState. No-op when
+  // nothing changed.
   async function commitEvents(changed: EventRecord[]): Promise<void> {
     if (changed.length === 0) return
-    for (const e of changed) await db.events.put(e)
-    store.setState((st) => {
-      let evs = st.events
-      for (const e of changed) evs = upsert(evs, e)
-      return { ...st, events: evs }
-    })
+    await db.events.bulkPut(changed)
+    store.setState((st) => ({ ...st, events: upsertMany(st.events, changed) }))
   }
 
   return {
@@ -131,18 +147,15 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
         clock,
         genId,
       )
-      for (const c of plan.categories) await db.categories.put(c)
-      for (const t of plan.tags) await db.tags.put(t)
-      for (const e of plan.events) await db.events.put(e)
-      store.setState((st) => {
-        let cats = st.categories
-        for (const c of plan.categories) cats = upsert(cats, c)
-        let tags = st.tags
-        for (const t of plan.tags) tags = upsert(tags, t)
-        let evs = st.events
-        for (const e of plan.events) evs = upsert(evs, e)
-        return { ...st, categories: cats, tags, events: evs }
-      })
+      await db.categories.bulkPut(plan.categories)
+      await db.tags.bulkPut(plan.tags)
+      await db.events.bulkPut(plan.events)
+      store.setState((st) => ({
+        ...st,
+        categories: upsertMany(st.categories, plan.categories),
+        tags: upsertMany(st.tags, plan.tags),
+        events: upsertMany(st.events, plan.events),
+      }))
       return { ok: true, summary: plan.summary }
     },
 
@@ -181,14 +194,12 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
         .getState()
         .events.filter((e) => !e.deleted && idSet.has(e.id))
         .map((e) => softDelete(e, clock))
-      for (const e of changed) await db.events.put(e)
+      await db.events.bulkPut(changed)
       store.setState((st) => {
-        let evs = st.events
-        for (const e of changed) evs = upsert(evs, e)
         const gone = new Set(changed.map((e) => e.id))
         return {
           ...st,
-          events: evs,
+          events: upsertMany(st.events, changed),
           checkedIds: [], // the selection was just consumed
           selectedId: st.selectedId != null && gone.has(st.selectedId) ? null : st.selectedId,
         }
@@ -213,33 +224,25 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
         clock,
         resolutions,
       )
-      for (const c of plan.categories) await db.categories.put(c)
-      for (const t of plan.tags) await db.tags.put(t)
-      for (const e of plan.events) await db.events.put(e)
-      for (const id of plan.purge) await db.events.delete(id)
+      await db.categories.bulkPut(plan.categories)
+      await db.tags.bulkPut(plan.tags)
+      await db.events.bulkPut(plan.events)
+      await db.events.bulkDelete(plan.purge)
       const purged = new Set(plan.purge)
-      store.setState((st) => {
-        let cats = st.categories
-        for (const c of plan.categories) cats = upsert(cats, c)
-        let tags = st.tags
-        for (const t of plan.tags) tags = upsert(tags, t)
-        let evs = st.events.filter((e) => !purged.has(e.id))
-        for (const e of plan.events) evs = upsert(evs, e)
-        return {
-          ...st,
-          categories: cats,
-          tags,
-          events: evs,
-          checkedIds: st.checkedIds.filter((x) => !idSet.has(x) && !purged.has(x)),
-          selectedId: st.selectedId != null && purged.has(st.selectedId) ? null : st.selectedId,
-        }
-      })
+      store.setState((st) => ({
+        ...st,
+        categories: upsertMany(st.categories, plan.categories),
+        tags: upsertMany(st.tags, plan.tags),
+        events: upsertMany(st.events.filter((e) => !purged.has(e.id)), plan.events),
+        checkedIds: st.checkedIds.filter((x) => !idSet.has(x) && !purged.has(x)),
+        selectedId: st.selectedId != null && purged.has(st.selectedId) ? null : st.selectedId,
+      }))
       return { conflicts: plan.conflicts }
     },
 
     async purgeEvents(ids) {
       const idSet = new Set(ids)
-      for (const id of idSet) await db.events.delete(id)
+      await db.events.bulkDelete([...idSet])
       store.setState((st) => ({
         ...st,
         events: st.events.filter((e) => !idSet.has(e.id)),
@@ -304,29 +307,22 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       const s = store.getState()
       if (!s.categories.find((c) => c.id === id)) throw new Error(`deleteCategory: no category ${id}`)
       const ids = descendantCategoryIds(s.categories, id) // the category + its descendants
-      const cats: Category[] = []
-      for (const c of s.categories) {
-        if (!c.deleted && ids.has(c.id)) {
-          const next = softDelete(c, clock)
-          await db.categories.put(next)
-          cats.push(next)
-        }
-      }
-      const events: EventRecord[] = []
-      for (const e of s.events) {
-        if (!e.deleted && e.categoryId != null && ids.has(e.categoryId)) {
-          const next = softDelete(e, clock)
-          await db.events.put(next)
-          events.push(next)
-        }
-      }
+      const cats = s.categories
+        .filter((c) => !c.deleted && ids.has(c.id))
+        .map((c) => softDelete(c, clock))
+      const events = s.events
+        .filter((e) => !e.deleted && e.categoryId != null && ids.has(e.categoryId))
+        .map((e) => softDelete(e, clock))
+      await db.categories.bulkPut(cats)
+      await db.events.bulkPut(events)
       store.setState((st) => {
-        let categories = st.categories
-        for (const c of cats) categories = upsert(categories, c)
-        let evs = st.events
-        for (const e of events) evs = upsert(evs, e)
         const selectedDeleted = events.some((e) => e.id === st.selectedId)
-        return { ...st, categories, events: evs, selectedId: selectedDeleted ? null : st.selectedId }
+        return {
+          ...st,
+          categories: upsertMany(st.categories, cats),
+          events: upsertMany(st.events, events),
+          selectedId: selectedDeleted ? null : st.selectedId,
+        }
       })
     },
 
@@ -335,17 +331,9 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
       if (!s.categories.find((c) => c.id === id)) throw new Error(`moveCategory: no category ${id}`)
       const changes = reorderedCategories(s.categories, id, parentId, beforeId)
       if (changes.length === 0) return
-      const written: Category[] = []
-      for (const c of changes) {
-        const next = touch(c, { parentId: c.parentId, order: c.order }, clock)
-        await db.categories.put(next)
-        written.push(next)
-      }
-      store.setState((st) => {
-        let categories = st.categories
-        for (const c of written) categories = upsert(categories, c)
-        return { ...st, categories }
-      })
+      const written = changes.map((c) => touch(c, { parentId: c.parentId, order: c.order }, clock))
+      await db.categories.bulkPut(written)
+      store.setState((st) => ({ ...st, categories: upsertMany(st.categories, written) }))
     },
 
     async createTag(fields) {

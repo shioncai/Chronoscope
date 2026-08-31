@@ -9,8 +9,7 @@ import type { Id, EventRecord, Category, Tag } from '../../domain/model'
  * so e.g. an `EventRecord` saved without `start` reads back WITHOUT the key
  * from Dexie but WITH `start: undefined` from the in-memory repo. Consumers
  * must not rely on key presence — test optional fields with `!= null`, never
- * `'start' in record`. (The final representation of partial-time fields is
- * revisited in Plan 3 when the UI consumes them.)
+ * `'start' in record`.
  */
 export interface Repository<T extends { id: Id }> {
   getAll(): Promise<T[]>
@@ -20,6 +19,7 @@ export interface Repository<T extends { id: Id }> {
   // Hard delete (used only by the recycle bin's "永久删除" — soft delete is a
   // `deleted` flag written via `put`).
   delete(id: Id): Promise<void>
+  bulkDelete(ids: Id[]): Promise<void>
 }
 
 export interface Database {

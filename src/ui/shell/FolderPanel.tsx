@@ -2,7 +2,7 @@ import { Fragment, useRef, useState } from 'react'
 import {
   useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
   descendantCategoryIds, computeDropTarget, liveFolderAt,
-  memberEventIds, folderCheckState, toggleFolder, toggleEvent, soloFolder,
+  memberEventIds, folderCheckStates, toggleFolder, toggleEvent, soloFolder,
   type CategoryNode,
 } from '../../state'
 import type { Id, EventRecord } from '../../domain/model'
@@ -87,7 +87,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
 
   const scope = state.filter.scope
   const members = memberEventIds(scope, state.categories, state.events)
-  const checkedFolders = new Set(scope.folderIds)
+  const checkStates = folderCheckStates(state.categories, state.events, members, new Set(scope.folderIds))
 
   const eventsByCat = new Map<Id, EventRecord[]>()
   for (const e of liveEvents) {
@@ -202,7 +202,7 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
             )
           }
           const c = byId.get(row.id)!
-          const fstate = folderCheckState(row.id, state.categories, state.events, members, checkedFolders)
+          const fstate = checkStates.get(row.id) ?? 'unchecked'
           const cls = ['folder-row']
           if (drop?.id === row.id) cls.push(`drop-${drop.mode}`)
           if (dragKind === 'event' && dropFolderId === row.id) cls.push('drop-into')

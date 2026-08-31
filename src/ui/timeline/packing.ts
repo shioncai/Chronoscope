@@ -30,13 +30,18 @@ export function packRows<T extends PackItem>(items: T[]): (T & { row: number })[
   })
 
   const rowMaxRight: number[] = [] // widest occupied pixel-right seen per row
-  const placed: { item: PackItem; row: number }[] = []
+  // Only items that can still overlap something later. Items are visited in
+  // ascending tStart, so once an item ends before the current item starts it
+  // can never overlap this item or any that follow — drop it for good instead
+  // of re-testing it against every remaining glyph (that scan was the O(n²)).
+  let active: { item: PackItem; row: number }[] = []
   const out = new Array<T & { row: number }>(items.length)
 
   for (const { item, index } of order) {
+    active = active.filter((p) => p.item.tEnd >= item.tStart)
     // must sit strictly below every already-placed item it overlaps in time
     let floor = 0
-    for (const p of placed) {
+    for (const p of active) {
       if (timeOverlaps(item, p.item)) floor = Math.max(floor, p.row + 1)
     }
     // smallest row >= floor whose glyphs all end left of this item's left edge
@@ -44,7 +49,7 @@ export function packRows<T extends PackItem>(items: T[]): (T & { row: number })[
     while (row < rowMaxRight.length && rowMaxRight[row] > item.left) row++
     if (row === rowMaxRight.length) rowMaxRight.push(item.right)
     else rowMaxRight[row] = Math.max(rowMaxRight[row], item.right)
-    placed.push({ item, row })
+    active.push({ item, row })
     out[index] = { ...item, row }
   }
   return out

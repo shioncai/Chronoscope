@@ -51,41 +51,71 @@ export function memberEventIds(scope: Scope, categories: Category[], events: Eve
 
 export type CheckState = 'checked' | 'indeterminate' | 'unchecked'
 
-function ancestorChain(categories: Category[], id: Id): Id[] {
-  const byId = new Map(categories.map((c) => [c.id, c]))
-  const chain: Id[] = []
-  let cur: Id | null = id
-  while (cur != null) {
-    chain.push(cur)
-    cur = byId.get(cur)?.parentId ?? null
-  }
-  return chain
-}
-
-// 文件夹三态：由其子孙事件的成员情况推导；空文件夹回退看它/祖先是否显式勾选。
-export function folderCheckState(
-  folderId: Id,
+/**
+ * 每个活跃文件夹的三态：由其子孙事件的成员情况推导；空文件夹（子树内无事件）
+ * 回退看它自身或某个祖先是否被显式勾选。
+ *
+ * 一次算出全部文件夹，而不是每行算一次：侧边栏要为每一行取这个状态，而单行版本
+ * 需重建整棵子孙表并全表扫描事件，行数一多就是 O(行 × (分类 + 事件))。这里自上
+ * 而下走一遍森林即可，总代价 O(分类 + 事件)。
+ */
+export function folderCheckStates(
   categories: Category[],
   events: EventRecord[],
   members: Set<Id>,
   checkedFolders: Set<Id>,
-): CheckState {
-  const catIds = descendantCategoryIds(categories, folderId)
-  const desc = events.filter((e) => !e.deleted && e.categoryId != null && catIds.has(e.categoryId))
-  if (desc.length > 0) {
-    let m = 0
-    for (const e of desc) if (members.has(e.id)) m++
-    if (m === 0) return 'unchecked'
-    if (m === desc.length) return 'checked'
-    return 'indeterminate'
+): Map<Id, CheckState> {
+  const live = categories.filter((c) => !c.deleted)
+  const liveIds = new Set(live.map((c) => c.id))
+  const childrenOf = new Map<Id, Id[]>()
+  for (const c of live) {
+    if (c.parentId == null || !liveIds.has(c.parentId)) continue
+    const arr = childrenOf.get(c.parentId) ?? []
+    arr.push(c.id)
+    childrenOf.set(c.parentId, arr)
   }
-  return ancestorChain(categories, folderId).some((id) => checkedFolders.has(id)) ? 'checked' : 'unchecked'
+
+  // 每个分类直属的事件数 / 其中在范围内的数量（只扫一遍事件表）
+  const directTotal = new Map<Id, number>()
+  const directMembers = new Map<Id, number>()
+  for (const e of events) {
+    if (e.deleted || e.categoryId == null) continue
+    directTotal.set(e.categoryId, (directTotal.get(e.categoryId) ?? 0) + 1)
+    if (members.has(e.id)) directMembers.set(e.categoryId, (directMembers.get(e.categoryId) ?? 0) + 1)
+  }
+
+  const out = new Map<Id, CheckState>()
+  const seen = new Set<Id>() // 防御坏数据里的父子环
+  // 向下传 `ancestorChecked`，等价于旧版逐行回溯祖先链。
+  const walk = (id: Id, ancestorChecked: boolean): { total: number; member: number } => {
+    if (seen.has(id)) return { total: 0, member: 0 }
+    seen.add(id)
+    const checked = ancestorChecked || checkedFolders.has(id)
+    let total = directTotal.get(id) ?? 0
+    let member = directMembers.get(id) ?? 0
+    for (const child of childrenOf.get(id) ?? []) {
+      const sub = walk(child, checked)
+      total += sub.total
+      member += sub.member
+    }
+    let state: CheckState
+    if (total === 0) state = checked ? 'checked' : 'unchecked'
+    else if (member === 0) state = 'unchecked'
+    else if (member === total) state = 'checked'
+    else state = 'indeterminate'
+    out.set(id, state)
+    return { total, member }
+  }
+  for (const c of live) {
+    if (c.parentId == null || !liveIds.has(c.parentId)) walk(c.id, false)
+  }
+  return out
 }
 
 // 勾选切换：已选 → 整体取消；未选/半选 → 整体勾选。
 export function toggleFolder(scope: Scope, folderId: Id, categories: Category[], events: EventRecord[]): Scope {
   const members = memberEventIds(scope, categories, events)
-  const state = folderCheckState(folderId, categories, events, members, new Set(scope.folderIds))
+  const state = folderCheckStates(categories, events, members, new Set(scope.folderIds)).get(folderId) ?? 'unchecked'
   const catIds = descendantCategoryIds(categories, folderId) // 文件夹 + 子孙
   const descEventIds = new Set(
     events.filter((e) => e.categoryId != null && catIds.has(e.categoryId)).map((e) => e.id),
@@ -123,15 +153,4 @@ export function toggleEvent(scope: Scope, e: EventRecord, categories: Category[]
 
 export function soloFolder(folderId: Id): Scope {
   return { folderIds: [folderId], includeEvents: [], excludeEvents: [] }
-}
-
-// 删除后清掉范围里已失效（tombstoned/不存在）的 id。
-export function pruneScope(scope: Scope, categories: Category[], events: EventRecord[]): Scope {
-  const liveCat = new Set(categories.filter((c) => !c.deleted).map((c) => c.id))
-  const liveEv = new Set(events.filter((e) => !e.deleted).map((e) => e.id))
-  return {
-    folderIds: scope.folderIds.filter((id) => liveCat.has(id)),
-    includeEvents: scope.includeEvents.filter((id) => liveEv.has(id)),
-    excludeEvents: scope.excludeEvents.filter((id) => liveEv.has(id)),
-  }
 }

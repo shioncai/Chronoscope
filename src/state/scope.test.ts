@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   descendantCategoryIds, EMPTY_SCOPE, isScopeEmpty, scopedCategoryIds, isMember,
-  memberEventIds, folderCheckState, toggleFolder, toggleEvent, soloFolder, pruneScope,
+  memberEventIds, folderCheckStates, toggleFolder, toggleEvent, soloFolder,
 } from './scope'
 import type { Scope } from './types'
 import { ev, cat } from '../test/fixtures'
@@ -54,24 +54,36 @@ describe('isMember', () => {
   })
 })
 
-describe('folderCheckState', () => {
+describe('folderCheckStates', () => {
   const cats = [cat({ id: 'p' }), cat({ id: 'c', parentId: 'p' })]
   const events = [ev({ id: 'a', categoryId: 'p' }), ev({ id: 'b', categoryId: 'c' })]
-  const stateOf = (scope: Scope) =>
-    folderCheckState('p', cats, events, memberEventIds(scope, cats, events), new Set(scope.folderIds))
+  const statesOf = (scope: Scope) =>
+    folderCheckStates(cats, events, memberEventIds(scope, cats, events), new Set(scope.folderIds))
   it('checked when all descendant events are members', () => {
-    expect(stateOf(S({ folderIds: ['p'] }))).toBe('checked')
+    expect(statesOf(S({ folderIds: ['p'] })).get('p')).toBe('checked')
   })
   it('indeterminate when some but not all', () => {
-    expect(stateOf(S({ folderIds: ['p'], excludeEvents: ['b'] }))).toBe('indeterminate')
+    expect(statesOf(S({ folderIds: ['p'], excludeEvents: ['b'] })).get('p')).toBe('indeterminate')
   })
   it('unchecked when none', () => {
-    expect(stateOf(EMPTY_SCOPE)).toBe('unchecked')
+    expect(statesOf(EMPTY_SCOPE).get('p')).toBe('unchecked')
+  })
+  it('a child folder gets its own state, not its parent’s', () => {
+    const states = statesOf(S({ folderIds: ['p'], excludeEvents: ['b'] }))
+    expect(states.get('p')).toBe('indeterminate') // a in, b out
+    expect(states.get('c')).toBe('unchecked') // only holds b, which is excluded
   })
   it('empty folder is checked iff explicitly (or ancestor) checked', () => {
-    const empty = [cat({ id: 'q' })]
-    expect(folderCheckState('q', empty, [], new Set(), new Set(['q']))).toBe('checked')
-    expect(folderCheckState('q', empty, [], new Set(), new Set())).toBe('unchecked')
+    const empty = [cat({ id: 'q' }), cat({ id: 'q2', parentId: 'q' })]
+    const on = folderCheckStates(empty, [], new Set(), new Set(['q']))
+    expect(on.get('q')).toBe('checked')
+    expect(on.get('q2')).toBe('checked') // inherits from the checked ancestor
+    expect(folderCheckStates(empty, [], new Set(), new Set()).get('q')).toBe('unchecked')
+  })
+  it('covers every live folder in one call, and skips tombstoned ones', () => {
+    const withDead = [...cats, cat({ id: 'gone', deleted: true })]
+    const states = folderCheckStates(withDead, events, new Set(), new Set())
+    expect([...states.keys()].sort()).toEqual(['c', 'p'])
   })
 })
 
@@ -95,15 +107,15 @@ describe('toggleFolder', () => {
     const members = memberEventIds(childUnchecked, cats, events)
     expect(members.has('b')).toBe(false) // child's event is excluded
     expect(members.has('a')).toBe(true) // parent's own event stays
-    const checked = new Set(childUnchecked.folderIds)
-    expect(folderCheckState('c', cats, events, members, checked)).toBe('unchecked')
-    expect(folderCheckState('p', cats, events, members, checked)).toBe('indeterminate')
+    const states = folderCheckStates(cats, events, members, new Set(childUnchecked.folderIds))
+    expect(states.get('c')).toBe('unchecked')
+    expect(states.get('p')).toBe('indeterminate')
   })
   it('re-checking the child folder restores its subtree', () => {
     const s = toggleFolder(toggleFolder(toggleFolder(EMPTY_SCOPE, 'p', cats, events), 'c', cats, events), 'c', cats, events)
     const members = memberEventIds(s, cats, events)
     expect(members.has('b')).toBe(true)
-    expect(folderCheckState('c', cats, events, members, new Set(s.folderIds))).toBe('checked')
+    expect(folderCheckStates(cats, events, members, new Set(s.folderIds)).get('c')).toBe('checked')
   })
 })
 
@@ -121,15 +133,8 @@ describe('toggleEvent', () => {
   })
 })
 
-describe('soloFolder / pruneScope', () => {
-  it('soloFolder replaces the scope with just that folder', () => {
+describe('soloFolder', () => {
+  it('replaces the scope with just that folder', () => {
     expect(soloFolder('f')).toEqual({ folderIds: ['f'], includeEvents: [], excludeEvents: [] })
-  })
-  it('pruneScope drops ids whose folder/event is gone or tombstoned', () => {
-    const cats = [cat({ id: 'live' }), cat({ id: 'dead', deleted: true })]
-    const events = [ev({ id: 'e', categoryId: 'live' }), ev({ id: 'x', deleted: true })]
-    const out = pruneScope(S({ folderIds: ['live', 'dead'], includeEvents: ['e', 'x'] }), cats, events)
-    expect(out.folderIds).toEqual(['live'])
-    expect(out.includeEvents).toEqual(['e'])
   })
 })

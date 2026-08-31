@@ -1,15 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
      role="img" aria-label="Chronoscope">
-  <!-- Maskable variant: the OS crops this to its own shape (a circle in the
-       worst case), so the tile is a full-bleed square and the glyphs are scaled
-       to 0.86 about the centre to clear the 80% safe zone. The top bar keeps its
-       overhang on purpose — it is meant to run off the edge, so the crop only
-       says what the bar already said. Geometry otherwise mirrors favicon.svg;
-       this one is never rendered small, so it does not need the 16px grid. -->
+  <!-- Maskable variant. This is the one place the ink plate survives, and it is
+       not a style choice: a maskable icon is cropped to a shape the OS picks, so
+       it must be a full-bleed OPAQUE square. Transparency here does not read as
+       "no background" — it reads as a hole, which the launcher fills with
+       whatever it likes. The plate is the app's own night background.
+
+       The mark is scaled to 0.82 about the centre — outer circle 72.16, inner
+       47.56, offset 3.69. See public/favicon.svg for what the two circles do.
+
+       Why 0.82. Not "the largest radius that is legal" — the unscaled r=88 mark
+       already clears the 80% safe circle (radius 102.4) and still looks cramped,
+       because legal is not the same as well proportioned. The scale is set
+       against the WORST CASE crop instead: if the OS keeps only the safe circle,
+       r=72.16 leaves the C spanning 70% of what is visible, a ring of air inside
+       the mask. That is the same 70% assets/icon-foreground.svg targets against
+       Android's own 66.7% crop, which is why the two files disagree on scale and
+       still produce the same-looking icon. Against a generous crop (a circle
+       inscribed in the full square) it relaxes to 56%.
+
+       Do not borrow the bare favicon's 82.5% here. That number answers a
+       different question — a mark with no plate to be read against — and inside
+       a mask it runs straight into the crop edge. -->
   <rect width="256" height="256" fill="#121211"/>
-  <g fill="#e8e6e1">
-    <rect x="-20" y="45.4" width="189.3" height="27.5"/>
-    <rect x="86.7" y="100.5" width="96.3" height="27.5"/>
-    <rect x="141.8" y="155.5" width="55" height="27.5"/>
-  </g>
+  <path fill="#dd7a2e"
+        d="M 189.2 166.24 A 72.16 72.16 0 1 1 189.2 89.76 A 10.78 10.78 0 0 1 172.02 102.8 A 47.56 47.56 0 1 0 172.02 153.2 A 10.78 10.78 0 0 1 189.2 166.24 Z"/>
 </svg>

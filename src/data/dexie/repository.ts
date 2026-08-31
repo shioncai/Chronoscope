@@ -20,6 +20,9 @@ export function createDexieRepository<T extends { id: string }>(table: Table<T, 
     async delete(id) {
       await table.delete(id)
     },
+    async bulkDelete(ids) {
+      await table.bulkDelete(ids)
+    },
   }
 }
 

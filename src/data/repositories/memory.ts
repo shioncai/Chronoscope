@@ -19,5 +19,8 @@ export function createMemoryRepository<T extends { id: Id }>(seed: T[] = []): Re
     async delete(id) {
       store.delete(id)
     },
+    async bulkDelete(ids) {
+      for (const id of ids) store.delete(id)
+    },
   }
 }

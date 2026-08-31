@@ -29,4 +29,9 @@ describe('memory repository', () => {
     expect(await repo.get('a')).toEqual({ id: 'a', v: 99 })
     expect((await repo.getAll()).length).toBe(2)
   })
+  it('bulkDelete removes many and ignores unknown ids', async () => {
+    const repo = createMemoryRepository<Row>([{ id: 'a', v: 1 }, { id: 'b', v: 2 }, { id: 'c', v: 3 }])
+    await repo.bulkDelete(['a', 'c', 'nope'])
+    expect((await repo.getAll()).map((r) => r.id)).toEqual(['b'])
+  })
 })

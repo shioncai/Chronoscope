@@ -1,4 +1,4 @@
-import { useAppStore, useAppState, visibleEvents } from '../../state'
+import { useAppStore, useAppState, useVisibleEvents } from '../../state'
 import type { Sort } from '../../state'
 import { formatTimeRange } from './timeText'
 import { BatchBar } from './BatchBar'
@@ -25,15 +25,22 @@ export function ListView({ onEdit }: ListViewProps) {
   const state = useAppState()
   const t = useT()
   const locale = useLocale()
-  const rows = visibleEvents(state)
+  const rows = useVisibleEvents()
   const trash = !!state.filter.trash
   const checked = new Set(state.checkedIds)
   const allChecked = rows.length > 0 && rows.every((e) => checked.has(e.id))
   const someChecked = rows.some((e) => checked.has(e.id))
-  const catName = (id: Id | null) => state.categories.find((c) => c.id === id)?.name ?? '—'
-  const catColor = (id: Id | null) => state.categories.find((c) => c.id === id && !c.deleted)?.color ?? 'var(--faint)'
+  // Indexed once per render: these run per row (per cell, for tags), so a
+  // linear scan of categories/tags each time is O(rows × folders).
+  const catById = new Map(state.categories.map((c) => [c.id, c]))
+  const tagById = new Map(state.tags.map((tg) => [tg.id, tg]))
+  const catName = (id: Id | null) => (id != null ? catById.get(id)?.name : undefined) ?? '—'
+  const catColor = (id: Id | null) => {
+    const c = id != null ? catById.get(id) : undefined
+    return c && !c.deleted ? c.color : 'var(--faint)'
+  }
   const tagNames = (ids: Id[]) =>
-    ids.map((id) => state.tags.find((t) => t.id === id)?.name).filter(Boolean).join(' ') || '—'
+    ids.map((id) => tagById.get(id)?.name).filter(Boolean).join(' ') || '—'
 
   const clickHeader = (key: Sort['key']) => {
     const cur = state.sort

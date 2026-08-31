@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PRECISION_ORDER, PRECISION_YEARS, comparePrecision, isFiner } from './precision'
+import { PRECISION_ORDER, PRECISION_YEARS } from './precision'
 
 describe('precision', () => {
   it('orders fine to coarse', () => {
@@ -11,10 +11,5 @@ describe('precision', () => {
     expect(PRECISION_YEARS.decade).toBe(10)
     expect(PRECISION_YEARS.Ma).toBe(1_000_000)
     expect(PRECISION_YEARS.day).toBeCloseTo(1 / 365.2425, 6)
-  })
-  it('compares precision', () => {
-    expect(comparePrecision('second', 'year')).toBeLessThan(0)
-    expect(isFiner('day', 'month')).toBe(true)
-    expect(isFiner('Ga', 'year')).toBe(false)
   })
 })

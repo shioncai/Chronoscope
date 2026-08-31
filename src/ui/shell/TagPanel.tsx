@@ -13,7 +13,12 @@ export function TagPanel() {
   const f = state.filter
   const [addOpen, setAddOpen] = useState(false)
 
-  const tagCount = (id: Id) => state.events.filter((e) => !e.deleted && e.tagIds.includes(id)).length
+  // One pass for every tag's count, rather than a full scan of the events per tag.
+  const counts = new Map<Id, number>()
+  for (const e of state.events) {
+    if (e.deleted) continue
+    for (const id of e.tagIds) counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
   const toggle = (id: Id) =>
     app.setFilter({ tagIds: f.tagIds.includes(id) ? f.tagIds.filter((x) => x !== id) : [...f.tagIds, id], untagged: false, trash: false })
   const del = (id: Id, name: string) => {
@@ -33,7 +38,7 @@ export function TagPanel() {
       </div>
       <div className="pills">
         {tags.map((tag) => (
-          <Pill key={tag.id} label={tag.name} count={tagCount(tag.id)} active={f.tagIds.includes(tag.id)}
+          <Pill key={tag.id} label={tag.name} count={counts.get(tag.id) ?? 0} active={f.tagIds.includes(tag.id)}
             onToggle={() => toggle(tag.id)} onDelete={() => del(tag.id, tag.name)} />
         ))}
         <button type="button" className="pill add" aria-label={t('sidebar.addTag')} aria-expanded={addOpen}

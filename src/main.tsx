@@ -10,7 +10,14 @@ import App from './App.tsx'
 import './ui/styles/tokens.css'
 import './ui/styles/chrome.css'
 import { openDatabase, getOrCreateNodeId, createClock } from './data'
-import { createAppStore, resolveInitialTheme, resolveInitialLocale, type AppStore } from './state'
+import {
+  createAppStore,
+  resolveInitialTheme,
+  resolveInitialLocale,
+  loadStoredTheme,
+  loadStoredLocale,
+  type AppStore,
+} from './state'
 import { decimalFromCivil } from './domain/time'
 import { initAndroidBackButton } from './platform'
 
@@ -31,11 +38,8 @@ async function bootstrap(): Promise<{ app: AppStore }> {
     s: now.getSeconds(),
   })
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const theme = resolveInitialTheme(window.localStorage.getItem('chronoscope.theme'), prefersDark)
-  const locale = resolveInitialLocale(
-    window.localStorage.getItem('chronoscope.locale'),
-    navigator.languages,
-  )
+  const theme = resolveInitialTheme(loadStoredTheme(window.localStorage), prefersDark)
+  const locale = resolveInitialLocale(loadStoredLocale(window.localStorage), navigator.languages)
   const app = createAppStore({ db: opened, clock, nowYear, theme, locale })
   await app.load()
 

@@ -4,8 +4,7 @@ import {
   categoryEventCounts,
   visibleEvents,
   flattenCategoryTree,
-  untaggedCount,
-  deletedCount,
+  overviewCounts,
 } from './selectors'
 import { initialAppState, type AppState, type Scope } from './types'
 import { ev, cat, tag, y } from '../test/fixtures'
@@ -141,18 +140,18 @@ describe('flattenCategoryTree', () => {
 })
 
 describe('untagged / deleted filters', () => {
-  it('untaggedCount counts live events with no tags', () => {
+  it('overviewCounts tallies live / uncategorized / untagged / deleted in one pass', () => {
     const events = [
-      ev({ id: 'a', tagIds: [] }),
-      ev({ id: 'b', tagIds: ['t1'] }),
+      ev({ id: 'a', tagIds: [], categoryId: null }),
+      ev({ id: 'b', tagIds: ['t1'], categoryId: 'c1' }),
       ev({ id: 'c', tagIds: [], deleted: true }),
     ]
-    expect(untaggedCount(st({ events }))).toBe(1)
-  })
-
-  it('deletedCount counts tombstoned events', () => {
-    const events = [ev({ id: 'a' }), ev({ id: 'b', deleted: true })]
-    expect(deletedCount(st({ events }))).toBe(1)
+    expect(overviewCounts(events)).toEqual({
+      total: 2,
+      uncategorized: 1,
+      untagged: 1,
+      deleted: 1,
+    })
   })
 
   it('filter.untagged keeps only events with no tags', () => {

@@ -1,23 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
      role="img" aria-label="Chronoscope">
-  <!-- Three event glyphs on one axis, in the timeline's own vocabulary
-       (renderer.ts draws spans with fillRect, so these are square-cornered).
-       Lengths fall away and the right edges step evenly, so the eye descends
-       from an era to a moment; the top bar runs off the left edge because deep
-       time is wider than the view.
+  <!-- One drawn stroke on nothing else: the C of Chronoscope, an arc left
+       deliberately open. It is the app's own subject in a single mark — a span of
+       time that does not close, and the aperture the name promises ("-scope").
 
-       Every coordinate is a multiple of 16 — that is 1px at a 16px render and
-       2px at 32px, so the bars land on whole pixels instead of dissolving into
-       grey. Bar height 28 washed out at 16px; 32 does not. Keep the grid. -->
-  <defs>
-    <clipPath id="tile"><rect width="256" height="256" rx="56"/></clipPath>
-  </defs>
-  <g clip-path="url(#tile)">
-    <rect width="256" height="256" fill="#121211"/>
-    <g fill="#e8e6e1">
-      <rect x="-16" y="48" width="192" height="32"/>
-      <rect x="80" y="112" width="112" height="32"/>
-      <rect x="144" y="176" width="64" height="32"/>
-    </g>
-  </g>
+       NO TILE. The mark sits on transparency, so it takes the colour of whatever
+       carries it: the browser's tab strip, the Windows taskbar, a wallpaper.
+       That is also why it is drawn at 1.2x the scale the other two variants use
+       (outer circle 105.6, inner 69.6, offset 5.4) — a plated icon is read as a
+       square and can leave air around the glyph, but a bare one is read as the
+       glyph itself and has to fill its box. Here it spans 82.5% of the 256 grid.
+
+       The stroke MODULATES rather than being a constant-width arc, and it does so
+       geometrically, not by hand: the outer edge is a circle about the centre, the
+       inner edge a smaller circle whose centre is pushed 4.5 (x scale) to the
+       RIGHT. Two offset circles make the gap between them open out toward the left
+       and close toward the terminals — 41.4 across the spine, 31.6 at each
+       terminal at this scale. That is the whole taper, and it costs six path
+       commands instead of the several hundred sampled points a variable-width
+       stroke would need. The offset is the contrast dial: 0 gives a flat geometric
+       C, past ~12 it turns Didone and stops matching Space Grotesk. It was 7 and
+       came down to 4.5 to plump the terminals up.
+
+       The mouth spans 32 deg either side of the axis, so it opens right — the
+       direction time runs on the app's own axis. It was 48, which read as a thin
+       crescent rather than a round mark; the narrower mouth closes the ring up
+       without shutting it, which is the whole point of the shape. The terminals
+       are round caps struck between the two circles.
+
+       COLOUR is one value, everywhere, on every surface: no theme swap, no light
+       and dark pair. A hue can do what a neutral cannot — hold its own against
+       both a near-black taskbar (6.2:1) and a white tab strip (3.0:1) — and it is
+       the only colour in the product, which is what makes it the mark. Warm, to
+       sit with the app's unbleached-paper chrome; a saturated mid-tone rather
+       than a pale or a deep one, because those two contrasts are what a single
+       value has to carry and only the middle of the ramp carries both. Note that
+       it does NOT enter the app itself: tokens.css is achromatic on purpose, and
+       this amber has no business in the timeline.
+
+       The other two variants carry their own scale and their own plate; see
+       public/icon-maskable.svg and assets/icon-foreground.svg. -->
+  <path fill="#dd7a2e"
+        d="M 217.55 183.96 A 105.6 105.6 0 1 1 217.55 72.04 A 15.78 15.78 0 0 1 192.42 91.12 A 69.6 69.6 0 1 0 192.42 164.88 A 15.78 15.78 0 0 1 217.55 183.96 Z"/>
 </svg>

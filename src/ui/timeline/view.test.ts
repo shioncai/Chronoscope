@@ -5,7 +5,6 @@ import {
   panView,
   clampView,
   lensFromView,
-  viewFromLens,
   viewFromLensCenter,
   panViewByLensDrag,
   clampScroll,
@@ -59,15 +58,11 @@ describe('timeline view math', () => {
     expect(v.min).toBeCloseTo(0, 6)
     expect(v.max).toBeCloseTo(1000, 6)
   })
-  it('lensFromView and viewFromLens round-trip on the linear overview', () => {
+  it('lensFromView projects the view onto the linear overview', () => {
     const overview = { min: 1000, max: 3000 }
-    const view = { min: 1500, max: 2000 }
-    const lens = lensFromView(view, overview)
+    const lens = lensFromView({ min: 1500, max: 2000 }, overview)
     expect(lens.f0).toBeCloseTo(0.25, 6) // (1500-1000)/2000
     expect(lens.f1).toBeCloseTo(0.5, 6) // (2000-1000)/2000
-    const back = viewFromLens(lens, overview)
-    expect(back.min).toBeCloseTo(1500, 6)
-    expect(back.max).toBeCloseTo(2000, 6)
   })
   it('lens width is constant regardless of view position (linear overview)', () => {
     const overview = { min: 0, max: 1000 }

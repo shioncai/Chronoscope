@@ -26,7 +26,6 @@ export interface TimeFields {
 }
 
 export const SCALE_UNITS: ScaleUnit[] = ['decade', 'century', 'millennium', 'ka', 'Ma', 'Ga']
-export const RELATIVE_UNITS: ScaleUnit[] = ['ka', 'Ma', 'Ga']
 export const UNIT_YEARS: Record<'ka' | 'Ma' | 'Ga', number> = { ka: 1e3, Ma: 1e6, Ga: 1e9 }
 
 export function isRelativeUnit(u: ScaleUnit): u is 'ka' | 'Ma' | 'Ga' {

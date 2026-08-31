@@ -71,6 +71,19 @@ describe('packRows', () => {
     expect(rowsById(out)).toEqual({ first: 0, second: 1 })
   })
 
+  it('keeps a long span constraining items that start long after the short ones ended', () => {
+    // Guards the overlap scan's pruning: `short` may be dropped once we are past
+    // its end, but `era` must still force every later overlapper below it.
+    const out = packRows([
+      item('era', 0, 1000),
+      item('short', 1, 2),
+      item('late', 900, 950),
+    ])
+    const r = rowsById(out)
+    expect(r.era).toBe(0)
+    expect(r.late).toBeGreaterThan(r.era) // still constrained by the era
+  })
+
   it('does not mutate the input array order', () => {
     const input = [item('z', 100, 110), item('a', 0, 10)]
     packRows(input)

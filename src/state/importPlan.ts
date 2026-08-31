@@ -21,14 +21,14 @@ export interface RestorePlan {
 }
 
 // A LIVE category with `name` directly under `parentId` in the working tree.
-export function findLiveCat(work: Category[], name: string, parentId: Id | null): Category | undefined {
+function findLiveCat(work: Category[], name: string, parentId: Id | null): Category | undefined {
   return work.find((c) => !c.deleted && c.name === name && c.parentId === parentId)
 }
-export function findLiveTag(work: Tag[], name: string): Tag | undefined {
+function findLiveTag(work: Tag[], name: string): Tag | undefined {
   return work.find((t) => !t.deleted && t.name === name)
 }
 // Order for a new sibling under `parentId`: append after existing live siblings.
-export function nextOrder(work: Category[], parentId: Id | null): number {
+function nextOrder(work: Category[], parentId: Id | null): number {
   return work.filter((c) => !c.deleted && c.parentId === parentId).reduce((m, c) => Math.max(m, c.order), -1) + 1
 }
 

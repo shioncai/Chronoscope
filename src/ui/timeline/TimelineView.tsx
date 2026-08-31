@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAppStore, useAppState, visibleEvents } from '../../state'
+import { useAppStore, useAppState, useVisibleEvents } from '../../state'
 import { instantOf, type LinearView } from '../../domain/time'
 import { initialView, zoomView, panView, clampView, viewFromLensCenter, panViewByLensDrag, clampScroll } from './view'
 import { spreadOf, pinchScale, midpointOf, type Finger } from './gesture'
@@ -34,7 +34,7 @@ export function TimelineView({ onEdit }: TimelineViewProps) {
   const state = useAppState()
   const t = useT()
   const locale = useLocale()
-  const events = useMemo(() => visibleEvents(state), [state])
+  const events = useVisibleEvents()
   const nowYear = state.nowYear
   const scale = state.timelineScale
   const clampScale = (s: number) => Math.min(2.5, Math.max(1, Math.round(s * 4) / 4))

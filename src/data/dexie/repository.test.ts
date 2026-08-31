@@ -18,6 +18,8 @@ describe('dexie repository', () => {
     await events.bulkPut([ev('b', 't1'), ev('c', 't1')])
     expect(await events.get('a')).toMatchObject({ id: 'a', title: 'a' })
     expect((await events.getAll()).map((e) => e.id).sort()).toEqual(['a', 'b', 'c'])
+    await events.bulkDelete(['a', 'c'])
+    expect((await events.getAll()).map((e) => e.id)).toEqual(['b'])
     db.close()
   })
   it('getOrCreateNodeId is stable across calls', async () => {

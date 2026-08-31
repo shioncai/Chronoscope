@@ -1,7 +1,4 @@
-# Brainstorming visual companion (local mockups & server state)
-.superpowers/
-
-# Local-only design docs (specs & plans kept out of the published repo)
+# Local-only docs (kept out of the published repo)
 docs/
 
 # Local agent instructions (kept out of the published repo)

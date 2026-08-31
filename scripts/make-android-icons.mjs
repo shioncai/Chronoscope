@@ -6,8 +6,10 @@
 //   -> assets/icon-foreground.png  adaptive foreground layer (transparent)
 //   -> assets/icon-background.png  adaptive background layer (flat ink)
 //   -> assets/icon.png             legacy square icon, for launchers with no
-//                                  adaptive support — this one keeps the tile,
-//                                  so it comes from public/favicon.svg
+//                                  adaptive support. Pre-Oreo launchers draw it
+//                                  straight onto the home screen with no layer
+//                                  behind it, so unlike the favicon it has to
+//                                  carry its own ink — hence the flatten.
 //
 // INK is the same #121211 the tile artwork uses, and the same value as the night
 // --bg. It is now the FOURTH place that colour is pinned outside tokens.css
@@ -34,6 +36,7 @@ await sharp({
 
 await sharp('public/favicon.svg', { density: DENSITY })
   .resize(SIZE, SIZE, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  .flatten({ background: INK })
   .png()
   .toFile('assets/icon.png')
 

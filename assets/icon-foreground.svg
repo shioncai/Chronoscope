@@ -1,21 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
      role="img" aria-label="Chronoscope">
-  <!-- Android adaptive-icon FOREGROUND. No tile: the background layer supplies
+  <!-- Android adaptive-icon FOREGROUND. No plate: the background layer supplies
        the ink, and drawing one here would nest a tile inside the launcher's own
        shape.
 
-       Android only guarantees the central 66.7% of this layer survives the mask
-       (a circle in the worst case, so safe radius = 85.3 on this 256 viewBox).
-       The maskable PWA variant is cut for an 80% safe zone and is NOT tight
-       enough: its bottom bar's far corner sits at r=113 and would lose a corner.
-       Scaling the glyphs by 0.75 about the centre puts that corner at r=84.8.
+       Scaled to 0.66 about the centre — outer circle 58.08, inner 38.28, offset
+       2.97. See public/favicon.svg for what the two circles do.
 
-       The top bar is the exception — it is *meant* to run off the left edge, so
-       instead of scaling it in, its left edge is pushed off-canvas and the mask
-       does the cropping, under a circular and a squircle mask alike. -->
-  <g fill="#e8e6e1">
-    <rect x="-20" y="68" width="184" height="24"/>
-    <rect x="92" y="116" width="84" height="24"/>
-    <rect x="140" y="164" width="48" height="24"/>
-  </g>
+       The scale is set by how the mark should SIT in the launcher, not by the last
+       radius that survives the mask. Android crops to the central 66.7% (visible
+       radius 85.3 on this 256 viewBox) and only guarantees content inside r≈78.
+       Both of those are limits: a mark drawn out to them fills the launcher's
+       circle wall to wall and reads as bloated. r=58 leaves the C a ring of air
+       inside the crop, which is how it was checked — compositing this layer over
+       the ink background, cutting the central 66.7%, and masking to a circle. -->
+  <path fill="#dd7a2e"
+        d="M 177.25 158.78 A 58.08 58.08 0 1 1 177.25 97.22 A 8.68 8.68 0 0 1 163.43 107.71 A 38.28 38.28 0 1 0 163.43 148.29 A 8.68 8.68 0 0 1 177.25 158.78 Z"/>
 </svg>

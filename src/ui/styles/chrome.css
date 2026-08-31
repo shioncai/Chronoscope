@@ -44,17 +44,23 @@
 /* the drawn icons (export/import) sit on the same 18px column as the typed ones */
 .func-row .fr-icon svg{display:block;width:16px;height:16px;margin:0 auto;}
 .func-row .fr-label{flex:1;min-width:0;}
-.switch{flex:0 0 auto;width:36px;height:20px;border-radius:999px;background:var(--border);position:relative;transition:background .25s;}
-.switch.on{background:var(--accent);}
-/* The knob is the track's contrast partner. `.switch` has exactly one consumer
-   (SidebarFooter.tsx), where `.on` ⟺ [data-theme='night'], so only two states
-   render: day+off (near-white knob on a pale --border track) and night+on
-   (warm-black knob on a moon-white --accent track). --on-accent is correct in
-   both, which is why no theme override is needed. If a non-theme toggle ever
-   reuses `.switch`, night+off becomes reachable and this breaks — switch to
-   `knob: var(--text)` when off, `var(--on-accent)` when on. */
-.switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--on-accent);transition:transform .25s cubic-bezier(.4,0,.2,1);}
-.switch.on .knob{transform:translateX(16px);}
+/* The theme toggle. State is carried by the TRACK; the knob is only ever the
+   track's contrast partner, and both are stated for both states rather than for
+   the two combinations this one consumer (SidebarFooter.tsx) happens to reach.
+   The knob used to be --on-accent unconditionally, which is a near-white dot on
+   the near-white --border track in day — 1.3:1, a knob you cannot find — and it
+   passed only because `.on` ⟺ [data-theme='night'] meant day never rendered it
+   filled. Reuse `.switch` for anything but the theme and that reappears.
+
+   The filled track is --switch-on rather than --accent because at night
+   --accent IS --text (#e8e6e1): a 36px pill of it is the brightest object in the
+   window, which is what made the sidebar's one white shape stand out against
+   everything else in the theme. Dimmed, it still reads as filled against the
+   recessed --field track it toggles from. */
+.switch{flex:0 0 auto;width:36px;height:20px;border-radius:999px;background:var(--field);border:1px solid var(--border);position:relative;transition:background .25s,border-color .25s;}
+.switch.on{background:var(--switch-on);border-color:var(--switch-on);}
+.switch .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--faint);transition:transform .25s cubic-bezier(.4,0,.2,1),background .25s;}
+.switch.on .knob{background:var(--panel);transform:translateX(16px);}
 
 /* folder move menu (hierarchy targets) — mirrors .color-picker */
 .move-menu {

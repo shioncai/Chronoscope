@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Let the user save an exported JSON file wherever they choose.","local":true,"windows":["main"],"permissions":["core:default","dialog:allow-save","fs:allow-write-text-file"]}}
+{"default":{"identifier":"default","description":"Let the user save an exported file (JSON, CSV or PNG) wherever they choose.","local":true,"windows":["main"],"permissions":["core:default","dialog:allow-save","fs:allow-write-text-file","fs:allow-write-file"]}}

@@ -321,7 +321,7 @@ export function planImport(current: StoreData, incoming: StoreData, clock: Clock
         categoryId: folderId,
         tagIds,
         links,
-        createdAt: fe.createdAt ?? clock.now(),
+        createdAt: fe.createdAt || clock.now(),
         updatedAt: clock.now(),
         deleted: false,
       }

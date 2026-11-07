@@ -1,4 +1,5 @@
 import type { TimelineScene } from './scene'
+import { nowChipSpan } from './labels'
 
 export interface TimelineColors {
   bg: string
@@ -29,7 +30,10 @@ export interface TimelineLayout {
   scale: number
 }
 
-const OVERVIEW_HEIGHT = 48
+export const OVERVIEW_HEIGHT = 48
+// The canvas cannot use a CSS variable, so the stack is restated; it matches
+// --font-mono in tokens.css.
+const MONO = 'ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Roboto Mono", monospace'
 // The overview band is fixed-height navigator chrome, so its end labels keep a
 // fixed size instead of growing with the content magnification (which would push
 // the text above the band's top edge at high zoom).
@@ -91,19 +95,52 @@ export function drawScene(
   ctx.clearRect(0, 0, scene.width, layout.height)
   ctx.fillStyle = colors.bg
   ctx.fillRect(0, 0, scene.width, layout.height)
-  ctx.font = `${layout.fontSize}px ui-monospace, monospace`
+  ctx.font = `${layout.fontSize}px ${MONO}`
   ctx.lineWidth = 1
 
-  // ticks (vertical guides + labels) across the detail area
   const detailBottom = layout.overviewTop - 4
+
+  // lane bands: every other lane gets a faint wash so a lane reads as one
+  // block; the header rule is what separates them.
+  for (let i = 0; i < scene.detail.lanes.length; i++) {
+    const lane = scene.detail.lanes[i]
+    const top = layout.glyphTop + lane.row * layout.rowHeight - scrollY - (layout.rowHeight - layout.barHeight) / 2
+    const h = lane.rows * layout.rowHeight
+    if (top > detailBottom || top + h < layout.tickLabelH) continue
+    if (i % 2 === 1) {
+      ctx.globalAlpha = 0.55
+      ctx.fillStyle = colors.surface
+      ctx.fillRect(0, Math.max(top, layout.tickLabelH), scene.width, Math.min(h, detailBottom - top))
+      ctx.globalAlpha = 1
+    }
+  }
+
+  // ticks (vertical guides + labels) across the detail area
   for (const t of scene.detail.ticks) {
     ctx.strokeStyle = colors.border
     ctx.beginPath()
-    ctx.moveTo(t.x, layout.tickLabelH)
-    ctx.lineTo(t.x, detailBottom)
+    const x = Math.floor(t.x) + 0.5
+    ctx.moveTo(x, layout.tickLabelH)
+    ctx.lineTo(x, detailBottom)
     ctx.stroke()
-    ctx.fillStyle = colors.muted
-    ctx.fillText(t.label, t.x + 3, layout.fontSize)
+    if (t.label) {
+      ctx.fillStyle = colors.muted
+      ctx.fillText(t.label, t.x + 3, layout.fontSize)
+    }
+  }
+
+  // the present: a dashed hairline under its chip in the tick row
+  if (scene.detail.now !== null) {
+    const x = Math.floor(scene.detail.now) + 0.5
+    ctx.save()
+    ctx.setLineDash([4, 4])
+    ctx.globalAlpha = 0.5
+    ctx.strokeStyle = colors.text
+    ctx.beginPath()
+    ctx.moveTo(x, layout.tickLabelH)
+    ctx.lineTo(x, detailBottom)
+    ctx.stroke()
+    ctx.restore()
   }
 
   // glyphs (offset by the vertical scroll position). uncategorized glyphs (no
@@ -119,6 +156,43 @@ export function drawScene(
   ctx.beginPath()
   ctx.rect(0, glyphBandTop, scene.width, glyphBandBottom - glyphBandTop)
   ctx.clip()
+  // lane headers: the folder's colour as a small square, then its name
+  for (const lane of scene.detail.lanes) {
+    const y = layout.glyphTop + lane.row * layout.rowHeight - scrollY
+    const ruleY = Math.floor(y - (layout.rowHeight - layout.barHeight) / 2) + 0.5
+    ctx.strokeStyle = colors.border
+    ctx.beginPath()
+    ctx.moveTo(0, ruleY)
+    ctx.lineTo(scene.width, ruleY)
+    ctx.stroke()
+    const sq = layout.barHeight
+    ctx.fillStyle = lane.color ?? colors.muted
+    ctx.fillRect(8, y, sq, sq)
+    ctx.font = `600 ${layout.fontSize}px ${MONO}`
+    ctx.fillStyle = colors.muted
+    ctx.textAlign = 'left'
+    ctx.fillText(lane.label, 8 + sq + 6, y + layout.barHeight)
+  }
+  ctx.font = `${layout.fontSize}px ${MONO}`
+
+  // links of the selected event: soft curves under the glyphs
+  if (scene.detail.links.length) {
+    ctx.save()
+    ctx.setLineDash([3, 3])
+    ctx.strokeStyle = colors.muted
+    ctx.lineWidth = Math.max(1, layout.scale)
+    for (const l of scene.detail.links) {
+      const y0 = layout.glyphTop + l.row0 * layout.rowHeight - scrollY + layout.barHeight / 2
+      const y1 = layout.glyphTop + l.row1 * layout.rowHeight - scrollY + layout.barHeight / 2
+      const lift = Math.min(60, Math.abs(l.x1 - l.x0) / 3 + 12)
+      ctx.beginPath()
+      ctx.moveTo(l.x0, y0)
+      ctx.bezierCurveTo(l.x0, Math.min(y0, y1) - lift, l.x1, Math.min(y0, y1) - lift, l.x1, y1)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
   for (const g of scene.detail.glyphs) {
     const y = layout.glyphTop + g.row * layout.rowHeight - scrollY
     const color = g.color ?? colors.muted
@@ -148,6 +222,21 @@ export function drawScene(
     // selection outline — see SELECT_HALO. Drawn after the core so it sits on
     // top of the whiskers where they meet the glyph, reading as "the whisker
     // passes behind the selected event".
+    // hover: a single soft ring where the selection would draw its ink one
+    if (g.hovered && !g.selected) {
+      const gap = SELECT_HALO * layout.scale
+      ctx.strokeStyle = colors.muted
+      ctx.lineWidth = 1
+      if (g.kind === 'span') {
+        const w = Math.max(2, g.xEnd - g.xStart)
+        ctx.strokeRect(g.xStart - gap - 0.5, y - gap - 0.5, w + 2 * gap + 1, bh + 2 * gap + 1)
+      } else {
+        ctx.beginPath()
+        ctx.arc(g.xStart, y + r, r + gap + 0.5, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+    }
+
     if (g.selected) {
       const halo = SELECT_HALO * layout.scale
       const ring = SELECT_RING * layout.scale
@@ -199,7 +288,7 @@ export function drawScene(
     // this loop, so it must be re-set on EVERY glyph — otherwise the bold leaks
     // onto every title drawn after the selected one.
     if (g.label.side !== 'none' && g.label.text) {
-      ctx.font = `${g.selected ? '600 ' : ''}${layout.fontSize}px ui-monospace, monospace`
+      ctx.font = `${g.selected ? '600 ' : ''}${layout.fontSize}px ${MONO}`
       ctx.fillStyle = colors.text
       ctx.textAlign = g.label.side === 'left' ? 'right' : 'left'
       ctx.fillText(g.label.text, g.label.x, y + bh)
@@ -207,6 +296,19 @@ export function drawScene(
     }
   }
   ctx.restore()
+
+  // the now chip sits in the tick row, above the hairline; the scene has
+  // already cleared any tick label from under it
+  if (scene.detail.now !== null && scene.detail.nowLabel) {
+    const chip = nowChipSpan(scene.detail.now, scene.detail.nowLabel, layout.fontSize, scene.width)
+    ctx.fillStyle = colors.bg
+    ctx.fillRect(chip.x0, 0, chip.x1 - chip.x0, layout.tickLabelH)
+    ctx.font = `600 ${layout.fontSize}px ${MONO}`
+    ctx.fillStyle = colors.text
+    ctx.textAlign = 'left'
+    ctx.fillText(scene.detail.nowLabel, chip.textX, layout.fontSize)
+    ctx.font = `${layout.fontSize}px ${MONO}`
+  }
 
   // scroll indicator: a faint thumb on the right when the rows overflow the band
   const visibleH = layout.overviewTop - layout.glyphTop
@@ -263,13 +365,29 @@ export function drawScene(
   ctx.strokeStyle = colors.accent
   ctx.strokeRect(x0, layout.overviewTop, Math.max(2, x1 - x0), layout.overviewHeight)
 
+  // the present on the overview: a short ink tick through the band
+  if (scene.overview.now !== null) {
+    const x = Math.floor(scene.overview.now) + 0.5
+    ctx.globalAlpha = 0.6
+    ctx.strokeStyle = colors.text
+    ctx.beginPath()
+    ctx.moveTo(x, layout.overviewTop + 4)
+    ctx.lineTo(x, layout.overviewTop + layout.overviewHeight - 4)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
   // current overview time range — labelled at both ends of the band, on top.
   // Fixed size (see OVERVIEW_LABEL_PX) so the text stays clear of the band's top
   // edge at any magnification.
-  ctx.font = `${OVERVIEW_LABEL_PX}px ui-monospace, monospace`
+  ctx.font = `${OVERVIEW_LABEL_PX}px ${MONO}`
   ctx.fillStyle = colors.muted
   const ry = layout.overviewTop + 12
-  ctx.fillText(scene.overview.range.start, 4, ry)
+  const start = scene.overview.range.start
   const end = scene.overview.range.end
-  ctx.fillText(end, scene.width - ctx.measureText(end).width - 4, ry)
+  const sw = ctx.measureText(start).width
+  const ew = ctx.measureText(end).width
+  ctx.fillText(start, 4, ry)
+  // on a narrow screen the two ends would collide; the start wins
+  if (4 + sw + 12 + ew + 4 <= scene.width) ctx.fillText(end, scene.width - ew - 4, ry)
 }

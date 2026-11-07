@@ -8,21 +8,34 @@ export interface Lens {
 export const MIN_RANGE_YEARS = 1 / 365
 
 export function initialView(instants: number[], nowYear: number): LinearView {
-  if (instants.length === 0) return { min: nowYear - 100, max: nowYear + 10 }
-  let lo = Math.min(...instants)
-  let hi = Math.max(...instants)
-  if (hi - lo < MIN_RANGE_YEARS) {
-    lo -= 50
-    hi += 50
-  }
-  const pad = (hi - lo) * 0.05
-  return { min: lo - pad, max: hi + pad }
+  return fitRange(instants, { min: nowYear - 100, max: nowYear + 10 }, 50)
 }
 
-export function zoomView(view: LinearView, anchorFraction: number, factor: number): LinearView {
+/**
+ * The view that fits a set of positions (in the axis coordinate), padded by
+ * `pad` of its width on each side. A single position — or none — gets
+ * `degenerate` of room either side instead, or the fallback when empty.
+ */
+export function fitRange(us: number[], fallback: LinearView, degenerate: number, pad = 0.05): LinearView {
+  if (us.length === 0) return fallback
+  let lo = Infinity
+  let hi = -Infinity
+  for (const u of us) {
+    if (u < lo) lo = u
+    if (u > hi) hi = u
+  }
+  if (hi - lo < 1e-9) {
+    lo -= degenerate
+    hi += degenerate
+  }
+  const p = (hi - lo) * pad
+  return { min: lo - p, max: hi + p }
+}
+
+export function zoomView(view: LinearView, anchorFraction: number, factor: number, minSpan = MIN_RANGE_YEARS): LinearView {
   const range = view.max - view.min
   const anchorYear = view.min + anchorFraction * range
-  const newRange = Math.max(range * factor, MIN_RANGE_YEARS)
+  const newRange = Math.max(range * factor, minSpan)
   return {
     min: anchorYear - anchorFraction * newRange,
     max: anchorYear + (1 - anchorFraction) * newRange,
@@ -38,8 +51,8 @@ export function panView(view: LinearView, deltaFraction: number): LinearView {
 // by truncating one edge), so panning into a boundary slides the window rather
 // than silently rescaling it (changing zoom). The window also can't be wider
 // than the whole range.
-export function clampView(view: LinearView, lo: number, hi: number): LinearView {
-  let width = Math.max(view.max - view.min, MIN_RANGE_YEARS)
+export function clampView(view: LinearView, lo: number, hi: number, minSpan = MIN_RANGE_YEARS): LinearView {
+  let width = Math.max(view.max - view.min, minSpan)
   const span = hi - lo
   if (width > span) width = span
   let min = view.min

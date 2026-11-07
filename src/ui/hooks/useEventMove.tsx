@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
-import { useAppStore, useAppState, moveConflicts, dedupeTargetMovers } from '../../state'
+import { useAppStore, useAppSelector, moveConflicts, dedupeTargetMovers } from '../../state'
 import { EventConflictDialog, type EventConflictItem } from '../dialogs/EventConflictDialog'
-import { useT } from '../../i18n/useT'
+import { useToast } from '../components/useToast'
+import { useT, useTn } from '../../i18n/useT'
 import type { Id } from '../../domain/model'
 
 // Shared “move events into a folder, resolving same-title (title, folder)
@@ -9,22 +10,26 @@ import type { Id } from '../../domain/model'
 // sidebar drag-to-reparent. A single-event move is just ids.length === 1.
 export function useEventMove(): { move: (ids: Id[], targetId: Id | null) => void; dialog: ReactNode } {
   const app = useAppStore()
-  const state = useAppState()
+  const events = useAppSelector((s) => s.events)
   const t = useT()
+  const tn = useTn()
+  const toast = useToast()
+  const done = (n: number) => n > 0 && toast({ message: tn('toast.moved', n), action: { label: t('common.undo'), run: () => void app.undo() } })
   const [ctx, setCtx] = useState<{ target: Id | null; ids: Id[]; items: EventConflictItem[] } | null>(null)
 
   const move = (ids: Id[], target: Id | null) => {
-    const conflicts = moveConflicts(state.events, ids, target)
+    const conflicts = moveConflicts(events, ids, target)
     if (conflicts.length === 0) {
-      void app.setEventsCategory(dedupeTargetMovers(state.events, ids, target), target)
+      const movers = dedupeTargetMovers(events, ids, target)
+      void app.setEventsCategory(movers, target).then(() => done(movers.length))
       return
     }
     setCtx({
       target,
       ids,
       items: conflicts.map((c) => ({
-        incoming: state.events.find((e) => e.id === c.movingId)!,
-        existing: state.events.find((e) => e.id === c.existingId)!,
+        incoming: events.find((e) => e.id === c.movingId)!,
+        existing: events.find((e) => e.id === c.existingId)!,
       })),
     })
   }
@@ -36,7 +41,9 @@ export function useEventMove(): { move: (ids: Id[], targetId: Id | null) => void
     const superseded = c.items.filter((i) => choices[i.incoming.id] === 'overwrite').map((i) => i.existing.id)
     const toMove = c.ids.filter((id) => !conflictIds.has(id) || choices[id] !== 'skip')
     if (superseded.length) await app.purgeEvents(superseded)
-    await app.setEventsCategory(dedupeTargetMovers(state.events, toMove, c.target, new Set(superseded)), c.target)
+    const movers = dedupeTargetMovers(events, toMove, c.target, new Set(superseded))
+    await app.setEventsCategory(movers, c.target)
+    done(movers.length)
   }
 
   const dialog = ctx ? (

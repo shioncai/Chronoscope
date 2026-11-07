@@ -1,0 +1,152 @@
+/* List view: a sortable table on wide screens, a stack of cards on phones,
+   plus the floating batch bar. The table scrolls inside .list-scroll so the
+   batch bar (a child of the non-scrolling .list-pane) stays put. */
+
+.list-pane { position: relative; height: 100%; display: flex; flex-direction: column; }
+.list-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding-bottom: 96px; }
+
+.list-view { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
+.list-view th, .list-view td { white-space: nowrap; text-align: left; }
+
+.list-view thead th {
+  position: sticky; top: 0; z-index: 2;
+  height: 38px; padding: 0 12px;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.list-view thead th:not(.col-check) > button {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 6px; margin: 0 -6px;
+  border-radius: 6px; color: inherit;
+}
+.list-view thead th:not(.col-check) > button:hover { color: var(--text); background: var(--hover); }
+.list-view thead th[aria-sort] { color: var(--text); }
+.sort-caret { transition: transform 0.2s var(--ease-out); }
+.sort-caret.is-asc { transform: rotate(180deg); }
+
+.list-view tbody td {
+  height: 42px; padding: 0 12px;
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.12s;
+}
+.list-view tbody tr.row { cursor: pointer; }
+.list-view tbody tr.row:hover td { background: var(--hover); }
+.list-view tbody tr.is-checked td { background: var(--selected); }
+.list-view tr.spacer td, .list-view tr.spacer { border: 0; padding: 0; }
+
+.list-view .col-check { width: 1%; padding-left: 16px; padding-right: 4px; }
+.list-view thead .cb-unchecked { opacity: 1; }
+.list-view tbody tr:hover .cb-unchecked, .list-view tbody tr.is-checked .cb-unchecked { opacity: 1; }
+
+.cell-title {
+  display: inline-flex; align-items: center; gap: 9px; max-width: 100%;
+  font-weight: 500; text-align: left;
+}
+.cell-title-text { overflow: hidden; text-overflow: ellipsis; max-width: 42ch; }
+.cell-dot {
+  flex: 0 0 auto; display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--border-strong);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+.list-view .col-time { color: var(--muted); font-size: 12.5px; }
+.list-view .col-folder, .list-view .col-tags { color: var(--muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+/* width:100% + max-width:0 is the auto-layout idiom for "take the rest and
+   ellipsize": the note column absorbs leftover width and never pushes others. */
+.list-view td.col-note { width: 100%; max-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--faint); }
+.list-view .col-actions { width: 1%; padding: 0 10px 0 4px; text-align: right; }
+.list-view td.col-actions .icon-btn { opacity: 0; transition: opacity 0.15s; }
+.list-view tbody tr:hover td.col-actions .icon-btn, .list-view td.col-actions .icon-btn:focus-visible { opacity: 1; }
+
+@media (hover: none) {
+  .list-view tbody .cb-unchecked, .list-view td.col-actions .icon-btn { opacity: 1; }
+}
+
+@media (max-width: 900px) {
+  .list-view .col-note { display: none; }
+}
+
+/* Phones: each row becomes a card — dot+title, time, folder · tags. The header
+   collapses to select-all plus a strip of sort chips. */
+@media (max-width: 640px) {
+  .list-scroll { padding: 0 0 112px; }
+  .list-view, .list-view thead, .list-view tbody { display: block; }
+  .list-view thead tr {
+    position: sticky; top: 0; z-index: 2;
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 12px; overflow-x: auto; scrollbar-width: none;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  .list-view thead th { position: static; display: block; height: auto; padding: 0; border: 0; background: none; }
+  .list-view thead th.col-check { flex: 0 0 auto; width: auto; padding: 0 6px 0 4px; }
+  .list-view thead th.col-actions { display: none; }
+  .list-view thead th:not(.col-check) > button {
+    margin: 0; height: 28px; padding: 0 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+  }
+  .list-view thead th[aria-sort]:not(.col-check) > button { border-color: var(--border-strong); font-weight: 600; }
+  .list-view .col-note, .list-view tbody tr.row td.col-note { display: none; }
+
+  .list-view tbody tr.row {
+    display: grid;
+    grid-template-columns: 32px auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'check title  title  actions'
+      'check time   time   actions'
+      'check folder tags   actions';
+    align-items: center;
+    column-gap: 8px;
+    padding: 10px 8px 10px 12px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .list-view tbody tr.row td { display: block; height: auto; padding: 0; border: 0; background: none !important; }
+  .list-view tbody tr.row:hover { background: var(--hover); }
+  .list-view tbody tr.is-checked { background: var(--selected); }
+  .list-view tbody tr.spacer { display: block; }
+  .list-view td.col-check { grid-area: check; width: auto; }
+  .list-view td.col-title { grid-area: title; min-width: 0; }
+  .list-view td.col-time { grid-area: time; margin-top: 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  .list-view td.col-folder { grid-area: folder; margin-top: 3px; max-width: 160px; font-size: 12.5px; }
+  .list-view td.col-tags { grid-area: tags; margin-top: 3px; max-width: none; font-size: 12.5px; }
+  .list-view td.col-actions { grid-area: actions; width: auto; padding: 0; }
+  .cell-title { font-size: 14.5px; }
+  .cell-title-text { max-width: none; }
+}
+
+/* ---------- batch bar ---------- */
+.batch-bar {
+  position: absolute; left: 50%; bottom: calc(20px + var(--safe-bottom, 0px)); z-index: 9;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px;
+  max-width: calc(100% - 24px);
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--float-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  animation: barIn 0.2s var(--ease-out);
+}
+@keyframes barIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.bb-count { padding: 0 10px 0 8px; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bb-sep { flex: 0 0 1px; height: 20px; margin: 0 3px; background: var(--border); }
+.bb-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 11px;
+  font-size: 13px; color: var(--text); white-space: nowrap;
+  border-radius: 9px;
+  transition: background 0.15s, color 0.15s;
+}
+.bb-btn:hover, .bb-btn[aria-expanded='true'] { background: var(--hover); }
+.bb-btn .caret { color: var(--faint); margin-left: -2px; }
+.bb-btn.is-danger { color: var(--danger); }
+.bb-btn.is-danger:hover { background: var(--danger-soft); }
+.bb-cancel {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px; color: var(--muted);
+}
+.bb-cancel:hover { background: var(--hover); color: var(--text); }
+
+@media (max-width: 720px) {
+  .bb-label { display: none; }
+  .bb-btn { padding: 0 9px; }
+}

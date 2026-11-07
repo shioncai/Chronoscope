@@ -98,3 +98,15 @@ describe('dedupeTargetMovers', () => {
     expect(dedupeTargetMovers(events, ['m'], 'f1')).toEqual([])
   })
 })
+
+describe('freeTitle', () => {
+  it('numbers a copy past every taken slot in the folder', async () => {
+    const { freeTitle } = await import('./identity')
+    const { ev } = await import('../test/fixtures')
+    const events = [ev({ id: '1', title: 'Rome' }), ev({ id: '2', title: 'Rome (2)' }), ev({ id: '3', title: 'Rome', categoryId: 'f' })]
+    expect(freeTitle(events, 'Rome', null)).toBe('Rome (3)')
+    expect(freeTitle(events, 'Rome (2)', null)).toBe('Rome (3)')
+    expect(freeTitle(events, 'Athens', null)).toBe('Athens')
+    expect(freeTitle(events, 'Rome', 'f')).toBe('Rome (2)')
+  })
+})

@@ -1,6 +1,6 @@
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import {
-  useAppStore, useAppState, buildCategoryTree, categoryEventCounts,
+  useAppStore, useAppSelector, buildCategoryTree, categoryEventCounts,
   descendantCategoryIds, computeDropTarget, liveFolderAt,
   memberEventIds, folderCheckStates, toggleFolder, toggleEvent, soloFolder,
   type CategoryNode,
@@ -9,13 +9,16 @@ import type { Id, EventRecord } from '../../domain/model'
 import type { Locale } from '../../domain/locale'
 import { formatTimePointShort, instantOf } from '../../domain/time'
 import { ColorPicker } from '../components/ColorPicker'
-import { AddFolderForm } from './AddFolderForm'
 import { Checkbox } from '../components/Checkbox'
+import { Icon } from '../components/Icon'
+import { useConfirm } from '../components/useConfirm'
+import { useToast } from '../components/useToast'
+import { AddFolderForm } from './AddFolderForm'
 import { useEventMove } from '../hooks/useEventMove'
 import { useT, useTn, useLocale } from '../../i18n/useT'
 
 type Row =
-  | { kind: 'folder'; id: Id; depth: number; parentId: Id | null; node: CategoryNode; hasChildren: boolean }
+  | { kind: 'folder'; id: Id; depth: number; node: CategoryNode; hasChildren: boolean }
   | { kind: 'event'; id: Id; depth: number; event: EventRecord }
 
 const anchor = (e: EventRecord): number =>
@@ -26,9 +29,9 @@ function buildRows(
   nodes: CategoryNode[], eventsByCat: Map<Id, EventRecord[]>, expanded: Set<Id>, depth = 0, out: Row[] = [],
 ): Row[] {
   for (const n of nodes) {
-    const evs = (eventsByCat.get(n.category.id) ?? []).slice().sort((a, b) => anchor(a) - anchor(b))
+    const evs = eventsByCat.get(n.category.id) ?? []
     const hasChildren = n.children.length > 0 || evs.length > 0
-    out.push({ kind: 'folder', id: n.category.id, depth, parentId: n.category.parentId, node: n, hasChildren })
+    out.push({ kind: 'folder', id: n.category.id, depth, node: n, hasChildren })
     if (hasChildren && expanded.has(n.category.id)) {
       buildRows(n.children, eventsByCat, expanded, depth + 1, out)
       for (const e of evs) out.push({ kind: 'event', id: e.id, depth: depth + 1, event: e })
@@ -40,11 +43,9 @@ function buildRows(
 // The short form, not the prose: a tree row is barely 160px wide once the folder
 // indent is paid for, and the title has first claim on it.
 const eventTime = (e: EventRecord, locale: Locale): string =>
-  e.start
-    ? formatTimePointShort(e.start, locale)
-    : e.end
-      ? formatTimePointShort(e.end, locale)
-      : '—'
+  e.start ? formatTimePointShort(e.start, locale) : e.end ? formatTimePointShort(e.end, locale) : '—'
+
+const indent = (depth: number) => ({ paddingLeft: 6 + depth * 14 })
 
 export interface FolderPanelProps {
   onEdit: (id: Id) => void
@@ -52,17 +53,17 @@ export interface FolderPanelProps {
 
 export function FolderPanel({ onEdit }: FolderPanelProps) {
   const app = useAppStore()
-  const state = useAppState()
   const t = useT()
   const tn = useTn()
   const locale = useLocale()
-  const tree = buildCategoryTree(state.categories)
-  const counts = categoryEventCounts(state)
-  const live = state.categories.filter((c) => !c.deleted)
-  const liveEvents = state.events.filter((e) => !e.deleted)
+  const confirm = useConfirm()
+  const toast = useToast()
+  const events = useAppSelector((s) => s.events)
+  const categories = useAppSelector((s) => s.categories)
+  const scope = useAppSelector((s) => s.filter.scope)
 
   const [expanded, setExpanded] = useState<Set<Id>>(new Set()) // 默认全折叠
-  const [addOpen, setAddOpen] = useState(false)
+  const [addFor, setAddFor] = useState<Id | null | undefined>(undefined) // undefined = form closed
   const [colorFor, setColorFor] = useState<Id | null>(null)
   const colorDotRef = useRef<HTMLButtonElement>(null)
   const [dragId, setDragId] = useState<Id | null>(null)
@@ -76,7 +77,12 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   const [dragKind, setDragKind] = useState<'folder' | 'event' | null>(null)
   const [dropFolderId, setDropFolderId] = useState<Id | null>(null) // 事件拖拽的落点高亮
   const springRef = useRef<{ id: Id; timer: ReturnType<typeof setTimeout> } | null>(null)
-  const cancelSpring = () => { if (springRef.current) { clearTimeout(springRef.current.timer); springRef.current = null } }
+  const cancelSpring = () => {
+    if (springRef.current) {
+      clearTimeout(springRef.current.timer)
+      springRef.current = null
+    }
+  }
   // 弹簧式展开：拖着事件在折叠文件夹上停留一会儿才展开，避免路过全展开。
   const armSpring = (id: Id) => {
     if (springRef.current?.id === id) return
@@ -85,26 +91,32 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   }
   const endDrag = () => { setDragId(null); setDrop(null); setTailOver(false); setDragKind(null); setDropFolderId(null); cancelSpring() }
 
-  const scope = state.filter.scope
-  const members = memberEventIds(scope, state.categories, state.events)
-  const checkStates = folderCheckStates(state.categories, state.events, members, new Set(scope.folderIds))
-
-  const eventsByCat = new Map<Id, EventRecord[]>()
-  for (const e of liveEvents) {
-    if (e.categoryId == null) continue
-    const arr = eventsByCat.get(e.categoryId) ?? []
-    arr.push(e)
-    eventsByCat.set(e.categoryId, arr)
-  }
+  const tree = useMemo(() => buildCategoryTree(categories), [categories])
+  const counts = useMemo(() => categoryEventCounts({ events, categories }), [events, categories])
+  const liveEvents = useMemo(() => events.filter((e) => !e.deleted), [events])
+  const byId = useMemo(() => new Map(categories.filter((c) => !c.deleted).map((c) => [c.id, c])), [categories])
+  const members = useMemo(() => memberEventIds(scope, categories, events), [scope, categories, events])
+  const checkStates = useMemo(
+    () => folderCheckStates(categories, events, members, new Set(scope.folderIds)),
+    [categories, events, members, scope.folderIds],
+  )
+  const eventsByCat = useMemo(() => {
+    const m = new Map<Id, EventRecord[]>()
+    for (const e of liveEvents) {
+      if (e.categoryId == null) continue
+      const arr = m.get(e.categoryId) ?? []
+      arr.push(e)
+      m.set(e.categoryId, arr)
+    }
+    for (const arr of m.values()) arr.sort((a, b) => anchor(a) - anchor(b))
+    return m
+  }, [liveEvents])
   const rows = buildRows(tree, eventsByCat, expanded)
-  const byId = new Map(live.map((c) => [c.id, c]))
 
   const clearModes = { uncategorized: false, untagged: false, trash: false }
   const solo = (id: Id) => app.setFilter({ scope: soloFolder(id), ...clearModes })
-  const toggleFolderScope = (id: Id) =>
-    app.setFilter({ scope: toggleFolder(scope, id, state.categories, state.events), ...clearModes })
-  const toggleEventScope = (e: EventRecord) =>
-    app.setFilter({ scope: toggleEvent(scope, e, state.categories), ...clearModes })
+  const toggleFolderScope = (id: Id) => app.setFilter({ scope: toggleFolder(scope, id, categories, events), ...clearModes })
+  const toggleEventScope = (e: EventRecord) => app.setFilter({ scope: toggleEvent(scope, e, categories), ...clearModes })
 
   const toggleExpand = (id: Id) => setExpanded((p) => {
     const n = new Set(p)
@@ -117,9 +129,9 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
   const commitRename = () => {
     if (renaming) {
       const n = renameVal.trim()
-      if (n) {
-        const self = state.categories.find((c) => c.id === renaming)
-        if (self && liveFolderAt(state.categories, n, self.parentId, renaming)) {
+      const self = categories.find((c) => c.id === renaming)
+      if (n && self && n !== self.name) {
+        if (liveFolderAt(categories, n, self.parentId, renaming)) {
           setRenameError(t('sidebar.renameDuplicate'))
           return
         }
@@ -130,93 +142,105 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
     setRenameError('')
   }
 
-  const del = (id: Id, name: string) => {
-    const ids = descendantCategoryIds(state.categories, id)
+  const del = async (id: Id, name: string) => {
+    const ids = descendantCategoryIds(categories, id)
     const n = liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).length
-    const msg = n > 0
-      ? tn('sidebar.deleteFolderConfirm', n, { name })
-      : t('sidebar.deleteFolderConfirmEmpty', { name })
-    if (!window.confirm(msg)) return
-    app.deleteCategory(id)
-    const evGone = new Set(liveEvents.filter((e) => e.categoryId != null && ids.has(e.categoryId)).map((e) => e.id))
-    app.setFilter({ scope: {
-      folderIds: scope.folderIds.filter((f) => !ids.has(f)),
-      includeEvents: scope.includeEvents.filter((i) => !evGone.has(i)),
-      excludeEvents: scope.excludeEvents.filter((i) => !evGone.has(i)),
-    } })
+    if (n > 0) {
+      const ok = await confirm({
+        title: t('sidebar.deleteFolder', { name }),
+        message: tn('sidebar.deleteFolderConfirm', n, { name }),
+        confirmLabel: t('common.delete'),
+        danger: true,
+      })
+      if (!ok) return
+    }
+    await app.deleteCategory(id)
+    toast({
+      message: n > 0 ? tn('toast.folderDeletedWithEvents', n, { name }) : t('toast.folderDeleted', { name }),
+      action: { label: t('common.undo'), run: () => void app.undo() },
+    })
+  }
+
+  const openAdd = (parent: Id | null) => {
+    setAddFor((cur) => (cur === parent ? undefined : parent))
+    if (parent) setExpanded((p) => new Set(p).add(parent))
   }
 
   const onDrop = () => {
     if (dragId && drop) {
-      const { parentId, beforeId } = computeDropTarget(state.categories, dragId, drop.id, drop.mode)
-      const drag = state.categories.find((c) => c.id === dragId)
-      if (!(drag && liveFolderAt(state.categories, drag.name, parentId, dragId))) {
-        void app.moveCategory(dragId, parentId, beforeId)
-      }
+      const { parentId, beforeId } = computeDropTarget(categories, dragId, drop.id, drop.mode)
+      const drag = categories.find((c) => c.id === dragId)
+      if (!(drag && liveFolderAt(categories, drag.name, parentId, dragId))) void app.moveCategory(dragId, parentId, beforeId)
     }
     endDrag()
   }
   const onTailDrop = () => {
     if (dragKind === 'event') { endDrag(); return } // 事件拖到文件夹外 = 无操作
     if (dragId) {
-      const drag = state.categories.find((c) => c.id === dragId)
-      if (!(drag && liveFolderAt(state.categories, drag.name, null, dragId))) {
-        void app.moveCategory(dragId, null, null)
-      }
+      const drag = categories.find((c) => c.id === dragId)
+      if (!(drag && liveFolderAt(categories, drag.name, null, dragId))) void app.moveCategory(dragId, null, null)
     }
     endDrag()
   }
+
+  const defaultParent = scope.folderIds.length === 1 && scope.includeEvents.length === 0 ? scope.folderIds[0] : null
 
   return (
     <section className="module">
       <div className="module-head">
         <h2>{t('sidebar.folders')}</h2>
-        <button type="button" className="head-btn" aria-label={t('sidebar.addFolder')} aria-expanded={addOpen}
-          onClick={() => setAddOpen((o) => !o)}>＋</button>
+        <button type="button" className="icon-btn icon-btn--sm" aria-label={t('sidebar.addFolder')} title={t('sidebar.addFolder')}
+          aria-expanded={addFor !== undefined} onClick={() => openAdd(addFor === undefined ? defaultParent : (addFor ?? null))}>
+          <Icon name="plus" size={15} />
+        </button>
       </div>
-      {addOpen && (
-        <AddFolderForm defaultParentId={
-            scope.folderIds.length === 1 && scope.includeEvents.length === 0 ? scope.folderIds[0] : null
-          }
-          onCreated={() => setAddOpen(false)} onCancel={() => setAddOpen(false)} />
+      {addFor !== undefined && (
+        <AddFolderForm key={addFor ?? 'top'} defaultParentId={addFor}
+          onCreated={() => setAddFor(undefined)} onCancel={() => setAddFor(undefined)} />
       )}
-      <div className={dragId != null ? 'folder-list dragging' : 'folder-list'}
-        onDragEnd={endDrag}>
+      {rows.length === 0 && addFor === undefined && (
+        <button type="button" className="module-empty" onClick={() => openAdd(null)}>
+          <Icon name="folderPlus" size={15} />
+          <span>{t('sidebar.noFolders')}</span>
+        </button>
+      )}
+      <div className={dragId != null ? 'tree is-dragging' : 'tree'} role="tree" aria-label={t('sidebar.folders')} onDragEnd={endDrag}>
         {rows.map((row) => {
           if (row.kind === 'event') {
             const e = row.event
-            const checked = members.has(e.id)
             return (
-              <div key={`e-${row.id}`} className="event-row" draggable
-                style={{ paddingLeft: 8 + row.depth * 16 }}
+              <div key={`e-${row.id}`} className="tree-row event-row" role="treeitem" aria-level={row.depth + 1} draggable
+                style={indent(row.depth)}
                 onDragStart={(ev) => { ev.stopPropagation(); setDragId(e.id); setDragKind('event') }}>
                 <span className="twisty-spacer" />
-                <Checkbox state={checked ? 'checked' : 'unchecked'} label={t('common.selectEvent', { title: e.title })} onClick={() => toggleEventScope(e)} />
+                <Checkbox state={members.has(e.id) ? 'checked' : 'unchecked'} label={t('common.selectEvent', { title: e.title })}
+                  onClick={() => toggleEventScope(e)} />
                 {/* 打开编辑器的点击区从事件名开始往右，避开旁边的小复选框 */}
-                <button type="button" className="ev-main" title={e.title}
-                  onClick={() => { app.select(e.id); onEdit(e.id) }}>
+                <button type="button" className="ev-main" title={e.title} onClick={() => { app.select(e.id); onEdit(e.id) }}>
                   <span className="ev-label">{e.title}</span>
-                  <span className="ev-time mono">{eventTime(e, locale)}</span>
+                  <span className="ev-time">{eventTime(e, locale)}</span>
                 </button>
               </div>
             )
           }
           const c = byId.get(row.id)!
-          const fstate = checkStates.get(row.id) ?? 'unchecked'
-          const cls = ['folder-row']
+          const isOpen = expanded.has(row.id)
+          const cls = ['tree-row', 'folder-row']
           if (drop?.id === row.id) cls.push(`drop-${drop.mode}`)
           if (dragKind === 'event' && dropFolderId === row.id) cls.push('drop-into')
-          if (dragId === row.id) cls.push('dragging')
+          if (dragId === row.id) cls.push('is-dragged')
+          if (scope.folderIds.length === 1 && scope.folderIds[0] === row.id) cls.push('is-solo')
           return (
             <Fragment key={`f-${row.id}`}>
-              <div className={cls.join(' ')} draggable
-                style={{ paddingLeft: 8 + row.depth * 16 }}
+              <div className={cls.join(' ')} role="treeitem" aria-level={row.depth + 1}
+                aria-expanded={row.hasChildren ? isOpen : undefined} draggable
+                style={indent(row.depth)}
                 onDragStart={() => { setDragId(row.id); setDragKind('folder') }}
                 onDragOver={(e) => {
                   e.preventDefault()
                   if (dragKind === 'event') {
                     setDropFolderId(row.id)
-                    if (!expanded.has(row.id) && row.hasChildren) armSpring(row.id)
+                    if (!isOpen && row.hasChildren) armSpring(row.id)
                     else cancelSpring()
                     return
                   }
@@ -237,16 +261,18 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                   onDrop()
                 }}>
                 {row.hasChildren ? (
-                  <button type="button" className={expanded.has(row.id) ? 'twisty' : 'twisty collapsed'}
-                    aria-label={t(expanded.has(row.id) ? 'sidebar.collapse' : 'sidebar.expand', { name: c.name })} aria-expanded={expanded.has(row.id)}
+                  <button type="button" className={isOpen ? 'twisty' : 'twisty is-collapsed'}
+                    aria-label={t(isOpen ? 'sidebar.collapse' : 'sidebar.expand', { name: c.name })} aria-expanded={isOpen}
                     onClick={(e) => { e.stopPropagation(); toggleExpand(row.id) }}>
-                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,6 8,10 12,6" /></svg>
+                    <Icon name="chevronDown" size={14} />
                   </button>
                 ) : <span className="twisty-spacer" />}
-                <Checkbox state={fstate} label={t('sidebar.selectFolder', { name: c.name })} onClick={() => toggleFolderScope(row.id)} />
+                <Checkbox state={checkStates.get(row.id) ?? 'unchecked'} label={t('sidebar.selectFolder', { name: c.name })}
+                  onClick={() => toggleFolderScope(row.id)} />
                 <button type="button" className="color-dot" style={{ background: c.color }} data-picker-trigger
                   ref={colorFor === row.id ? colorDotRef : null}
-                  aria-label={t('sidebar.setColor', { name: c.name })} onClick={(e) => { e.stopPropagation(); setColorFor((cur) => cur === row.id ? null : row.id) }} />
+                  aria-label={t('sidebar.setColor', { name: c.name })}
+                  onClick={(e) => { e.stopPropagation(); setColorFor((cur) => (cur === row.id ? null : row.id)) }} />
                 {renaming === row.id ? (
                   <input className="rename-input" aria-label={t('sidebar.rename', { name: c.name })} value={renameVal} autoFocus draggable={false}
                     onChange={(e) => setRenameVal(e.target.value)}
@@ -254,18 +280,27 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                     onDragStart={(e) => e.preventDefault()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') commitRename()
-                      else if (e.key === 'Escape') { setRenaming(null); setRenameError('') }
+                      else if (e.key === 'Escape') { e.stopPropagation(); setRenaming(null); setRenameError('') }
                     }}
                     onBlur={commitRename} />
                 ) : (
-                  <button type="button" className="label" onClick={() => solo(row.id)}
+                  <button type="button" className="row-label" onClick={() => solo(row.id)}
                     onDoubleClick={() => startRename(row.id, c.name)} title={c.name}>{c.name}</button>
                 )}
-                <span className="count">{counts.get(row.id) ?? 0}</span>
+                <span className="row-count">{counts.get(row.id) ?? 0}</span>
                 <span className="row-actions">
-                  <button type="button" className="rename" aria-label={t('sidebar.renameFolder', { name: c.name })}
-                    onClick={(e) => { e.stopPropagation(); startRename(row.id, c.name) }}>✎</button>
-                  <button type="button" className="del" aria-label={t('sidebar.deleteFolder', { name: c.name })} onClick={(e) => { e.stopPropagation(); del(row.id, c.name) }}>×</button>
+                  <button type="button" aria-label={t('sidebar.addSubfolder', { name: c.name })} title={t('sidebar.addSubfolder', { name: c.name })}
+                    onClick={(e) => { e.stopPropagation(); openAdd(row.id) }}>
+                    <Icon name="folderPlus" size={14} />
+                  </button>
+                  <button type="button" aria-label={t('sidebar.renameFolder', { name: c.name })} title={t('common.rename')}
+                    onClick={(e) => { e.stopPropagation(); startRename(row.id, c.name) }}>
+                    <Icon name="edit" size={14} />
+                  </button>
+                  <button type="button" className="is-danger" aria-label={t('sidebar.deleteFolder', { name: c.name })} title={t('common.delete')}
+                    onClick={(e) => { e.stopPropagation(); void del(row.id, c.name) }}>
+                    <Icon name="trash" size={14} />
+                  </button>
                 </span>
                 {colorFor === row.id && (
                   <ColorPicker value={c.color} anchorRef={colorDotRef}
@@ -274,12 +309,12 @@ export function FolderPanel({ onEdit }: FolderPanelProps) {
                 )}
               </div>
               {renaming === row.id && renameError && (
-                <div className="errors rename-err" style={{ marginLeft: 8 + row.depth * 16 }}>{renameError}</div>
+                <div className="field-error rename-err" style={{ marginLeft: 6 + row.depth * 14 }}>{renameError}</div>
               )}
             </Fragment>
           )
         })}
-        <div className={tailOver ? 'folder-tail over' : 'folder-tail'} aria-hidden="true"
+        <div className={tailOver ? 'tree-tail is-over' : 'tree-tail'} aria-hidden="true"
           onDragOver={(e) => { if (dragId == null) return; e.preventDefault(); setDrop(null); setTailOver(true) }}
           onDragLeave={() => setTailOver(false)}
           onDrop={onTailDrop} />

@@ -79,7 +79,7 @@ export function buildCsv(data: StoreData): string {
 
 /** RFC 4180: quoted fields, doubled quotes, embedded newlines, CRLF or LF. */
 export function parseCsvRows(text: string): string[][] {
-  const src = text.replace(/^﻿/, '')
+  const src = text.replace(/^\uFEFF/, '')
   const rows: string[][] = []
   let row: string[] = []
   let field = ''

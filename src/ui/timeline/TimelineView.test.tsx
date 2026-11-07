@@ -2,9 +2,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TimelineView } from './TimelineView'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = {
@@ -25,16 +26,17 @@ beforeEach(() => {
 
 function renderTimeline() {
   return render(
-    <AppStoreProvider value={app}>
+    <TestProviders app={app}>
       <TimelineView onEdit={() => {}} />
-    </AppStoreProvider>,
+    </TestProviders>,
   )
 }
 
 describe('TimelineView', () => {
-  it('renders a canvas without crashing when there are no events', () => {
+  it('shows the welcome state instead of an empty canvas when there are no events', () => {
     const { container } = renderTimeline()
-    expect(container.querySelector('canvas')).not.toBeNull()
+    expect(container.querySelector('canvas')).toBeNull()
+    expect(screen.getByRole('button', { name: '载入示例时间轴' })).toBeTruthy()
   })
   it('renders without crashing with events present (jsdom has no 2D context)', async () => {
     await app.createEvent({ title: '登月', start: { year: 1969, precision: 'year' } })
@@ -66,24 +68,42 @@ describe('TimelineView', () => {
     const s = app.store.getState()
     expect(s.timelineView !== null || s.timelineOverview !== null).toBe(true)
   })
-  it('the + button raises the store scale by one step', () => {
+  const openOptions = () => fireEvent.click(screen.getByRole('button', { name: '显示选项' }))
+  it('the display-size + raises the store scale by one step', () => {
     renderTimeline()
     expect(app.store.getState().timelineScale).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    openOptions()
+    fireEvent.click(screen.getByRole('button', { name: '放大显示' }))
     expect(app.store.getState().timelineScale).toBeCloseTo(1.25, 6)
   })
-  it('the − button never drops below 1×', () => {
+  it('the display-size − is disabled at 1×', () => {
     renderTimeline()
-    fireEvent.click(screen.getByRole('button', { name: '缩小' }))
-    expect(app.store.getState().timelineScale).toBe(1)
+    openOptions()
+    expect((screen.getByRole('button', { name: '缩小显示' }) as HTMLButtonElement).disabled).toBe(true)
   })
   it('clicking the readout resets scale to 1×', () => {
     app.setTimelineScale(2.25)
     renderTimeline()
-    fireEvent.click(screen.getByRole('button', { name: '重置缩放' }))
+    openOptions()
+    fireEvent.click(screen.getByRole('button', { name: '重置显示大小' }))
     expect(app.store.getState().timelineScale).toBe(1)
   })
-  it('does not throw on a vertical drag gesture', () => {
+  it('the toolbar zoom buttons narrow and widen the time window', async () => {
+    await app.createEvent({ title: 'a', start: { year: 1000, precision: 'year' }, end: { year: 2000, precision: 'year' } })
+    app.setTimelineView({ min: 1000, max: 2000 })
+    renderTimeline()
+    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    const v = app.store.getState().timelineView!
+    expect(v.max - v.min).toBeLessThan(1000)
+  })
+  it('switches to the log axis from the toolbar', async () => {
+    await app.createEvent({ title: 'a', start: { year: 1969, precision: 'year' } })
+    renderTimeline()
+    fireEvent.click(screen.getByRole('radio', { name: /对数/ }))
+    expect(app.store.getState().timelineAxis).toBe('log')
+  })
+  it('does not throw on a vertical drag gesture', async () => {
+    await app.createEvent({ title: 'a', start: { year: 1969, precision: 'year' } })
     const { container } = renderTimeline()
     const canvas = container.querySelector('canvas') as HTMLCanvasElement
     canvas.getBoundingClientRect = () =>

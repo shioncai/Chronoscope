@@ -4,10 +4,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EventEditor } from './EventEditor'
 import { instantOf } from '../../domain/time'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 import type { Locale } from '../../domain/locale'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(locale?: Locale): AppStore {
   const db: Database = {
@@ -28,13 +29,24 @@ beforeEach(() => {
 
 function renderEditor(editingId: string | null, onClose = () => {}) {
   return render(
-    <AppStoreProvider value={app}>
+    <TestProviders app={app}>
       <EventEditor editingId={editingId} onClose={onClose} />
-    </AppStoreProvider>,
+    </TestProviders>,
   )
 }
 
 describe('EventEditor', () => {
+  it('puts the cursor in the title for a new event, and gives focus back to the opener on close', async () => {
+    const opener = document.createElement('button')
+    document.body.appendChild(opener)
+    opener.focus()
+    const { unmount } = renderEditor(null)
+    expect(document.activeElement).toBe(screen.getByLabelText('标题'))
+    unmount()
+    expect(document.activeElement).toBe(opener)
+    opener.remove()
+  })
+
   it('blocks save and shows an error when the title is empty', async () => {
     renderEditor(null)
     await userEvent.click(screen.getByRole('button', { name: '保存' }))
@@ -100,7 +112,7 @@ describe('EventEditor', () => {
   it('creates a folder inline via the new-folder form and selects it', async () => {
     const parent = await app.createCategory({ name: '历史' })
     renderEditor(null)
-    await userEvent.click(screen.getByRole('button', { name: '＋ 新建文件夹' }))
+    await userEvent.click(screen.getByRole('button', { name: '新建文件夹' }))
     await userEvent.type(screen.getByLabelText('名称'), '近代')
     await userEvent.selectOptions(screen.getByLabelText('父文件夹'), parent)
     await userEvent.click(screen.getByRole('button', { name: '创建' }))
@@ -122,7 +134,7 @@ describe('EventEditor', () => {
 
   it('reveals the inline new-folder form', async () => {
     renderEditor(null)
-    await userEvent.click(screen.getByRole('button', { name: '＋ 新建文件夹' }))
+    await userEvent.click(screen.getByRole('button', { name: '新建文件夹' }))
     expect(screen.getByLabelText('名称')).toBeTruthy()
   })
 

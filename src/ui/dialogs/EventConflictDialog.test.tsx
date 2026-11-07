@@ -3,10 +3,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EventConflictDialog } from './EventConflictDialog'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 import { fromYear } from '../../domain/time'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
@@ -26,9 +27,9 @@ describe('EventConflictDialog', () => {
   it('confirm returns per-item choices', async () => {
     const onResolve = vi.fn()
     render(
-      <AppStoreProvider value={app}>
+      <TestProviders app={app}>
         <EventConflictDialog title="移动冲突" conflicts={[{ incoming, existing }]} onResolve={onResolve} onCancel={vi.fn()} />
-      </AppStoreProvider>,
+      </TestProviders>,
     )
     await userEvent.click(screen.getByRole('radio', { name: /覆盖/ }))
     await userEvent.click(screen.getByRole('button', { name: '确认' }))
@@ -38,9 +39,9 @@ describe('EventConflictDialog', () => {
   it('cancel calls onCancel', async () => {
     const onCancel = vi.fn()
     render(
-      <AppStoreProvider value={app}>
+      <TestProviders app={app}>
         <EventConflictDialog title="移动冲突" conflicts={[{ incoming, existing }]} onResolve={vi.fn()} onCancel={onCancel} />
-      </AppStoreProvider>,
+      </TestProviders>,
     )
     await userEvent.click(screen.getByRole('button', { name: '取消' }))
     expect(onCancel).toHaveBeenCalled()
@@ -51,9 +52,9 @@ describe('EventConflictDialog', () => {
     const incomingDeep = ev('inc-deep', { title: 'Moon Landing', start: fromYear(-2999, 'year') })
     const existingDeep = ev('exi-deep', { title: 'Moon Landing', start: fromYear(1969, 'year') })
     render(
-      <AppStoreProvider value={app}>
+      <TestProviders app={app}>
         <EventConflictDialog title="Move conflict" conflicts={[{ incoming: incomingDeep, existing: existingDeep }]} onResolve={vi.fn()} onCancel={vi.fn()} />
-      </AppStoreProvider>,
+      </TestProviders>,
     )
     const timeRow = screen.getByText('Time').closest('tr')
     expect(timeRow).not.toBeNull()

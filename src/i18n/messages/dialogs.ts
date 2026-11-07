@@ -27,6 +27,8 @@ export const en = {
   'conflict.field.tags': 'Tags',
   'conflict.field.links': 'Links',
   'conflict.handle': 'Handle "{title}"',
+  'import.nothing': 'Everything in the file was already here.',
+  'import.undoHint': 'Changed your mind? Undo (Ctrl+Z) takes the whole import back.',
 } as const
 
 export const zh: Record<keyof typeof en, string> = {
@@ -58,4 +60,6 @@ export const zh: Record<keyof typeof en, string> = {
   'conflict.field.tags': '标签',
   'conflict.field.links': '关联',
   'conflict.handle': '处理「{title}」',
+  'import.nothing': '文件中的内容都已存在，没有变化。',
+  'import.undoHint': '改主意了？撤销（Ctrl+Z）可一步撤回整个导入。',
 }

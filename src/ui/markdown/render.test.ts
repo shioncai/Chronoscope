@@ -1,4 +1,3 @@
-// src/ui/features/markdown/render.test.ts
 import { describe, it, expect } from 'vitest'
 import { renderMarkdown } from './render'
 

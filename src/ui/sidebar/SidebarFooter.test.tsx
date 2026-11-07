@@ -3,10 +3,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SidebarFooter } from './SidebarFooter'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 import { fromYear } from '../../domain/time'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
@@ -16,7 +17,7 @@ function makeApp(): AppStore {
 }
 let app: AppStore
 beforeEach(() => { app = makeApp() })
-const r = () => render(<AppStoreProvider value={app}><SidebarFooter /></AppStoreProvider>)
+const r = () => render(<TestProviders app={app}><SidebarFooter /></TestProviders>)
 
 describe('SidebarFooter export/import', () => {
   it('exports via a download using URL.createObjectURL', async () => {
@@ -27,8 +28,9 @@ describe('SidebarFooter export/import', () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
     r()
-    await userEvent.click(screen.getByText('导出数据'))
-    expect(createObjectURL).toHaveBeenCalledTimes(1)
+    await userEvent.click(screen.getByRole('button', { name: /导出/ }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /备份（JSON）/ }))
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1))
     expect(clickSpy).toHaveBeenCalledTimes(1)
 
     clickSpy.mockRestore()
@@ -63,8 +65,30 @@ describe('SidebarFooter export/import', () => {
   it('renders the footer in English after switching locale', async () => {
     const app = makeApp()
     app.setLocale('en')
-    render(<AppStoreProvider value={app}><SidebarFooter /></AppStoreProvider>)
-    expect(screen.getByText('Export data')).toBeTruthy()
+    render(<TestProviders app={app}><SidebarFooter /></TestProviders>)
+    expect(screen.getByRole('button', { name: /Export/ })).toBeTruthy()
     expect(screen.getByText('English')).toBeTruthy()
+  })
+
+  it('exports a CSV sheet from the export menu', async () => {
+    await app.createEvent({ title: '登月', start: fromYear(1969, 'year') })
+    const blobs: Blob[] = []
+    const createObjectURL = vi.fn((b: Blob) => { blobs.push(b); return 'blob:x' })
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() })
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    r()
+    await userEvent.click(screen.getByRole('button', { name: /导出/ }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /表格（CSV）/ }))
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1))
+    expect(await blobs[0].text()).toContain('登月')
+    clickSpy.mockRestore()
+    vi.unstubAllGlobals()
+  })
+
+  it('switches language from the language menu', async () => {
+    r()
+    await userEvent.click(screen.getByRole('button', { name: '语言' }))
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'English' }))
+    expect(app.store.getState().locale).toBe('en')
   })
 })

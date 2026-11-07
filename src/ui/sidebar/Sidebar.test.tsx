@@ -3,9 +3,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Sidebar } from './Sidebar'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = {
@@ -29,9 +30,9 @@ afterEach(() => {
 
 const renderSidebar = () =>
   render(
-    <AppStoreProvider value={app}>
+    <TestProviders app={app}>
       <Sidebar open onEdit={() => {}} />
-    </AppStoreProvider>,
+    </TestProviders>,
   )
 
 describe('Sidebar', () => {
@@ -40,19 +41,22 @@ describe('Sidebar', () => {
     expect(screen.getByText('所有事件')).toBeTruthy()
     expect(screen.getByText('文件夹')).toBeTruthy()
     expect(screen.getByText('标签')).toBeTruthy()
-    expect(screen.getByLabelText('切换主题')).toBeTruthy()
-    expect(screen.getByText('关于')).toBeTruthy()
+    expect(screen.getByRole('radiogroup', { name: '主题' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '关于' })).toBeTruthy()
   })
 
-  it('toggles theme from the footer switch', async () => {
+  it('sets the theme from the footer switch', async () => {
     renderSidebar()
-    await userEvent.click(screen.getByLabelText('切换主题'))
+    await userEvent.click(screen.getByRole('radio', { name: '夜间' }))
     expect(app.store.getState().theme).toBe('night')
+    expect(app.store.getState().themeMode).toBe('night')
+    await userEvent.click(screen.getByRole('radio', { name: '日间' }))
+    expect(app.store.getState().theme).toBe('day')
   })
 
   it('opens the about dialog', async () => {
     renderSidebar()
-    await userEvent.click(screen.getByText('关于'))
+    await userEvent.click(screen.getByRole('button', { name: '关于' }))
     expect(screen.getByRole('dialog', { name: '关于' })).toBeTruthy()
   })
 })

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAppState, eventDiffFields, type EventDiffField } from '../../state'
+import { useAppSelector, eventDiffFields, type EventDiffField } from '../../state'
 import { formatTimeRange } from '../list/timeText'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { ModalOverlay } from '../components/ModalOverlay'
@@ -30,7 +30,8 @@ export function EventConflictDialog({
   onResolve: (choices: Record<Id, 'overwrite' | 'skip'>) => void
   onCancel: () => void
 }) {
-  const state = useAppState()
+  const tags = useAppSelector((s) => s.tags)
+  const events = useAppSelector((s) => s.events)
   const t = useT()
   const locale = useLocale()
   const ref = useFocusTrap<HTMLDivElement>(true, onCancel)
@@ -41,9 +42,9 @@ export function EventConflictDialog({
     setChoices(Object.fromEntries(conflicts.map((c) => [c.incoming.id, v])))
 
   const tagNames = (ids: Id[]) =>
-    ids.map((id) => state.tags.find((t) => t.id === id)?.name).filter(Boolean).join(t('common.listSeparator')) || '—'
+    ids.map((id) => tags.find((x) => x.id === id)?.name).filter(Boolean).join(t('common.listSeparator')) || '—'
   const linkTitles = (ids: Id[]) =>
-    ids.map((id) => state.events.find((e) => e.id === id)?.title).filter(Boolean).join(t('common.listSeparator')) || '—'
+    ids.map((id) => events.find((e) => e.id === id)?.title).filter(Boolean).join(t('common.listSeparator')) || '—'
   const fieldValue = (e: EventRecord, f: EventDiffField): string => {
     if (f === 'time') return formatTimeRange(e.start, e.end, locale)
     if (f === 'note') return e.note || '—'
@@ -52,14 +53,14 @@ export function EventConflictDialog({
   }
 
   return (
-    <ModalOverlay onClose={onCancel}>
-      <div className="info-card conflict-card" ref={ref} role="dialog" aria-modal="true" aria-label={title}
+    <ModalOverlay center onClose={onCancel}>
+      <div className="dialog dialog--wide conflict-card" ref={ref} role="dialog" aria-modal="true" aria-label={title}
         onClick={(e) => e.stopPropagation()}>
-        <div className="logo display">{title}</div>
-        <p>{t('conflict.prompt')}</p>
+        <h2 className="dialog-title">{title}</h2>
+        <p className="dialog-text">{t('conflict.prompt')}</p>
         <div className="conflict-bulk">
-          <button type="button" onClick={() => setAll('overwrite')}>{t('conflict.overwriteAll')}</button>
-          <button type="button" onClick={() => setAll('skip')}>{t('conflict.skipAll')}</button>
+          <button type="button" className="btn btn-sm" onClick={() => setAll('overwrite')}>{t('conflict.overwriteAll')}</button>
+          <button type="button" className="btn btn-sm" onClick={() => setAll('skip')}>{t('conflict.skipAll')}</button>
         </div>
         <ul className="conflict-list">
           {conflicts.map(({ incoming, existing }) => {
@@ -97,9 +98,9 @@ export function EventConflictDialog({
             )
           })}
         </ul>
-        <div className="conflict-actions">
-          <button type="button" onClick={onCancel}>{t('common.cancel')}</button>
-          <button type="button" className="primary" onClick={() => onResolve(choices)}>{t('common.confirm')}</button>
+        <div className="dialog-actions">
+          <button type="button" className="btn" onClick={onCancel}>{t('common.cancel')}</button>
+          <button type="button" className="btn btn-primary" onClick={() => onResolve(choices)}>{t('common.confirm')}</button>
         </div>
       </div>
     </ModalOverlay>

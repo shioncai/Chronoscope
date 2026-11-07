@@ -23,7 +23,7 @@ export function buildCategoryTree(categories: Category[]): CategoryNode[] {
 
 // Descendant-inclusive count of live events per category: each category's tally
 // includes events filed directly under it and under any of its subcategories.
-export function categoryEventCounts(state: AppState): Map<Id, number> {
+export function categoryEventCounts(state: Pick<AppState, 'events' | 'categories'>): Map<Id, number> {
   const direct = new Map<Id, number>()
   for (const e of state.events) {
     if (e.deleted || e.categoryId == null) continue
@@ -50,11 +50,21 @@ export function categoryEventCounts(state: AppState): Map<Id, number> {
 }
 
 // `q` is pre-trimmed and pre-lowercased once per query, not once per event.
-function matchesQuery(e: EventRecord, q: string): boolean {
-  return !q || `${e.title} ${e.note}`.toLowerCase().includes(q)
+// A query matches the title, the note, the folder's name or any tag's name —
+// so typing a tag finds what carries it, in both views.
+function matchesQuery(e: EventRecord, q: string, names: QueryNames): boolean {
+  if (!q) return true
+  if (e.title.toLowerCase().includes(q) || e.note.toLowerCase().includes(q)) return true
+  if (e.categoryId != null && names.folders.get(e.categoryId)?.includes(q)) return true
+  return e.tagIds.some((id) => names.tags.get(id)?.includes(q))
 }
 
-function matchesFilter(e: EventRecord, filter: Filter, categories: Category[], scoped: Set<Id>, q: string): boolean {
+interface QueryNames {
+  folders: Map<Id, string>
+  tags: Map<Id, string>
+}
+
+function matchesFilter(e: EventRecord, filter: Filter, categories: Category[], scoped: Set<Id>, q: string, names: QueryNames): boolean {
   if (filter.uncategorized) {
     if (e.categoryId != null) return false
   } else if (!isScopeEmpty(filter.scope)) {
@@ -65,7 +75,7 @@ function matchesFilter(e: EventRecord, filter: Filter, categories: Category[], s
     const has = (t: Id) => e.tagIds.includes(t)
     if (filter.tagMode === 'and' ? !filter.tagIds.every(has) : !filter.tagIds.some(has)) return false
   }
-  return matchesQuery(e, q)
+  return matchesQuery(e, q, names)
 }
 
 function sortValue(e: EventRecord, sort: Sort, catName: Map<Id, string>, tagName: Map<Id, string>): number | string {
@@ -107,9 +117,12 @@ export function visibleEvents(state: VisibleEventsInput): EventRecord[] {
   const { filter, sort } = state
   const q = filter.query.trim().toLowerCase()
   const scoped = scopedCategoryIds(filter.scope, state.categories)
+  const lower = (xs: { id: Id; name: string; deleted: boolean }[]) =>
+    new Map(q ? xs.filter((x) => !x.deleted).map((x) => [x.id, x.name.toLowerCase()]) : [])
+  const names: QueryNames = { folders: lower(state.categories), tags: lower(state.tags) }
   const base = filter.trash
-    ? state.events.filter((e) => e.deleted && matchesQuery(e, q))
-    : state.events.filter((e) => !e.deleted && matchesFilter(e, filter, state.categories, scoped, q))
+    ? state.events.filter((e) => e.deleted && matchesQuery(e, q, names))
+    : state.events.filter((e) => !e.deleted && matchesFilter(e, filter, state.categories, scoped, q, names))
 
   // Decorate–sort–undecorate: each row's sort key is derived ONCE rather than
   // on every comparison, and the names behind it come from maps instead of a

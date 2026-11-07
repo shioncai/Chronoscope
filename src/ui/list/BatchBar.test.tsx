@@ -3,10 +3,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BatchBar } from './BatchBar'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import { fromYear } from '../../domain/time'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = {
@@ -30,9 +31,9 @@ afterEach(() => {
 
 const renderBar = (trash = false) =>
   render(
-    <AppStoreProvider value={app}>
+    <TestProviders app={app}>
       <BatchBar trash={trash} />
-    </AppStoreProvider>,
+    </TestProviders>,
   )
 
 describe('BatchBar', () => {
@@ -57,7 +58,7 @@ describe('BatchBar', () => {
     app.setChecked(['id2'])
     renderBar()
     await userEvent.click(screen.getByRole('button', { name: '移动到文件夹' }))
-    await userEvent.click(screen.getByRole('menuitem', { name: '「科技」' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '科技' }))
     expect(app.store.getState().events.find((e) => e.id === 'id2')?.categoryId).toBe(c)
   })
 
@@ -94,8 +95,7 @@ describe('BatchBar', () => {
     expect(app.store.getState().events.find((e) => e.id === 'id3')?.tagIds).toEqual([])
   })
 
-  it('deletes checked events after confirmation and clears the selection', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
+  it('deletes checked events at once and clears the selection', async () => {
     await app.createEvent({ title: 'a' })
     await app.createEvent({ title: 'b' })
     app.setChecked(['id1', 'id2'])
@@ -105,13 +105,14 @@ describe('BatchBar', () => {
     expect(app.store.getState().checkedIds).toEqual([])
   })
 
-  it('does not delete when confirmation is cancelled', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
+  it('offers undo after a batch delete, which brings every event back', async () => {
     await app.createEvent({ title: 'a' })
-    app.setChecked(['id1'])
+    await app.createEvent({ title: 'b' })
+    app.setChecked(['id1', 'id2'])
     renderBar()
     await userEvent.click(screen.getByRole('button', { name: '删除' }))
-    expect(app.store.getState().events.find((e) => e.id === 'id1')?.deleted).toBe(false)
+    await userEvent.click(await screen.findByRole('button', { name: '撤销' }))
+    expect(app.store.getState().events.filter((e) => e.deleted)).toHaveLength(0)
   })
 
   it('取消 clears the selection', async () => {
@@ -144,7 +145,7 @@ describe('BatchBar', () => {
     app.setChecked([mv])
     renderBar()
     await userEvent.click(screen.getByRole('button', { name: '移动到文件夹' }))
-    await userEvent.click(screen.getByRole('menuitem', { name: '「历史」' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '历史' }))
     expect(await screen.findByText('移动冲突')).toBeTruthy()
     await userEvent.click(screen.getByRole('radio', { name: /覆盖/ }))
     await userEvent.click(screen.getByRole('button', { name: '确认' }))
@@ -164,7 +165,7 @@ describe('BatchBar', () => {
     app.setChecked([e1, e2])
     renderBar()
     await userEvent.click(screen.getByRole('button', { name: '移动到文件夹' }))
-    await userEvent.click(screen.getByRole('menuitem', { name: '「目标」' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '目标' }))
     await waitFor(() => {
       const s = app.store.getState()
       const inTarget = s.events.filter((e) => !e.deleted && e.categoryId === target)

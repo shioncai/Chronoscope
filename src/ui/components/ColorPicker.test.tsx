@@ -3,9 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ColorPicker } from './ColorPicker'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 const grid = [['#abcdef', '#123456'], ['#0d7d8c', '#8e44ad']] as const
 
@@ -18,7 +19,7 @@ function makeApp(): AppStore {
 let app: AppStore
 beforeEach(() => { window.localStorage.clear(); app = makeApp() })
 function renderPicker(props: Parameters<typeof ColorPicker>[0]) {
-  return render(<AppStoreProvider value={app}><ColorPicker {...props} /></AppStoreProvider>)
+  return render(<TestProviders app={app}><ColorPicker {...props} /></TestProviders>)
 }
 
 describe('ColorPicker', () => {

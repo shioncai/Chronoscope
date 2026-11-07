@@ -105,3 +105,17 @@ export function dedupeTargetMovers(
   }
   return result
 }
+
+/**
+ * A title that does not collide in `categoryId`: the title itself if it is
+ * free, else "title (2)", "title (3)"… Used when duplicating, where a copy
+ * must not land on the (title, folder) slot its original holds.
+ */
+export function freeTitle(events: EventRecord[], title: string, categoryId: Id | null): string {
+  const base = title.trim().replace(/\s\((\d+)\)$/, '')
+  if (!liveEventAt(events, title, categoryId)) return title.trim()
+  for (let n = 2; ; n++) {
+    const candidate = `${base} (${n})`
+    if (!liveEventAt(events, candidate, categoryId)) return candidate
+  }
+}

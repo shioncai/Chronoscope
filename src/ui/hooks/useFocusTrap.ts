@@ -26,8 +26,12 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onEscape: (
     const previouslyFocused = document.activeElement as HTMLElement | null
 
     const items = () => Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE))
-    const firstFocusable = items()[0]
-    ;(firstFocusable ?? node).focus()
+    // A dialog names its starting point with data-autofocus (the title of a new
+    // event, say); otherwise focus lands on the first control. Not React's
+    // autoFocus: that fires before this effect and would hide the opener we
+    // hand focus back to on close.
+    const start = node.querySelector<HTMLElement>('[data-autofocus]') ?? items()[0]
+    ;(start ?? node).focus()
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

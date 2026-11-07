@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FolderPanel } from './FolderPanel'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
 import { fromYear } from '../../domain/time'
+import { TestProviders } from '../../test/providers'
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
   let t = 0, i = 0; const clock: Clock = { now: () => `t${++t}` }
@@ -15,7 +16,7 @@ function makeApp(): AppStore {
 let app: AppStore
 let onEdit: (id: string) => void
 beforeEach(() => { app = makeApp(); onEdit = vi.fn() })
-const r = () => render(<AppStoreProvider value={app}><FolderPanel onEdit={onEdit} /></AppStoreProvider>)
+const r = () => render(<TestProviders app={app}><FolderPanel onEdit={onEdit} /></TestProviders>)
 
 describe('FolderPanel', () => {
   it('toggles the add-folder form from the ＋ button', async () => {
@@ -37,22 +38,33 @@ describe('FolderPanel', () => {
     expect(app.store.getState().filter.untagged).toBe(false)
     expect(app.store.getState().filter.scope.folderIds).toEqual([id])
   })
-  it('deletes a folder after confirmation', async () => {
+  it('deletes an empty folder at once, with an undo toast', async () => {
     const id = await app.createCategory({ name: '历史' })
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
     r()
     await userEvent.click(screen.getByLabelText('删除文件夹「历史」'))
-    expect(confirm).toHaveBeenCalled()
+    expect(screen.queryByRole('alertdialog')).toBeNull()
     expect(app.store.getState().categories.find((c) => c.id === id)?.deleted).toBe(true)
-    confirm.mockRestore()
+    await userEvent.click(await screen.findByRole('button', { name: '撤销' }))
+    expect(app.store.getState().categories.find((c) => c.id === id)?.deleted).toBe(false)
   })
-  it('does not delete a folder when confirmation is cancelled', async () => {
+  it('asks before deleting a folder that holds events', async () => {
     const id = await app.createCategory({ name: '历史' })
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    await app.createEvent({ title: '事件', categoryId: id, start: fromYear(1, 'year') })
     r()
     await userEvent.click(screen.getByLabelText('删除文件夹「历史」'))
+    const dialog = await screen.findByRole('alertdialog')
+    await userEvent.click(within(dialog).getByRole('button', { name: '删除' }))
+    await waitFor(() => expect(app.store.getState().categories.find((c) => c.id === id)?.deleted).toBe(true))
+    expect(app.store.getState().events.every((e) => e.deleted)).toBe(true)
+  })
+  it('does not delete a folder that holds events when the dialog is cancelled', async () => {
+    const id = await app.createCategory({ name: '历史' })
+    await app.createEvent({ title: '事件', categoryId: id, start: fromYear(1, 'year') })
+    r()
+    await userEvent.click(screen.getByLabelText('删除文件夹「历史」'))
+    const dialog = await screen.findByRole('alertdialog')
+    await userEvent.click(within(dialog).getByRole('button', { name: '取消' }))
     expect(app.store.getState().categories.find((c) => c.id === id)?.deleted).toBe(false)
-    confirm.mockRestore()
   })
   it('folders start collapsed; the twisty expands and collapses children', async () => {
     const p = await app.createCategory({ name: '历史' })
@@ -71,7 +83,7 @@ describe('FolderPanel', () => {
     const { container } = r()
     await userEvent.click(screen.getByLabelText('展开「历史」')) // 默认折叠 → 先展开露出子文件夹
     const childRow = [...container.querySelectorAll('.folder-row')].find((el) => el.textContent?.includes('近代史'))!
-    const tail = container.querySelector('.folder-tail')!
+    const tail = container.querySelector('.tree-tail')!
     fireEvent.dragStart(childRow)
     fireEvent.dragOver(tail)
     fireEvent.drop(tail)
@@ -107,7 +119,7 @@ describe('FolderPanel', () => {
     const { container } = r()
     const rows = [...container.querySelectorAll('.folder-row')]
     const dragRow = rows.find(
-      (el) => el.textContent?.includes('近代史') && (el as HTMLElement).style.paddingLeft === '8px',
+      (el) => el.textContent?.includes('近代史') && (el as HTMLElement).style.paddingLeft === '6px',
     )!
     const parentRow = rows.find((el) => el.textContent?.includes('历史'))!
     fireEvent.dragStart(dragRow)
@@ -125,9 +137,9 @@ describe('FolderPanel', () => {
     await userEvent.click(screen.getByLabelText('展开「科学」')) // 默认折叠 → 露出子文件夹
     const rows = [...container.querySelectorAll('.folder-row')]
     const childRow = rows.find(
-      (el) => el.textContent?.includes('历史') && (el as HTMLElement).style.paddingLeft === '24px',
+      (el) => el.textContent?.includes('历史') && (el as HTMLElement).style.paddingLeft === '20px',
     )!
-    const tail = container.querySelector('.folder-tail')!
+    const tail = container.querySelector('.tree-tail')!
     fireEvent.dragStart(childRow)
     fireEvent.dragOver(tail)
     fireEvent.drop(tail)
@@ -215,7 +227,7 @@ describe('FolderPanel', () => {
     const { container } = r()
     await userEvent.click(screen.getByLabelText('展开「A」'))
     const evRow = screen.getByText('事件').closest('.event-row')!
-    const tail = container.querySelector('.folder-tail')!
+    const tail = container.querySelector('.tree-tail')!
     fireEvent.dragStart(evRow)
     fireEvent.drop(tail)
     expect(app.store.getState().events.find((x) => x.id === e)?.categoryId).toBe(a)

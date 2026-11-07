@@ -1,11 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Let the user save an exported JSON file wherever they choose.",
-  "windows": ["main"],
+  "description": "Let the user save an exported file (JSON, CSV or PNG) wherever they choose.",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "dialog:allow-save",
-    "fs:allow-write-text-file"
+    "fs:allow-write-text-file",
+    "fs:allow-write-file"
   ]
 }

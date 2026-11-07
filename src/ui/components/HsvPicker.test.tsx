@@ -3,9 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HsvPicker } from './HsvPicker'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
@@ -16,7 +17,7 @@ function makeApp(): AppStore {
 let app: AppStore
 beforeEach(() => { app = makeApp() })
 function renderPicker(props: Parameters<typeof HsvPicker>[0]) {
-  return render(<AppStoreProvider value={app}><HsvPicker {...props} /></AppStoreProvider>)
+  return render(<TestProviders app={app}><HsvPicker {...props} /></TestProviders>)
 }
 
 describe('HsvPicker', () => {

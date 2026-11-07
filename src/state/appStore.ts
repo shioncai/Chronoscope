@@ -84,8 +84,9 @@ export interface AppStore {
   setTheme(theme: Theme): void
   setLocale(locale: Locale): void
   setNowYear(nowYear: number): void
-  setTimelineView(updater: LinearView | ((prev: LinearView | null) => LinearView)): void
-  setTimelineOverview(updater: LinearView | ((prev: LinearView | null) => LinearView)): void
+  /** null means "fit the data" — the view falls back to the data bounds. */
+  setTimelineView(updater: LinearView | null | ((prev: LinearView | null) => LinearView)): void
+  setTimelineOverview(updater: LinearView | null | ((prev: LinearView | null) => LinearView)): void
   setTimelineScale(updater: number | ((prev: number) => number)): void
   setTimelineAxis(axis: AxisKind): void
   setTimelineLanes(on: boolean): void

@@ -1,25 +1,28 @@
-import '@fontsource/space-grotesk/500.css'
-import '@fontsource/space-grotesk/600.css'
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/ibm-plex-mono/400.css'
-import '@fontsource/ibm-plex-mono/500.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
-import './ui/styles/tokens.css'
-import './ui/styles/chrome.css'
+import './ui/styles/index.css'
 import { openDatabase, getOrCreateNodeId, createClock } from './data'
 import {
   createAppStore,
-  resolveInitialTheme,
+  resolveInitialThemeMode,
+  resolveTheme,
   resolveInitialLocale,
   loadStoredTheme,
   loadStoredLocale,
+  loadPrefs,
   type AppStore,
 } from './state'
 import { decimalFromCivil } from './domain/time'
 import { initAndroidBackButton } from './platform'
+
+function read<T>(f: () => T, fallback: T): T {
+  try {
+    return f()
+  } catch {
+    return fallback // storage blocked (private mode, sandboxed webview)
+  }
+}
 
 async function bootstrap(): Promise<{ app: AppStore }> {
   // openDatabase() returns { db, events, categories, tags }; the object as a
@@ -38,9 +41,17 @@ async function bootstrap(): Promise<{ app: AppStore }> {
     s: now.getSeconds(),
   })
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const theme = resolveInitialTheme(loadStoredTheme(window.localStorage), prefersDark)
-  const locale = resolveInitialLocale(loadStoredLocale(window.localStorage), navigator.languages)
-  const app = createAppStore({ db: opened, clock, nowYear, theme, locale })
+  const themeMode = resolveInitialThemeMode(read(() => loadStoredTheme(window.localStorage), null))
+  const locale = resolveInitialLocale(read(() => loadStoredLocale(window.localStorage), null), navigator.languages)
+  const app = createAppStore({
+    db: opened,
+    clock,
+    nowYear,
+    theme: resolveTheme(themeMode, prefersDark),
+    themeMode,
+    locale,
+    prefs: loadPrefs(window.localStorage),
+  })
   await app.load()
 
   initAndroidBackButton()

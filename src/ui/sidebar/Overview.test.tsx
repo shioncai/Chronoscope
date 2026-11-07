@@ -3,9 +3,10 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Overview } from './Overview'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
   let t = 0, i = 0; const clock: Clock = { now: () => `t${++t}` }
@@ -13,7 +14,7 @@ function makeApp(): AppStore {
 }
 let app: AppStore
 beforeEach(() => { app = makeApp() })
-const r = () => render(<AppStoreProvider value={app}><Overview /></AppStoreProvider>)
+const r = () => render(<TestProviders app={app}><Overview /></TestProviders>)
 
 describe('Overview', () => {
   it('clicking 未标签事件 sets the untagged filter and clears tags', async () => {

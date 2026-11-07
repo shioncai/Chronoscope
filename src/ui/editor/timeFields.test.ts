@@ -126,3 +126,12 @@ describe('fieldsFromTimePoint — relative magnitude reads back exactly', () => 
     expect(fieldsFromTimePoint(tp).mag).toBe('66.043')
   })
 })
+
+describe('buildTimePoint guards', () => {
+  it('rejects a calendar year that nobody writes: 0, negative, fractional', async () => {
+    const { buildTimePoint, emptyFields } = await import('./timeFields')
+    for (const year of ['0', '-5', '2020.5']) expect(buildTimePoint({ ...emptyFields(), year })).toBeNull()
+    expect(buildTimePoint({ ...emptyFields(), mode: 'scale', unit: 'Ma', mag: '-3' })).toBeNull()
+    expect(buildTimePoint({ ...emptyFields(), year: '1' })).not.toBeNull()
+  })
+})

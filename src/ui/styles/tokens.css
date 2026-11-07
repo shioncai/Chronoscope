@@ -1,96 +1,63 @@
 /* Chronoscope design tokens — "Ink & Paper".
-   The chrome is achromatic, top to bottom: --accent is ink in day, moon white at
-   night. No token the timeline paints carries a hue. The only colour in the app
-   belongs to the user — their folder colours, on the event glyphs.
+
+   This file is the CONTRACT: custom properties only, plus `color-scheme`.
+   Every other stylesheet consumes these; none defines colour of its own.
+
+   ACHROMATIC CHROME. --accent is ink in day, moon white at night; no token the
+   chrome or the timeline paints carries a hue. The only colour in the app
+   belongs to the user — their folder colours on the event glyphs — and the
+   app mark, which has its own fixed palette.
 
    --accent is a VALUE, not a HUE. At night it equals --text byte for byte, so
-   `color: var(--accent)` cannot lift an element out of body text. Emphasis must
-   come from weight, fill, or border.
+   `color: var(--accent)` cannot lift an element out of body text. Emphasis
+   comes from weight, fill or border.
 
-   TIME DEPTH IS ENCODED IN LIGHTNESS, NOT HUE. The overview band's density
-   markers ramp mixHex(--deep-time, --accent, depth): faint grey in deep time,
-   full-strength ink/moonlight at the present. This replaced a --deep-time→amber
-   "temperature" wash whose midpoint blended a desaturated warm grey into a
-   saturated amber and came out khaki mud (#a3814e), laid at 10% alpha over warm
-   paper. DO NOT mix a saturated colour back into --deep-time: that, plus the
-   large low-alpha area, is precisely what made the old band look dirty. Changing
-   the hue would not have saved it — removing the hue did.
+   TIME DEPTH IS ENCODED IN LIGHTNESS. The overview band's density markers ramp
+   mixHex(--deep-time, --accent, depth): faint in deep time, full strength at the
+   present. --deep-time must stay dark enough (day) / light enough (night) that
+   the leftmost markers clear 3:1 against --surface; never mix a saturated colour
+   into it (an amber wash once turned the band into khaki mud).
 
-   --deep-time therefore has lightness as its only channel: it must stay dark
-   enough (day) / light enough (night) that the leftmost density markers clear
-   3:1 against --surface. Do not "soften" it without re-measuring. The markers are
-   also snapped to the half-pixel grid in renderer.ts — a 1px stroke on a
-   fractional x antialiases to half strength, which measured 1.88:1 instead of
-   3.8:1. Lightness is all these markers have left; half of it is not spendable.
+   --float / --float-border / --float-hover are for things that float on the
+   CANVAS (--bg): the FAB and the overview band's top rule. --surface is only
+   1.16:1 against --bg at night and a black shadow does nothing on a near-black
+   canvas, so these carry their own, higher-contrast edge. Hover moves AWAY from
+   --bg in both themes.
 
-   The overview band is bare --surface plus a 1px --float-border top rule. That
-   rule is STRUCTURAL, not decoration: --surface is only 1.16:1 against --bg at
-   night, so the fill alone cannot separate the band from the canvas. The old wash
-   was doing this job as a side effect, and it left with the amber. Do not
-   "simplify" the rule away, and do not downgrade it to --border (only 1.4:1 on
-   --bg at night — see the --float-border paragraph below).
+   THE CANVAS READS TOKENS BY NAME. TimelineView.tsx looks these up with
+   getComputedStyle: --bg --surface --text --muted --border --float-border
+   --accent --deep-time. Rename one and the timeline silently loses it.
 
-   Selection is achromatic and NEVER overwrites the user's folder colour: the
-   glyph keeps its fill and gets a --bg halo + a --text ring (the halo is what
-   guarantees the ring cannot merge into a near-black or near-white fill), plus
-   its title at weight 600.
-
-   --focus-ring is deliberately separate from --accent-soft: a ring must be
-   seen, a fill must not be. A saturated teal could do both jobs; a neutral
-   cannot.
-
-   --shadow-raised lifts the selected pill of a segmented control off its
-   recessed --field track. It is load-bearing: --field to --surface is only a
-   ~1.1:1 step in BOTH themes, so the fill alone cannot say "selected". The
-   signal is the four together — fill, this shadow, --muted to --text, and
-   weight 500 to 600. Weaken any one and re-check the control in a browser.
-
-   --float / --float-border / --float-hover are for controls that float on the
-   CANVAS (--bg): the FAB, the zoom stepper, and the overview band's top rule.
-   They exist because --surface is only 1.16:1 against --bg at night, and
-   --fab-shadow is a black shadow on a near-black canvas — it does nothing there.
-   A card can live with that (it is large and full of text); a 48px disc cannot.
-   Do NOT "simplify" these back to --surface/--border: that is exactly the state
-   this fixed. Day fill/border equal --surface/--border by design — day never had
-   the separation problem. Measured on --bg at night: --border 1.4:1,
-   --float-border 1.75:1. That gap is the whole reason --float-border exists, and
-   it is why the band's rule uses it and not --border.
-
-   --float-hover must always move AWAY from --bg. The float sits *above* the
-   canvas in both themes (lighter in day, lighter at night), so hover brightens
-   in both. Reusing --hover here is a trap: --hover is #f1f0ed, which is the
-   canvas itself, so the day FAB dissolved into the background on hover. In day
-   there is almost no headroom above --surface, so the lift and scale carry the
-   feedback and the fill barely moves; at night the fill does the work.
-
-   Exact values are tunable; the custom-property contract is what's stable.
-   Self-hosted via @fontsource (imported in main.tsx); system fonts fall back.
-
-   --bg IS MIRRORED OUTSIDE THIS FILE. Three surfaces are painted before any CSS
-   loads, so they cannot read a custom property and hard-code the hex instead.
-   Change --bg (day or night) and you must change all three, or the browser and
-   the desktop window will paint the previous palette's colour:
-     1. index.html            — the <meta name="theme-color"> pair
-     2. vite.config.ts        — the PWA manifest's theme_color/background_color
-     3. electron/main.cjs     — BrowserWindow backgroundColor
-   src/state/theme.ts holds the same two values as THEME_COLORS, which is what
-   AppShell applies to the meta tags on a theme change. */
+   --bg IS MIRRORED OUTSIDE THIS FILE, in the places painted before any CSS
+   loads: index.html (theme-color metas), vite.config.ts (PWA manifest),
+   electron/main.cjs and src-tauri/src/main.rs (window background), and
+   src/state/theme.ts (THEME_COLORS). Change --bg and change them all. */
 
 :root {
-  color-scheme: light;   /* UA widgets follow the app's theme — see the note below */
+  color-scheme: light; /* UA widgets (scrollbars, <select> popups) follow the theme */
 
-  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* System fonts: zero bytes to download, native rendering on every platform,
+     and CJK text falls back to the OS's own CJK face instead of a mismatch. */
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei UI', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, 'Roboto Mono', monospace;
 
-  /* Day — 未漂白的纸。暖中性灰；正文不用纯黑、底不用纯白，长时间阅读不易疲劳。 */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Day — unbleached paper: warm neutral greys, never pure black on pure white. */
   --bg: #f0efec;
   --panel: #f8f7f5;
   --surface: #fdfcfb;
   --field: #f2f1ee;
-  --hover: #f1f0ed;
-  --selected: #e9e7e3;
+  --hover: #ebe9e5;
+  --selected: #e3e1dc;
   --border: #e0ded9;
+  --border-strong: #cfccc5;
   --border-soft: #ebe9e5;
   --text: #1f1e1c;
   --muted: #6b6863;
@@ -98,17 +65,21 @@
   --accent: #24231f;
   --on-accent: #fdfcfb;
   --accent-soft: rgba(36, 35, 31, 0.06);
-  --focus-ring: rgba(36, 35, 31, 0.07);
+  --focus-ring: rgba(36, 35, 31, 0.5);
   --deep-time: #8f8a80;
-  --danger: #c0392b;
+  --danger: #b5382a;
+  --danger-soft: rgba(181, 56, 42, 0.08);
+  --mark: rgba(214, 170, 60, 0.32);
   --float: #fdfcfb;
   --float-border: #e0ded9;
-  --float-hover: #ffffff;   /* hover moves AWAY from --bg; in day that is up */
-  --shadow: 0 1px 2px rgba(40, 35, 25, 0.05), 0 8px 24px rgba(40, 35, 25, 0.07);
-  --shadow-raised: 0 1px 2px rgba(40, 35, 25, 0.10), 0 1px 1px rgba(40, 35, 25, 0.06);
-  --fab-shadow: 0 6px 16px rgba(40, 35, 25, 0.20);
+  --float-hover: #ffffff;
+  --overlay: rgba(28, 24, 18, 0.36);
+  --shadow-sm: 0 1px 2px rgba(40, 35, 25, 0.06);
+  --shadow: 0 1px 2px rgba(40, 35, 25, 0.05), 0 8px 24px rgba(40, 35, 25, 0.08);
+  --shadow-lg: 0 2px 6px rgba(40, 35, 25, 0.06), 0 24px 64px rgba(40, 35, 25, 0.16);
+  --shadow-raised: 0 1px 2px rgba(40, 35, 25, 0.12), 0 1px 1px rgba(40, 35, 25, 0.06);
+  --fab-shadow: 0 6px 16px rgba(40, 35, 25, 0.2);
   --scroll-thumb: #b6b1a8;
-  --switch-on: #24231f;   /* == --accent; day has the headroom to use it whole */
 }
 
 [data-theme='night'] {
@@ -118,125 +89,30 @@
   --panel: #1a1a18;
   --surface: #212120;
   --field: #171716;
-  --hover: #262624;
-  --selected: #2e2e2b;
+  --hover: #2a2a27;
+  --selected: #33332f;
   --border: #2f2f2c;
+  --border-strong: #45433e;
   --border-soft: #262624;
   --text: #e8e6e1;
-  --muted: #918d86;
-  --faint: #63605b;
-  --accent: #e8e6e1;   /* == --text, by design */
+  --muted: #9a968f;
+  --faint: #6b6862;
+  --accent: #e8e6e1; /* == --text, by design */
   --on-accent: #121211;
   --accent-soft: rgba(232, 230, 225, 0.08);
-  --focus-ring: rgba(232, 230, 225, 0.09);
+  --focus-ring: rgba(232, 230, 225, 0.55);
   --deep-time: #78746d;
   --danger: #e8695c;
-  --float: #2e2e2b;         /* 1.38:1 on --bg — the border is what outlines it */
-  --float-border: #403e38;  /* 1.75:1 on --bg — this is the actual edge */
-  --float-hover: #3a3834;   /* likewise away from --bg; at night that is also up */
+  --danger-soft: rgba(232, 105, 92, 0.12);
+  --mark: rgba(214, 170, 60, 0.3);
+  --float: #2e2e2b; /* 1.38:1 on --bg — the border is what outlines it */
+  --float-border: #403e38; /* 1.75:1 on --bg — this is the actual edge */
+  --float-hover: #3a3834;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.35), 0 24px 64px rgba(0, 0, 0, 0.6);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4);
   --fab-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
   --scroll-thumb: #504e48;
-  --switch-on: #a9a6a0;   /* --accent dimmed; see the .switch note in chrome.css */
 }
-
-/* The widgets the app does not paint — the UA does. Scrollbars, the popup a
-   <select> drops, the radios in the conflict dialog, the spinners on the
-   number fields: none of them can be reached with a colour token, and at
-   night they all kept rendering the light-mode palette, so a dark app grew
-   white scrollbars. `color-scheme` is the switch, and it belongs on
-   [data-theme] rather than in a prefers-color-scheme query: the theme is the
-   user's choice and is allowed to disagree with the OS.
-
-   The two scrollbar properties then take the thumb off the UA's generic grey
-   and onto the palette. Both are inherited, so declaring them at the root
-   covers every scroll container. A transparent track leaves the thumb
-   floating on whatever surface it scrolls, and `thin` drops the stepper
-   arrows — the scrollbar stops being chrome and becomes a position marker.
-   The two thumbs are matched, not eyeballed: both land at ~2.0:1 on --panel,
-   which is the contrast Chromium's own default thumbs carry. Do not reuse
-   --border here (1.2:1 in day) — a thumb that faint reads as an empty track.
-
-   Chromium ignores ::-webkit-scrollbar-* once scrollbar-color is set, so
-   there is no hover state to add; these two properties are the whole API. */
-:root {
-  scrollbar-color: var(--scroll-thumb) transparent;
-  scrollbar-width: thin;
-}
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-}
-
-.mono { font-family: var(--font-mono); }
-.display { font-family: var(--font-display); }
-
-/* Minimal structural layout so the timeline canvas resolves a definite height
-   (percentage heights need a definite-height ancestor chain). Full visual
-   design — sidebar/topbar styling, spacing, the Deep Time Instrument look —
-   is Plan 6; this is only the height/flex skeleton the canvas requires. */
-html, body, #root { height: 100%; }
-/* --topbar-h is the top bar's *content* height; the bar itself grows by the
-   status-bar inset on top of it. Anything that aligns under the bar (the mobile
-   drawer, its backdrop) measures from --topbar-h + --safe-top rather than
-   repeating a hard-coded number. The insets read 0 everywhere except a device
-   with a cutout or a gesture bar (and only when index.html asks for
-   viewport-fit=cover), so desktop and the browser are unaffected. */
-.app-shell {
-  --sidebar-w: 248px;
-  --topbar-h: 54px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.app-shell .body { flex: 1; display: flex; min-height: 0; position: relative; }
-.sidebar { flex: 0 0 auto; overflow: auto; }
-.view-area { flex: 1; min-height: 0; overflow: auto; }
-
-/* --- detail card (Plan 5; visual polish in Plan 6) --- */
-.timeline-view { position: relative; }
-.event-card {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  max-width: 320px;
-  max-height: calc(100% - 64px);
-  overflow: auto;
-  padding: 12px;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-.event-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.event-card h3 { margin: 0; }
-.event-card .time { color: var(--muted); margin: 4px 0; }
-/* Chip rows (tags/links) are direct children of the card; the `>` keeps this
-   off Markdown-generated lists nested inside `.markdown`, which need bullets. */
-.event-card > ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.event-card .links button { cursor: pointer; }
-
-/* a11y baseline (spec §9): visible keyboard focus + honor reduced-motion. */
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-:focus:not(:focus-visible) { outline: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-.muted { color: var(--muted); }

@@ -1,10 +1,10 @@
-import { useAppState } from '../state'
+import { useAppSelector } from '../state'
 import { translate, tn, type MessageParams } from './t'
 import type { MessageKey } from './catalog'
 import type { Locale } from '../domain/locale'
 
 export function useLocale(): Locale {
-  return useAppState().locale
+  return useAppSelector((s) => s.locale)
 }
 
 export function useT(): (key: MessageKey, params?: MessageParams) => string {

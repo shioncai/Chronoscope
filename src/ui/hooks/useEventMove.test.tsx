@@ -3,9 +3,10 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEventMove } from './useEventMove'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag, Id } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
@@ -30,7 +31,7 @@ describe('useEventMove', () => {
     const a = await app.createCategory({ name: 'A' })
     const b = await app.createCategory({ name: 'B' })
     const e = await app.createEvent({ title: 'x', categoryId: a })
-    render(<AppStoreProvider value={app}><Harness ids={[e]} target={b} /></AppStoreProvider>)
+    render(<TestProviders app={app}><Harness ids={[e]} target={b} /></TestProviders>)
     await userEvent.click(screen.getByText('go'))
     expect(app.store.getState().events.find((x) => x.id === e)?.categoryId).toBe(b)
   })
@@ -40,7 +41,7 @@ describe('useEventMove', () => {
     const b = await app.createCategory({ name: 'B' })
     const mover = await app.createEvent({ title: '登月', categoryId: a })
     const occupant = await app.createEvent({ title: '登月', categoryId: b })
-    render(<AppStoreProvider value={app}><Harness ids={[mover]} target={b} /></AppStoreProvider>)
+    render(<TestProviders app={app}><Harness ids={[mover]} target={b} /></TestProviders>)
     await userEvent.click(screen.getByText('go'))
     await userEvent.click(screen.getByText('全部覆盖'))
     await userEvent.click(screen.getByText('确认'))

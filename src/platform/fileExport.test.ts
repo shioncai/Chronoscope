@@ -42,9 +42,22 @@ describe('saveTextFile (web)', () => {
     expect(clicked!.href).toBe('blob:fake')
   })
 
-  it('releases the object URL', async () => {
+  it('releases the object URL once the download has had time to start', async () => {
+    vi.useFakeTimers()
+    try {
+      await saveTextFile('x.json', '{}')
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1000)
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('puts the anchor in the document for the click, then removes it', async () => {
     await saveTextFile('x.json', '{}')
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake')
+    expect(clicked!.isConnected).toBe(false)
+    expect(document.querySelector('a[download]')).toBeNull()
   })
 
   // Tauri is detected by a global it stamps on the window, so a browser and the
@@ -92,7 +105,20 @@ describe('saveTextFile (Tauri)', () => {
   it('writes nothing when the user cancels the dialog', async () => {
     saveMock.mockResolvedValue(null)
     const { saveTextFile: save } = await import('./fileExport')
-    await save('x.json', '{}')
+    expect(await save('x.json', '{}')).toBe(false)
     expect(writeMock).not.toHaveBeenCalled()
+  })
+
+  it('writes binary data through the binary API with a matching filter', async () => {
+    const binMock = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('@tauri-apps/plugin-fs', () => ({ writeTextFile: writeMock, writeFile: binMock }))
+    const { saveFile } = await import('./fileExport')
+    const blob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' })
+    // jsdom's Blob lacks arrayBuffer in some versions; give it one
+    if (!blob.arrayBuffer) Object.assign(blob, { arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer })
+    await saveFile('t.png', blob, 'image/png')
+    expect(saveMock).toHaveBeenCalledWith({ defaultPath: 't.png', filters: [{ name: 'PNG', extensions: ['png'] }] })
+    expect(binMock).toHaveBeenCalledTimes(1)
+    expect(Array.from(binMock.mock.calls[0][1] as Uint8Array)).toEqual([1, 2, 3])
   })
 })

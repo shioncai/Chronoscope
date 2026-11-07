@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   resolveInitialTheme,
+  resolveInitialThemeMode,
+  resolveTheme,
   persistTheme,
   loadStoredTheme,
   applyTheme,
@@ -18,6 +20,17 @@ describe('theme', () => {
     expect(resolveInitialTheme(null, true)).toBe('night')
     expect(resolveInitialTheme(null, false)).toBe('day')
     expect(resolveInitialTheme('garbage', true)).toBe('night')
+  })
+  it('reads a stored mode, and treats anything else as following the system', () => {
+    expect(resolveInitialThemeMode('system')).toBe('system')
+    expect(resolveInitialThemeMode('night')).toBe('night')
+    expect(resolveInitialThemeMode(null)).toBe('system')
+    expect(resolveInitialThemeMode('garbage')).toBe('system')
+  })
+  it('resolves the system mode against the OS preference', () => {
+    expect(resolveTheme('system', true)).toBe('night')
+    expect(resolveTheme('system', false)).toBe('day')
+    expect(resolveTheme('day', true)).toBe('day')
   })
   it('persists and loads via the storage key', () => {
     const map = new Map<string, string>()

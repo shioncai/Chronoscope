@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildScene, eventInstant, aggregateMarkers } from './scene'
 import { ev, y } from '../../test/fixtures'
 import { withFuzz, migrateEventTimes } from '../../domain/time'
-import { labelWidth } from './labels'
+import { labelWidth, nowChipSpan, BASE_FONT_PX } from './labels'
 
 const base = { view: { min: 2000, max: 2100 }, overview: { min: 2000, max: 2100 }, nowYear: 2026, width: 1000, selectedId: null }
 
@@ -103,7 +103,7 @@ describe('buildScene', () => {
   })
   it('uses a relative label for a deep-time overview bound', () => {
     const scene = buildScene({ ...base, overview: { min: 2026 - 5e8, max: 2026 - 1e6 }, events: [] })
-    expect(scene.overview.range.start).toBe('约5.0亿年前')
+    expect(scene.overview.range.start).toBe('约5亿年前')
     expect(scene.overview.range.end).toBe('约100万年前')
   })
   it('labels ticks and keeps them within the width', () => {
@@ -243,5 +243,27 @@ describe('aggregateMarkers', () => {
   it('keeps the eventId for a lone marker', () => {
     const out = aggregateMarkers([{ x: 42, eventId: 'z' }], 6)
     expect(out).toEqual([{ x: 42, count: 1, eventId: 'z' }])
+  })
+
+  describe('the now chip', () => {
+    it('marks the present when it is in view, and not otherwise', () => {
+      const inView = buildScene({ ...base, events: [] })
+      expect(inView.detail.now).toBeCloseTo(260, 5)
+      expect(inView.detail.nowLabel).toBeTruthy()
+      const past = buildScene({ ...base, view: { min: 1000, max: 1100 }, events: [] })
+      expect(past.detail.now).toBeNull()
+    })
+    it('clears any tick label that would sit under it, keeping the tick line', () => {
+      // 2026 is 6 px right of the 2025 tick at this zoom: its label runs under the chip
+      const scene = buildScene({ ...base, view: { min: 2020, max: 2030 }, overview: { min: 2020, max: 2030 }, events: [] })
+      const chip = nowChipSpan(scene.detail.now!, scene.detail.nowLabel, BASE_FONT_PX, 1000)
+      for (const t of scene.detail.ticks) {
+        if (!t.label) continue
+        const w = labelWidth(t.label, BASE_FONT_PX)
+        const overlaps = t.x + 3 < chip.x1 + 4 && t.x + 3 + w > chip.x0 - 4
+        expect(overlaps).toBe(false)
+      }
+      expect(scene.detail.ticks.some((t) => !t.label)).toBe(true)
+    })
   })
 })

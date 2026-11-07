@@ -4,9 +4,10 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TimeInput } from './TimeInput'
 import { fromYear, fromCivil, fromAgo } from '../../domain/time'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = {
@@ -26,9 +27,9 @@ beforeEach(() => {
 
 function renderInput(props: Parameters<typeof TimeInput>[0]) {
   return render(
-    <AppStoreProvider value={app}>
+    <TestProviders app={app}>
       <TimeInput {...props} />
-    </AppStoreProvider>,
+    </TestProviders>,
   )
 }
 
@@ -88,7 +89,7 @@ describe('TimeInput (structured)', () => {
     await userEvent.selectOptions(screen.getByLabelText('起点 单位'), 'Ga')
     await userEvent.type(screen.getByLabelText('起点 距今'), '3.8')
     expect(onChange).toHaveBeenLastCalledWith(fromAgo(3.8e9, 'Ga'))
-    expect(screen.getByText('约38.0亿年前')).toBeTruthy()
+    expect(screen.getByText('约38亿年前')).toBeTruthy()
   })
 
   it('seeds its fields from an existing value when editing', () => {

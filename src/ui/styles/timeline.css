@@ -1,0 +1,123 @@
+/* Timeline: toolbar, canvas host, hover tooltip and the detail card. The
+   canvas paints itself from tokens (see tokens.css); this file only frames it. */
+
+.timeline-pane { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+
+/* ---------- toolbar ---------- */
+.tl-toolbar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 8px;
+  height: 46px; padding: 0 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+}
+.tool-group { display: flex; align-items: center; gap: 2px; }
+.tl-toolbar .icon-btn { min-width: 32px; height: 32px; }
+.tl-span {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 12px; color: var(--muted); text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 860px) {
+  .tl-toolbar .tool-label { display: none; }
+  .tl-toolbar .btn-sm { padding: 0 8px; }
+}
+@media (max-width: 520px) {
+  .tl-toolbar { gap: 4px; padding: 0 6px; }
+  .tl-span { font-size: 11px; }
+}
+
+/* options popover */
+.tl-options { padding: 10px; min-width: 240px; gap: 6px; }
+.opt-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 2px 4px 6px; font-size: 13px; }
+.stepper {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.stepper button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 28px; color: var(--text);
+}
+.stepper button:hover:not(:disabled) { background: var(--hover); }
+.stepper button:disabled { color: var(--faint); }
+.stepper .stepper-value {
+  width: auto; min-width: 52px; padding: 0 6px;
+  font-family: var(--font-mono); font-size: 12px;
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+
+/* ---------- canvas host ---------- */
+.timeline-view { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.timeline-view:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.timeline-view canvas {
+  display: block; width: 100%; height: 100%;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  cursor: grab;
+}
+.timeline-view canvas:active { cursor: grabbing; }
+.timeline-view canvas.is-pointing { cursor: pointer; }
+
+.tl-tooltip {
+  position: absolute; z-index: 6; pointer-events: none;
+  display: flex; flex-direction: column; gap: 2px;
+  max-width: 300px; padding: 7px 10px;
+  font-size: 12.5px;
+  background: var(--surface);
+  border: 1px solid var(--float-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  transform: translate(-50%, calc(-100% - 14px));
+  animation: fadeIn 0.12s var(--ease-out);
+}
+.tl-tooltip strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-tooltip .mono { font-size: 11.5px; color: var(--muted); }
+
+/* ---------- detail card ---------- */
+/* Pinned top-right on wide screens; a bottom sheet over the overview band on
+   phones. 48px = OVERVIEW_HEIGHT in renderer.ts. */
+.event-card {
+  position: absolute; top: 14px; right: 14px; z-index: 7;
+  width: min(360px, calc(100% - 28px));
+  max-height: calc(100% - 48px - 28px);
+  overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 14px 16px 14px;
+  background: var(--surface);
+  border: 1px solid var(--float-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  animation: pop 0.18s var(--ease-out);
+}
+.event-card-head { display: flex; align-items: flex-start; gap: 8px; }
+.event-card-head h3 { flex: 1; min-width: 0; font-size: 16px; line-height: 1.35; padding-top: 3px; overflow-wrap: anywhere; }
+.event-card-head .icon-btn { margin: -2px -6px 0 0; }
+.event-card-time { font-size: 12.5px; color: var(--text); }
+.event-card-meta { font-size: 12.5px; color: var(--muted); }
+.event-card-folder { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
+.event-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.event-card-tags li {
+  height: 22px; padding: 0 8px; display: inline-flex; align-items: center;
+  font-size: 12px; color: var(--muted);
+  background: var(--field); border: 1px solid var(--border); border-radius: 999px;
+}
+.event-card-note { padding-top: 8px; border-top: 1px solid var(--border-soft); }
+.event-card-links { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--border-soft); }
+.event-card-links ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
+.link-btn {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  padding: 5px 6px; margin: 0 -6px;
+  font-size: 13px; text-align: left; border-radius: 6px;
+}
+.link-btn .icon { color: var(--faint); }
+.link-btn:hover { background: var(--hover); }
+.event-card-actions { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.event-card-actions .is-danger { margin-left: auto; }
+
+@media (max-width: 640px) {
+  .event-card {
+    top: auto; left: 8px; right: 8px; bottom: calc(48px + 8px);
+    width: auto; max-height: 56%;
+    animation: sheetIn 0.22s var(--ease-out);
+  }
+}
+@keyframes sheetIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }

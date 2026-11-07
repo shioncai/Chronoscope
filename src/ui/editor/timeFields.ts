@@ -42,6 +42,13 @@ function intOrNull(s: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+// A calendar year as written: a whole number from 1 up. "0 CE" and "-5 BCE" are
+// not years anyone means; the era picker carries the sign.
+function yearOrNull(s: string): number | null {
+  const n = intOrNull(s)
+  return n !== null && Number.isInteger(n) && n >= 1 ? n : null
+}
+
 // 公元前 V 年 ↔ astronomical year (1 - V); 公元 V 年 ↔ V.
 function signedYear(era: Era, value: number): number {
   return era === 'BCE' ? 1 - value : value
@@ -56,17 +63,17 @@ export function buildTimePoint(f: TimeFields): TimePoint | null {
   if (f.mode === 'scale') {
     if (isRelativeUnit(f.unit)) {
       const mag = intOrNull(f.mag)
-      if (mag === null) return null
+      if (mag === null || mag < 0) return null
       return fromAgo(mag * UNIT_YEARS[f.unit], f.unit)
     }
-    const yv = intOrNull(f.year)
+    const yv = yearOrNull(f.year)
     if (yv === null) return null
     return fromYear(signedYear(f.era, yv), f.unit)
   }
 
   // civil mode: walk year → month → day → hour → minute, stopping at the first
   // blank level (an orphaned finer field is ignored).
-  const yv = intOrNull(f.year)
+  const yv = yearOrNull(f.year)
   if (yv === null) return null
   const y = signedYear(f.era, yv)
 
@@ -126,4 +133,16 @@ export function fieldsFromTimePoint(tp: TimePoint | null): TimeFields {
   }
 
   return f
+}
+
+/** The form filled in with the current local time, to the minute. */
+export function nowFields(d = new Date()): TimeFields {
+  return {
+    ...emptyFields(),
+    year: String(d.getFullYear()),
+    mo: String(d.getMonth() + 1),
+    d: String(d.getDate()),
+    h: String(d.getHours()),
+    mi: String(d.getMinutes()),
+  }
 }

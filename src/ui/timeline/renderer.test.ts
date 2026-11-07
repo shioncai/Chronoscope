@@ -76,15 +76,20 @@ const scene: TimelineScene = {
   detail: {
     ticks: [{ x: 100, label: '2000年' }, { x: 500, label: '2050年' }],
     glyphs: [
-      { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [{ lo: 80, hi: 120 }, { lo: 280, hi: 320 }], row: 0, selected: false, label: { text: 'A', side: 'right', x: 326 } },
-      { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [{ lo: 480, hi: 520 }], row: 1, selected: true, label: { text: 'B', side: 'right', x: 526 } },
+      { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [{ lo: 80, hi: 120 }, { lo: 280, hi: 320 }], row: 0, selected: false, hovered: false, label: { text: 'A', side: 'right', x: 326, width: 10 } },
+      { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [{ lo: 480, hi: 520 }], row: 1, selected: true, hovered: false, label: { text: 'B', side: 'right', x: 526, width: 10 } },
     ],
     rowCount: 2,
+    lanes: [],
+    links: [],
+    now: null,
+    nowLabel: '',
   },
   overview: {
     markers: [{ x: 100, count: 1, eventId: 'a' }, { x: 900, count: 1, eventId: 'b' }],
     lens: { x0: 200, x1: 600 },
-    range: { start: '约5.0亿年前', end: '2026年' },
+    range: { start: '约5亿年前', end: '2026年' },
+    now: null,
   },
 }
 
@@ -133,7 +138,7 @@ describe('renderer', () => {
     const ctx = fakeCtx()
     const s: TimelineScene = {
       ...scene,
-      detail: { ...scene.detail, glyphs: [{ ...scene.detail.glyphs[0], label: { text: 'L', side: 'left', x: 94 } }] },
+      detail: { ...scene.detail, glyphs: [{ ...scene.detail.glyphs[0], label: { text: 'L', side: 'left', x: 94, width: 10 } }] },
     }
     drawScene(ctx, s, COLORS, computeLayout(400))
     const texts = (ctx.args.fillText ?? []).map((a) => a[0])
@@ -143,7 +148,7 @@ describe('renderer', () => {
     const ctx = fakeCtx()
     const s: TimelineScene = {
       ...scene,
-      detail: { ...scene.detail, glyphs: [{ ...scene.detail.glyphs[0], label: { text: '', side: 'none', x: 0 } }] },
+      detail: { ...scene.detail, glyphs: [{ ...scene.detail.glyphs[0], label: { text: '', side: 'none', x: 0, width: 10 } }] },
     }
     drawScene(ctx, s, COLORS, computeLayout(400))
     const texts = (ctx.args.fillText ?? []).map((a) => a[0])
@@ -201,7 +206,7 @@ describe('renderer', () => {
       ...scene,
       detail: {
         ...scene.detail,
-        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: true, color: '#b8791c', label: { text: 'A', side: 'right', x: 306 } }],
+        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: true, hovered: false, color: '#b8791c', label: { text: 'A', side: 'right', x: 306, width: 10 } }],
         rowCount: 1,
       },
     }
@@ -217,7 +222,7 @@ describe('renderer', () => {
       ...scene,
       detail: {
         ...scene.detail,
-        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#b8791c', label: { text: 'A', side: 'right', x: 306 } }],
+        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, hovered: false, color: '#b8791c', label: { text: 'A', side: 'right', x: 306, width: 10 } }],
         rowCount: 1,
       },
     }
@@ -260,8 +265,8 @@ describe('renderer', () => {
       detail: {
         ...scene.detail,
         glyphs: [
-          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#abcdef', label: { text: 'A', side: 'right', x: 306 } },
-          { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [], row: 1, selected: false, label: { text: 'B', side: 'right', x: 506 } },
+          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, hovered: false, color: '#abcdef', label: { text: 'A', side: 'right', x: 306, width: 10 } },
+          { eventId: 'b', kind: 'point', xStart: 500, xEnd: 500, whiskers: [], row: 1, selected: false, hovered: false, label: { text: 'B', side: 'right', x: 506, width: 10 } },
         ],
       },
     }
@@ -275,7 +280,7 @@ describe('renderer', () => {
       ...scene,
       detail: {
         ...scene.detail,
-        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: true, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306 } }],
+        glyphs: [{ eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: true, hovered: false, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306, width: 10 } }],
         rowCount: 1,
       },
     }
@@ -289,8 +294,8 @@ describe('renderer', () => {
       detail: {
         ...scene.detail,
         glyphs: [
-          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306 } },
-          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 1, selected: true, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606 } },
+          { eventId: 'a', kind: 'span', xStart: 100, xEnd: 300, whiskers: [], row: 0, selected: false, hovered: false, color: '#7a5aa6', label: { text: 'A', side: 'right', x: 306, width: 10 } },
+          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 1, selected: true, hovered: false, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606, width: 10 } },
         ],
         rowCount: 2,
       },
@@ -306,8 +311,8 @@ describe('renderer', () => {
       detail: {
         ...scene.detail,
         glyphs: [
-          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 0, selected: true, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606 } },
-          { eventId: 'c', kind: 'span', xStart: 700, xEnd: 800, whiskers: [], row: 1, selected: false, color: '#4f8a5b', label: { text: 'C', side: 'right', x: 806 } },
+          { eventId: 'b', kind: 'span', xStart: 400, xEnd: 600, whiskers: [], row: 0, selected: true, hovered: false, color: '#3f6fa8', label: { text: 'B', side: 'right', x: 606, width: 10 } },
+          { eventId: 'c', kind: 'span', xStart: 700, xEnd: 800, whiskers: [], row: 1, selected: false, hovered: false, color: '#4f8a5b', label: { text: 'C', side: 'right', x: 806, width: 10 } },
         ],
         rowCount: 2,
       },

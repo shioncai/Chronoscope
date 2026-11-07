@@ -14,6 +14,7 @@ export const en = {
   'import.error.not-chronoscope': 'This is not a Chronoscope export file.',
   'import.error.unsupported-version': 'Unsupported file version: {version}',
   'import.error.incomplete': 'The file contents are incomplete or corrupted.',
+  'import.error.csv-header': 'The CSV needs a header row with at least a "title" column.',
   'conflict.restoreTitle': 'Restore conflict',
   'conflict.moveTitle': 'Move conflict',
   'conflict.prompt': 'An event with the same name already exists in the target folder. Choose what to do:',
@@ -26,6 +27,8 @@ export const en = {
   'conflict.field.tags': 'Tags',
   'conflict.field.links': 'Links',
   'conflict.handle': 'Handle "{title}"',
+  'import.nothing': 'Everything in the file was already here.',
+  'import.undoHint': 'Changed your mind? Undo (Ctrl+Z) takes the whole import back.',
 } as const
 
 export const zh: Record<keyof typeof en, string> = {
@@ -44,6 +47,7 @@ export const zh: Record<keyof typeof en, string> = {
   'import.error.not-chronoscope': '这不是 Chronoscope 导出文件',
   'import.error.unsupported-version': '不支持的文件版本：{version}',
   'import.error.incomplete': '文件内容不完整或已损坏',
+  'import.error.csv-header': 'CSV 第一行须为表头，且至少包含“标题”（title）列',
   'conflict.restoreTitle': '恢复冲突',
   'conflict.moveTitle': '移动冲突',
   'conflict.prompt': '目标文件夹已存在同名事件，请选择如何处理：',
@@ -56,4 +60,6 @@ export const zh: Record<keyof typeof en, string> = {
   'conflict.field.tags': '标签',
   'conflict.field.links': '关联',
   'conflict.handle': '处理「{title}」',
+  'import.nothing': '文件中的内容都已存在，没有变化。',
+  'import.undoHint': '改主意了？撤销（Ctrl+Z）可一步撤回整个导入。',
 }

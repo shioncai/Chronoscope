@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import * as time from './index'
+import * as time from '.'
 
 describe('time barrel', () => {
   it('re-exports the public surface', () => {

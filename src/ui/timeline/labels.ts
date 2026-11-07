@@ -83,3 +83,13 @@ export function placeLabel(args: {
   if (t === '') return dropped
   return { text: t, side: 'left', x: coreLeft - LABEL_GAP, occLeft: coreLeft - LABEL_GAP - labelWidth(t, fontSizePx), occRight: coreRight }
 }
+
+/** Where the "now" chip sits in the tick row: centred on the present, kept
+ *  inside the canvas. Scene (to clear tick labels from under it) and renderer
+ *  (to paint it) share this so they agree to the pixel. */
+export function nowChipSpan(nowX: number, text: string, fontSizePx: number, canvasWidth: number) {
+  const pad = 4
+  const w = labelWidth(text, fontSizePx)
+  const textX = Math.max(2 + pad, Math.min(nowX - w / 2, canvasWidth - w - 2 - pad))
+  return { x0: textX - pad, x1: textX + w + pad, textX }
+}

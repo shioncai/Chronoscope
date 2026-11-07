@@ -12,13 +12,9 @@ export const en = {
   'common.skip': 'Skip',
   'common.listSeparator': ', ',
   'common.uncategorized': 'Uncategorized',
-  'common.topLevel': 'Top level',
   'common.newEvent': 'New event',
   'common.selectEvent': 'Select "{title}"',
-  'common.quote': '"{name}"',
   'common.deleteNamed': 'Delete "{name}"',
-  'list.deleteConfirm_one': 'Delete the {n} selected event?',
-  'list.deleteConfirm_other': 'Delete the {n} selected events?',
 } as const
 
 export const zh: Record<keyof typeof en, string> = {
@@ -35,11 +31,7 @@ export const zh: Record<keyof typeof en, string> = {
   'common.skip': '跳过',
   'common.listSeparator': '、',
   'common.uncategorized': '未分类',
-  'common.topLevel': '顶级',
   'common.newEvent': '新建事件',
   'common.selectEvent': '选择「{title}」',
-  'common.quote': '「{name}」',
   'common.deleteNamed': '删除「{name}」',
-  'list.deleteConfirm_one': '删除选中的 {n} 个事件?',
-  'list.deleteConfirm_other': '删除选中的 {n} 个事件?',
 }

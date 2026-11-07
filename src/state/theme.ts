@@ -1,18 +1,33 @@
-import type { Theme } from './types'
+import type { Theme, ThemeMode } from './types'
 
 export const THEME_STORAGE_KEY = 'chronoscope.theme'
 
+/** The stored choice, if it is one; anything else (nothing yet, an old or
+ *  garbled value) means "follow the system". */
+export function resolveInitialThemeMode(stored: string | null): ThemeMode {
+  return stored === 'day' || stored === 'night' || stored === 'system' ? stored : 'system'
+}
+
+/** Decide what a mode paints, given what the OS prefers right now. */
+export function resolveTheme(mode: ThemeMode, systemPrefersDark: boolean): Theme {
+  if (mode === 'system') return systemPrefersDark ? 'night' : 'day'
+  return mode
+}
+
 export function resolveInitialTheme(stored: string | null, systemPrefersDark: boolean): Theme {
-  if (stored === 'day' || stored === 'night') return stored
-  return systemPrefersDark ? 'night' : 'day'
+  return resolveTheme(resolveInitialThemeMode(stored), systemPrefersDark)
 }
 
 export function loadStoredTheme(storage: Pick<Storage, 'getItem'>): string | null {
   return storage.getItem(THEME_STORAGE_KEY)
 }
 
-export function persistTheme(storage: Pick<Storage, 'setItem'>, theme: Theme): void {
-  storage.setItem(THEME_STORAGE_KEY, theme)
+export function persistTheme(storage: Pick<Storage, 'setItem'>, mode: ThemeMode): void {
+  try {
+    storage.setItem(THEME_STORAGE_KEY, mode)
+  } catch {
+    // blocked storage: the choice lasts for this session only
+  }
 }
 
 export function applyTheme(root: { setAttribute(name: string, value: string): void }, theme: Theme): void {

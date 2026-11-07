@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { formatTimePoint, daysInMonth, type TimePoint } from '../../domain/time'
 import {
   buildTimePoint,
+  emptyFields,
   fieldsFromTimePoint,
   isRelativeUnit,
+  nowFields,
   SCALE_UNITS,
   type TimeFields,
   type ScaleUnit,
 } from './timeFields'
+import { Icon } from '../components/Icon'
 import { useT, useLocale } from '../../i18n/useT'
 
 export interface TimeInputProps {
@@ -26,6 +29,11 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
   const t = useT()
   const locale = useLocale()
   const [fields, setFields] = useState<TimeFields>(() => fieldsFromTimePoint(value))
+
+  const replace = (next: TimeFields) => {
+    setFields(next)
+    onChange(buildTimePoint(next))
+  }
 
   const update = (patch: Partial<TimeFields>) => {
     const next = { ...fields, ...patch }
@@ -56,16 +64,30 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
     <fieldset className="time-input">
       <legend>{label}</legend>
 
-      <div className="seg" role="group" aria-label={t('editor.time.scaleGroup', { label })}>
-        <button type="button" className={fields.mode === 'civil' ? 'active' : ''} aria-pressed={fields.mode === 'civil'}
-          onClick={() => update({ mode: 'civil' })}>{t('editor.time.civil')}</button>
-        <button type="button" className={fields.mode === 'scale' ? 'active' : ''} aria-pressed={fields.mode === 'scale'}
-          onClick={() => update({ mode: 'scale' })}>{t('editor.time.scale')}</button>
+      <div className="time-head">
+        <div className="segmented segmented--sm" role="group" aria-label={t('editor.time.scaleGroup', { label })}>
+          <button type="button" className={fields.mode === 'civil' ? 'is-active' : ''} aria-pressed={fields.mode === 'civil'}
+            onClick={() => update({ mode: 'civil' })}>{t('editor.time.civil')}</button>
+          <button type="button" className={fields.mode === 'scale' ? 'is-active' : ''} aria-pressed={fields.mode === 'scale'}
+            onClick={() => update({ mode: 'scale' })}>{t('editor.time.scale')}</button>
+        </div>
+        <span className="time-quick">
+          <button type="button" className="btn btn-xs btn-quiet" aria-label={t('editor.time.nowAria', { label })} onClick={() => replace(nowFields())}>
+            <Icon name="now" size={13} />
+            <span>{t('editor.time.now')}</span>
+          </button>
+          {buildTimePoint(fields) && (
+            <button type="button" className="btn btn-xs btn-quiet" aria-label={t('editor.time.clearAria', { label })} onClick={() => replace({ ...emptyFields(), mode: fields.mode, unit: fields.unit })}>
+              <Icon name="close" size={13} />
+              <span>{t('editor.time.clear')}</span>
+            </button>
+          )}
+        </span>
       </div>
 
       <div className="structured animin" key={fields.mode}>
         {fields.mode === 'scale' && (
-          <label>
+          <label className="span-2">
             {t('editor.time.unit', { label })}
             <select value={fields.unit} onChange={(e) => update({ unit: e.target.value as ScaleUnit })}>
               {SCALE_UNITS.map((u) => (
@@ -89,7 +111,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
             </label>
             <label>
               {t('editor.time.year', { label })}
-              <input type="number" min="1" value={fields.year} onChange={(e) => update({ year: e.target.value })} />
+              <input type="number" min="1" inputMode="numeric" value={fields.year} onChange={(e) => update({ year: e.target.value })} />
             </label>
           </>
         )}
@@ -102,6 +124,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
               type="number"
               min="0"
               step="any"
+              inputMode="decimal"
               value={fields.mag}
               onChange={(e) => update({ mag: e.target.value })}
             />
@@ -159,7 +182,7 @@ export function TimeInput({ label, value, onChange }: TimeInputProps) {
         )}
       </div>
 
-      {preview && <span className="mono preview">{preview}</span>}
+      {preview && <span className="time-preview mono">{preview}</span>}
     </fieldset>
   )
 }

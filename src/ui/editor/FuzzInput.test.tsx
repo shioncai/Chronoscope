@@ -3,9 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FuzzInput } from './FuzzInput'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(): AppStore {
   const db: Database = {
@@ -25,9 +26,9 @@ beforeEach(() => {
 
 function renderInput(props: Parameters<typeof FuzzInput>[0]) {
   return render(
-    <AppStoreProvider value={app}>
+    <TestProviders app={app}>
       <FuzzInput {...props} />
-    </AppStoreProvider>,
+    </TestProviders>,
   )
 }
 

@@ -10,8 +10,8 @@ describe('translate', () => {
     expect(translate('en', 'common.selectEvent', { title: 'X' })).toBe('Select "X"')
   })
   it('tn selects the plural form and injects n', () => {
-    expect(tn('en', 'list.deleteConfirm', 1)).toBe('Delete the 1 selected event?')
-    expect(tn('en', 'list.deleteConfirm', 3)).toBe('Delete the 3 selected events?')
-    expect(tn('zh', 'list.deleteConfirm', 3)).toBe('删除选中的 3 个事件?')
+    expect(tn('en', 'toast.deleted', 1)).toBe('Moved 1 event to the recycle bin')
+    expect(tn('en', 'toast.deleted', 3)).toBe('Moved 3 events to the recycle bin')
+    expect(tn('zh', 'toast.deleted', 3)).toBe('已将 3 个事件移入回收站')
   })
 })

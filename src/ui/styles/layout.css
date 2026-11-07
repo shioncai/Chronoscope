@@ -1,0 +1,174 @@
+/* Layout: the shell, top bar, sidebar frame, view area, filter bar, FAB and
+   empty states. --topbar-h is the bar's CONTENT height; on a device with a
+   cutout the bar grows by the status-bar inset on top of it (viewport-fit=cover
+   in index.html is what makes env(safe-area-inset-*) report real values). */
+
+.app-shell {
+  --sidebar-w: 260px;
+  --topbar-h: 52px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.app-shell > .body { flex: 1; display: flex; min-height: 0; position: relative; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: relative; z-index: 20;
+  display: flex; align-items: center; gap: 8px;
+  flex: 0 0 auto;
+  height: calc(var(--topbar-h) + var(--safe-top));
+  padding: var(--safe-top) 12px 0;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: inline-flex; align-items: center; gap: 9px; margin-right: 6px; min-width: 0; }
+.brand .mark { border-radius: 6px; }
+.brand-name { font-size: 16px; font-weight: 650; letter-spacing: -0.015em; white-space: nowrap; }
+
+.search-box { position: relative; flex: 0 1 460px; margin: 0 auto; display: flex; align-items: center; }
+.search-box > .icon { position: absolute; left: 11px; color: var(--faint); pointer-events: none; }
+.search-box input {
+  width: 100%; height: 36px; padding: 0 34px 0 34px;
+  font-size: 14px; background: var(--surface); border-radius: 10px;
+}
+.search-hint { position: absolute; right: 9px; pointer-events: none; }
+.search-box input:focus ~ .search-hint { display: none; }
+.search-clear {
+  position: absolute; right: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px; color: var(--muted);
+}
+.search-clear:hover { background: var(--hover); color: var(--text); }
+.topbar-actions { display: flex; gap: 2px; }
+.view-switch .seg-label { display: inline; }
+
+@media (max-width: 720px) {
+  .brand-name { display: none; }
+  .brand { margin-right: 0; }
+  .search-box { flex: 1 1 auto; }
+  .search-hint { display: none; }
+}
+@media (max-width: 520px) {
+  .brand, .topbar-actions { display: none; }
+  .view-switch .seg-label { display: none; }
+  .view-switch button { padding: 0 9px; }
+}
+
+/* ---------- sidebar frame ---------- */
+.sidebar {
+  position: relative;
+  flex: 0 0 var(--sidebar-w);
+  width: var(--sidebar-w);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  transition: margin-left 0.3s var(--ease-out);
+}
+.sidebar-scroll {
+  flex: 1; overflow-y: auto; overscroll-behavior: contain;
+  padding: 12px 10px 8px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.sidebar-resize { position: absolute; top: 0; right: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 6; touch-action: none; }
+.sidebar-resize::after {
+  content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 2px;
+  background: var(--accent); opacity: 0; transition: opacity 0.15s;
+}
+.sidebar-resize:hover::after, .sidebar-resize:focus-visible::after, body.is-resizing .sidebar-resize::after { opacity: 0.4; }
+.drawer-backdrop { display: none; }
+
+@media (min-width: 721px) {
+  .sidebar:not(.open) { margin-left: calc(-1 * var(--sidebar-w)); }
+}
+@media (max-width: 720px) {
+  .sidebar {
+    position: fixed;
+    top: calc(var(--topbar-h) + var(--safe-top));
+    bottom: 0; left: 0; z-index: 40;
+    width: min(var(--sidebar-w), 86vw);
+    padding-bottom: var(--safe-bottom);
+    transform: translateX(-100%);
+    transition: transform 0.22s var(--ease-out);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-resize { display: none; }
+  .drawer-backdrop {
+    display: block; position: fixed; z-index: 39;
+    inset: calc(var(--topbar-h) + var(--safe-top)) 0 0 0;
+    background: var(--overlay);
+    animation: fadeIn 0.2s var(--ease-out);
+  }
+}
+
+/* ---------- view area ---------- */
+.view-area { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+.view-content { flex: 1; min-height: 0; position: relative; }
+
+/* ---------- filter bar ---------- */
+.filter-bar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 7px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.18s var(--ease-out);
+}
+.filter-count { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 2px; max-width: 280px;
+  height: 26px; padding: 0 3px 0 10px;
+  font-size: 12.5px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+}
+.chip-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-x { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; color: var(--muted); }
+.chip-x:hover { background: var(--hover); color: var(--text); }
+.filter-actions { display: flex; gap: 4px; margin-left: auto; }
+
+/* ---------- floating new-event button ---------- */
+/* One material with the canvas floats: --float/--float-border/--fab-shadow.
+   "Primary" is said by size and shape, not by a slab of ink. */
+.fab {
+  position: absolute; right: 22px; bottom: calc(68px + var(--safe-bottom)); z-index: 8;
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px;
+  color: var(--text);
+  background: var(--float);
+  border: 1px solid var(--float-border);
+  border-radius: 50%;
+  box-shadow: var(--fab-shadow);
+  transition: transform 0.24s var(--ease), background-color 0.24s;
+}
+.fab .icon { transition: transform 0.34s var(--ease); }
+.fab:hover { transform: translateY(-2px) scale(1.04); background: var(--float-hover); }
+.fab:hover .icon { transform: rotate(90deg); }
+.fab:active { transform: scale(0.96); transition-duration: 0.08s; }
+
+/* ---------- empty states ---------- */
+.empty-state {
+  height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 32px 24px 96px;
+  text-align: center;
+  animation: fadeIn 0.3s var(--ease-out);
+}
+.empty-state h2 { font-size: 18px; margin-top: 6px; }
+.empty-state p { max-width: 440px; color: var(--muted); line-height: 1.6; }
+.empty-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 16px;
+  color: var(--muted); background: var(--panel); border: 1px solid var(--border);
+}
+.empty-state--welcome .mark { border-radius: 14px; box-shadow: var(--shadow); }
+.empty-state--welcome h2 { font-size: 21px; }
+.empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }

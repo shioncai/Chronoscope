@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ListView } from './ListView'
-import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
+import { createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
+import { TestProviders } from '../../test/providers'
 
 function makeApp(locale?: 'en' | 'zh'): AppStore {
   const db: Database = {
@@ -26,16 +27,33 @@ beforeEach(() => {
 
 function renderList(onEdit = () => {}) {
   return render(
-    <AppStoreProvider value={app}>
+    <TestProviders app={app}>
       <ListView onEdit={onEdit} />
-    </AppStoreProvider>,
+    </TestProviders>,
   )
 }
 
 describe('ListView', () => {
-  it('shows an empty state when there are no events', () => {
+  it('shows the welcome state when there are no events', () => {
     renderList()
-    expect(screen.getByText('暂无事件')).toBeTruthy()
+    expect(screen.getByText('还没有事件')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '载入示例时间轴' })).toBeTruthy()
+  })
+
+  it('loads the sample timeline from the welcome state, and undo takes it away', async () => {
+    renderList()
+    await userEvent.click(screen.getByRole('button', { name: '载入示例时间轴' }))
+    await waitFor(() => expect(screen.getByText('宇宙大爆炸')).toBeTruthy())
+    expect(app.store.getState().events.length).toBeGreaterThan(10)
+    await app.undo()
+    expect(app.store.getState().events.filter((e) => !e.deleted)).toHaveLength(0)
+  })
+
+  it('shows a filtered empty state with a reset when the filter hides everything', async () => {
+    await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    app.setFilter({ query: 'nothing-matches' })
+    renderList()
+    expect(screen.getByText('没有匹配的事件')).toBeTruthy()
   })
 
   it('renders rows with formatted time and title', async () => {
@@ -57,11 +75,12 @@ describe('ListView', () => {
     await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
     renderList()
     for (const h of ['标题', '时间', '文件夹', '标签', '备注']) {
-      expect(screen.getByRole('button', { name: new RegExp(h) })).toBeTruthy()
+      expect(screen.getByRole('button', { name: h })).toBeTruthy()
     }
   })
 
   it('toggles sort when a header is clicked', async () => {
+    await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
     renderList()
     await userEvent.click(screen.getByRole('button', { name: '标题' }))
     expect(app.store.getState().sort).toEqual({ key: 'title', dir: 'asc' })
@@ -156,8 +175,9 @@ describe('ListView', () => {
     app.setFilter({ trash: true })
     app.toggleChecked(id)
     renderList()
-    expect(screen.getByRole('button', { name: '恢复' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '永久删除' })).toBeTruthy()
+    const bar = screen.getByRole('toolbar')
+    expect(within(bar).getByRole('button', { name: '恢复' })).toBeTruthy()
+    expect(within(bar).getByRole('button', { name: '永久删除' })).toBeTruthy()
     // the normal move/tag/delete actions are not offered in the recycle bin
     expect(screen.queryByText(/移动到文件夹/)).toBeNull()
   })
@@ -168,6 +188,15 @@ describe('ListView', () => {
     app.setFilter({ trash: true })
     app.toggleChecked(id)
     renderList()
+    await userEvent.click(within(screen.getByRole('toolbar')).getByRole('button', { name: '恢复' }))
+    expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
+  })
+
+  it('the row restore button un-deletes a single event in the recycle bin', async () => {
+    const id = await app.createEvent({ title: 'x', start: { year: 1, precision: 'year' } })
+    await app.deleteEvent(id)
+    app.setFilter({ trash: true })
+    renderList()
     await userEvent.click(screen.getByRole('button', { name: '恢复' }))
     expect(app.store.getState().events.find((e) => e.id === id)?.deleted).toBe(false)
   })
@@ -175,11 +204,11 @@ describe('ListView', () => {
   it('renders in English when the store locale is en', () => {
     const enApp = makeApp('en')
     render(
-      <AppStoreProvider value={enApp}>
+      <TestProviders app={enApp}>
         <ListView onEdit={() => {}} />
-      </AppStoreProvider>,
+      </TestProviders>,
     )
-    expect(screen.getByRole('button', { name: 'Title' })).toBeTruthy()
-    expect(screen.getByText('No events')).toBeTruthy()
+    expect(screen.getByText('No events yet')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Load sample timeline' })).toBeTruthy()
   })
 })

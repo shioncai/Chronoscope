@@ -84,7 +84,7 @@ const scene: TimelineScene = {
   overview: {
     markers: [{ x: 100, count: 1, eventId: 'a' }, { x: 900, count: 1, eventId: 'b' }],
     lens: { x0: 200, x1: 600 },
-    range: { start: '约5.0亿年前', end: '2026年' },
+    range: { start: '约5亿年前', end: '2026年' },
   },
 }
 

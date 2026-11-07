@@ -116,11 +116,11 @@ export function buildScene(input: BuildSceneInput): TimelineScene {
   const MIN_TICK_GAP = 80
   const ticks: SceneTick[] = []
   let lastTickX = -Infinity
-  for (const tp of generateTicks(view)) {
-    const x = xOf(instantOf(tp))
+  for (const tick of generateTicks(view, 10, locale)) {
+    const x = xOf(tick.year)
     if (x < 0 || x > width) continue
     if (x - lastTickX < MIN_TICK_GAP) continue
-    ticks.push({ x, label: formatTimePoint(tp, locale) })
+    ticks.push({ x, label: tick.label })
     lastTickX = x
   }
 

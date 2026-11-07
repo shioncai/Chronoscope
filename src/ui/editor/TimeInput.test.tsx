@@ -88,7 +88,7 @@ describe('TimeInput (structured)', () => {
     await userEvent.selectOptions(screen.getByLabelText('起点 单位'), 'Ga')
     await userEvent.type(screen.getByLabelText('起点 距今'), '3.8')
     expect(onChange).toHaveBeenLastCalledWith(fromAgo(3.8e9, 'Ga'))
-    expect(screen.getByText('约38.0亿年前')).toBeTruthy()
+    expect(screen.getByText('约38亿年前')).toBeTruthy()
   })
 
   it('seeds its fields from an existing value when editing', () => {

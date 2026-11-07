@@ -103,7 +103,7 @@ describe('buildScene', () => {
   })
   it('uses a relative label for a deep-time overview bound', () => {
     const scene = buildScene({ ...base, overview: { min: 2026 - 5e8, max: 2026 - 1e6 }, events: [] })
-    expect(scene.overview.range.start).toBe('约5.0亿年前')
+    expect(scene.overview.range.start).toBe('约5亿年前')
     expect(scene.overview.range.end).toBe('约100万年前')
   })
   it('labels ticks and keeps them within the width', () => {

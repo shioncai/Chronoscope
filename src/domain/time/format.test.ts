@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { fromYear, fromCivil, fromAgo } from './timepoint'
-import { formatTimePoint, formatTimePointShort } from './format'
+import { formatTimePoint, formatTimePointShort, formatAgeLabel, formatDuration, formatRelative } from './format'
 
 describe('formatTimePoint', () => {
   it('formats civil precisions', () => {
@@ -14,7 +14,7 @@ describe('formatTimePoint', () => {
     expect(formatTimePoint(fromYear(1990, 'decade'))).toBe('1990年代')
   })
   it('formats geological precisions from their ago offset', () => {
-    expect(formatTimePoint(fromAgo(3.8e9, 'Ga'))).toBe('约38.0亿年前')
+    expect(formatTimePoint(fromAgo(3.8e9, 'Ga'))).toBe('约38亿年前')
     expect(formatTimePoint(fromAgo(66e6, 'Ma'))).toBe('约6600万年前')
   })
 
@@ -31,8 +31,8 @@ describe('formatTimePoint', () => {
   })
   it('formats a future coarse point as X年后, never a negative 年前', () => {
     // Panning the detail axis past now yields a negative ago (future); it must
-    // read 约10.0亿年后, not 约-…年前.
-    expect(formatTimePoint(fromAgo(-1e9, 'Ga'))).toBe('约10.0亿年后')
+    // read 约10亿年后, not 约-…年前.
+    expect(formatTimePoint(fromAgo(-1e9, 'Ga'))).toBe('约10亿年后')
     expect(formatTimePoint(fromAgo(-66e6, 'Ma'))).toBe('约6600万年后')
   })
   it('does not throw on a fine-precision TimePoint missing civil (degraded data); falls back to the year', () => {
@@ -91,5 +91,42 @@ describe('formatTimePointShort', () => {
     // under a millennium the prose is short already, and "~800 yr" would be
     // ambiguous with the year 800
     expect(formatTimePointShort(fromAgo(800, 'ka'), 'en')).toBe('~800 years ago')
+  })
+})
+
+describe('formatAgeLabel', () => {
+  it('speaks each magnitude in its own unit, tersely', () => {
+    expect(formatAgeLabel(66e6, 'en')).toBe('66 Ma')
+    expect(formatAgeLabel(4.6e9, 'en')).toBe('4.6 Ga')
+    expect(formatAgeLabel(1e4, 'en')).toBe('10 ka')
+    expect(formatAgeLabel(250, 'en')).toBe('250 yr ago')
+    expect(formatAgeLabel(1000, 'en')).toBe('1,000 yr ago')
+    expect(formatAgeLabel(1 / 365.2425, 'en')).toBe('1 d ago')
+    expect(formatAgeLabel(66e6, 'zh')).toBe('6600万年前')
+    expect(formatAgeLabel(4.6e9, 'zh')).toBe('46亿年前')
+    expect(formatAgeLabel(250, 'zh')).toBe('250年前')
+  })
+  it('marks the future and the present', () => {
+    expect(formatAgeLabel(-10, 'en')).toBe('in 10 yr')
+    expect(formatAgeLabel(-5e9, 'en')).toBe('in 5 Ga')
+    expect(formatAgeLabel(-10, 'zh')).toBe('10年后')
+    expect(formatAgeLabel(0, 'en')).toBe('now')
+    expect(formatAgeLabel(0, 'zh')).toBe('现在')
+  })
+})
+
+describe('formatDuration / formatRelative', () => {
+  it('names a span in the unit that fits it', () => {
+    expect(formatDuration(312, 'en')).toBe('312 years')
+    expect(formatDuration(1, 'en')).toBe('1 year')
+    expect(formatDuration(2.5 / 365.2425, 'en')).toBe('2.5 days')
+    expect(formatDuration(3.2e8, 'zh')).toBe('3.2亿年')
+    expect(formatDuration(5 / 12, 'zh')).toBe('5个月')
+    expect(formatDuration(0, 'en')).toBe('under a minute')
+  })
+  it('reads an age as before/after now', () => {
+    expect(formatRelative(1953, 'en')).toBe('1,953 years ago')
+    expect(formatRelative(-3 / 365.2425, 'zh')).toBe('3天后')
+    expect(formatRelative(66e6, 'en')).toBe('66 million years ago')
   })
 })

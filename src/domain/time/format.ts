@@ -34,7 +34,7 @@ function formatZh(tp: TimePoint): string {
     const abs = Math.abs(ago)
     if (abs < PRECISION_YEARS[tp.precision] / 2) return '现在'
     const dir = ago > 0 ? '前' : '后'
-    if (abs >= 1e8) return `约${(abs / 1e8).toFixed(1)}亿年${dir}`
+    if (abs >= 1e8) return `约${oneDecimal(abs / 1e8)}亿年${dir}`
     if (abs >= 1e4) return `约${oneDecimal(abs / 1e4)}万年${dir}`
     return `约${Math.round(abs)}年${dir}`
   }
@@ -143,4 +143,95 @@ export function formatTimePointShort(tp: TimePoint, locale: Locale = 'zh'): stri
 
   if (tp.ago > 0) return magnitude // the past: the overwhelmingly common case
   return locale === 'en' ? `in ${magnitude}` : `${magnitude}后`
+}
+
+// ── Ages, durations, relative time ──────────────────────────────────────────
+// Three short phrasings of a span of years, used where a TimePoint is not the
+// right input: axis ticks (an age measured from a reference), an event's
+// duration, and how long ago something was. They share one ladder of units so
+// the same magnitude reads the same everywhere in the app.
+
+const DAY = 1 / 365.2425
+const HOUR = DAY / 24
+const MINUTE = HOUR / 60
+
+/** Trim a number for display: integers grouped, small values to one decimal. */
+function amount(n: number, locale: Locale): string {
+  const r = n >= 100 ? Math.round(n) : Math.round(n * 10) / 10
+  return locale === 'en' ? new Intl.NumberFormat('en-US').format(r) : String(r)
+}
+
+type AgeUnit = 'minute' | 'hour' | 'day' | 'month' | 'year' | 'ka' | 'Ma' | 'Ga' | 'wan' | 'yi'
+
+/** Pick the unit a magnitude (in years) is spoken in, per language. */
+function unitFor(abs: number, locale: Locale): { unit: AgeUnit; n: number } {
+  if (abs < HOUR) return { unit: 'minute', n: abs / MINUTE }
+  if (abs < DAY) return { unit: 'hour', n: abs / HOUR }
+  if (abs < 1 / 12) return { unit: 'day', n: abs / DAY }
+  if (abs < 1) return { unit: 'month', n: abs * 12 }
+  if (locale === 'en') {
+    if (abs < 1e4) return { unit: 'year', n: abs }
+    if (abs < 1e6) return { unit: 'ka', n: abs / 1e3 }
+    if (abs < 1e9) return { unit: 'Ma', n: abs / 1e6 }
+    return { unit: 'Ga', n: abs / 1e9 }
+  }
+  if (abs < 1e4) return { unit: 'year', n: abs }
+  if (abs < 1e8) return { unit: 'wan', n: abs / 1e4 }
+  return { unit: 'yi', n: abs / 1e8 }
+}
+
+const ZH_UNIT: Record<AgeUnit, string> = {
+  minute: '分钟', hour: '小时', day: '天', month: '个月', year: '年',
+  ka: '千年', Ma: '百万年', Ga: '十亿年', wan: '万年', yi: '亿年',
+}
+const EN_SHORT: Record<AgeUnit, string> = {
+  minute: 'min', hour: 'h', day: 'd', month: 'mo', year: 'yr',
+  ka: 'ka', Ma: 'Ma', Ga: 'Ga', wan: '', yi: '',
+}
+const EN_LONG: Record<AgeUnit, [string, string]> = {
+  minute: ['minute', 'minutes'], hour: ['hour', 'hours'], day: ['day', 'days'],
+  month: ['month', 'months'], year: ['year', 'years'],
+  ka: ['thousand years', 'thousand years'], Ma: ['million years', 'million years'],
+  Ga: ['billion years', 'billion years'], wan: ['', ''], yi: ['', ''],
+}
+
+/**
+ * An axis label for an age — how far a tick sits before (positive) or after
+ * (negative) its reference. Terse, because ticks are packed: "66 Ma", "250 yr
+ * ago", "6600万年前". Geology's ka/Ma/Ga already mean "ago", so English drops
+ * the word there.
+ */
+export function formatAgeLabel(age: number, locale: Locale = 'zh'): string {
+  const abs = Math.abs(age)
+  if (abs < MINUTE) return locale === 'en' ? 'now' : '现在'
+  const { unit, n } = unitFor(abs, locale)
+  const num = amount(n, locale)
+  if (locale === 'en') {
+    const deep = unit === 'ka' || unit === 'Ma' || unit === 'Ga'
+    const text = `${num} ${EN_SHORT[unit]}`
+    if (age > 0) return deep ? text : `${text} ago`
+    return `in ${text}`
+  }
+  return `${num}${ZH_UNIT[unit]}${age > 0 ? '前' : '后'}`
+}
+
+/** How long something lasted: "312 years", "2.5 days", "3.2亿年". */
+export function formatDuration(years: number, locale: Locale = 'zh'): string {
+  const abs = Math.abs(years)
+  if (abs < MINUTE) return locale === 'en' ? 'under a minute' : '不到一分钟'
+  const { unit, n } = unitFor(abs, locale)
+  const num = amount(n, locale)
+  if (locale === 'en') {
+    const [one, many] = EN_LONG[unit]
+    return `${num} ${num === '1' ? one : many}`
+  }
+  return `${num}${ZH_UNIT[unit]}`
+}
+
+/** How far an instant lies from now, as prose: "1,953 years ago", "3天后". */
+export function formatRelative(age: number, locale: Locale = 'zh'): string {
+  if (Math.abs(age) < MINUTE) return locale === 'en' ? 'now' : '现在'
+  const d = formatDuration(age, locale)
+  if (locale === 'en') return age > 0 ? `${d} ago` : `in ${d}`
+  return `${d}${age > 0 ? '前' : '后'}`
 }

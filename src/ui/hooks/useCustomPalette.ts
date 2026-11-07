@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   loadCustomColors, persistCustomColors, addToPalette, removeFromPalette, replaceInPalette,
-} from '../categoryColors'
+} from '../color/categoryColors'
 
 export interface CustomPalette {
   custom: string[]

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import * as data from './index'
+import * as data from '.'
 
 describe('data barrel', () => {
   it('re-exports the public surface', () => {

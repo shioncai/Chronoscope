@@ -5,10 +5,10 @@ import {
   flattenCategoryTree,
   type RestoreConflict,
 } from '../../state'
-import { MoveMenu } from '../shell/MoveMenu'
+import { MoveMenu } from '../components/MoveMenu'
 import { TagMenu } from './TagMenu'
-import { EventConflictDialog, type EventConflictItem } from '../shell/EventConflictDialog'
-import { useEventMove } from '../shell/useEventMove'
+import { EventConflictDialog, type EventConflictItem } from '../dialogs/EventConflictDialog'
+import { useEventMove } from '../hooks/useEventMove'
 import { useT, useTn } from '../../i18n/useT'
 import type { Id } from '../../domain/model'
 

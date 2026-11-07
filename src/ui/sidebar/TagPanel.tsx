@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAppStore, useAppState } from '../../state'
 import type { Id } from '../../domain/model'
-import { Pill } from './Pill'
+import { Pill } from '../components/Pill'
 import { AddTagForm } from './AddTagForm'
 import { useT } from '../../i18n/useT'
 

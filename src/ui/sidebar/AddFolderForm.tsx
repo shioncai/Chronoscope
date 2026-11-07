@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { useAppStore, useAppState, flattenCategoryTree, liveFolderAt } from '../../state'
 import type { Id } from '../../domain/model'
-import { nextPresetColor } from '../categoryColors'
-import { ColorPicker } from './ColorPicker'
+import { nextPresetColor } from '../color/categoryColors'
+import { ColorPicker } from '../components/ColorPicker'
 import { useT } from '../../i18n/useT'
 
 export function AddFolderForm({ defaultParentId, onCreated, onCancel }:

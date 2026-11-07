@@ -1,5 +1,5 @@
-import { useFocusTrap } from './useFocusTrap'
-import { ModalOverlay } from './ModalOverlay'
+import { useFocusTrap } from '../hooks/useFocusTrap'
+import { ModalOverlay } from '../components/ModalOverlay'
 import { useT } from '../../i18n/useT'
 
 export function AboutModal({ onClose }: { onClose: () => void }) {

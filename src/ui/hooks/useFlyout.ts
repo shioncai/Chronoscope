@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState, type CSSProperties, type RefObject } from 'react'
-import { positionFlyout, type Rect } from './positionFlyout'
+import { positionFlyout, type Rect } from '../components/positionFlyout'
 
 type Anchor = RefObject<HTMLElement | null> | Rect
 

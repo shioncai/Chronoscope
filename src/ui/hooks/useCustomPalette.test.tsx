@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { useCustomPalette } from './useCustomPalette'
-import { loadCustomColors } from '../categoryColors'
+import { loadCustomColors } from '../color/categoryColors'
 
 function memoryStorage(): Storage {
   const store: Record<string, string> = {}

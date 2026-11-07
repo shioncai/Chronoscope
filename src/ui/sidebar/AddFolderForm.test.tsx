@@ -6,7 +6,7 @@ import { AddFolderForm } from './AddFolderForm'
 import { AppStoreProvider, createAppStore, type AppStore } from '../../state'
 import { createMemoryRepository, type Database, type Clock } from '../../data'
 import type { EventRecord, Category, Tag } from '../../domain/model'
-import { CATEGORY_PRESETS } from '../categoryColors'
+import { CATEGORY_PRESETS } from '../color/categoryColors'
 function makeApp(): AppStore {
   const db: Database = { events: createMemoryRepository<EventRecord>(), categories: createMemoryRepository<Category>(), tags: createMemoryRepository<Tag>() }
   let t = 0, i = 0; const clock: Clock = { now: () => `t${++t}` }

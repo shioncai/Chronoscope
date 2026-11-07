@@ -2,8 +2,8 @@ import { useRef, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import type { Locale } from '../../domain/locale'
 import { SUPPORTED_LOCALES } from '../../i18n/locales'
-import { useFlyout } from './useFlyout'
-import { useDismiss } from './useDismiss'
+import { useFlyout } from '../hooks/useFlyout'
+import { useDismiss } from '../hooks/useDismiss'
 
 export interface LanguageMenuProps {
   anchorRef: RefObject<HTMLElement | null>

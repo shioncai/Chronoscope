@@ -8,10 +8,10 @@ import {
 import type { Id, EventRecord } from '../../domain/model'
 import type { Locale } from '../../domain/locale'
 import { formatTimePointShort, instantOf } from '../../domain/time'
-import { ColorPicker } from './ColorPicker'
+import { ColorPicker } from '../components/ColorPicker'
 import { AddFolderForm } from './AddFolderForm'
-import { Checkbox } from './Checkbox'
-import { useEventMove } from './useEventMove'
+import { Checkbox } from '../components/Checkbox'
+import { useEventMove } from '../hooks/useEventMove'
 import { useT, useTn, useLocale } from '../../i18n/useT'
 
 type Row =

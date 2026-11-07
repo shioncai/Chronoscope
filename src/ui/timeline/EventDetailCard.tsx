@@ -1,5 +1,5 @@
 // src/ui/timeline/EventDetailCard.tsx
-import { Markdown } from '../features/markdown/Markdown'
+import { Markdown } from '../markdown/Markdown'
 import type { EventCardData } from './card'
 import type { Id } from '../../domain/model'
 import { useT } from '../../i18n/useT'

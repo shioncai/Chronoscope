@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useAppStore, useAppState, moveConflicts, dedupeTargetMovers } from '../../state'
-import { EventConflictDialog, type EventConflictItem } from './EventConflictDialog'
+import { EventConflictDialog, type EventConflictItem } from '../dialogs/EventConflictDialog'
 import { useT } from '../../i18n/useT'
 import type { Id } from '../../domain/model'
 

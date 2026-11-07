@@ -1,9 +1,9 @@
 import { useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { CATEGORY_PRESET_GRID } from '../categoryColors'
-import { useCustomPalette } from './useCustomPalette'
-import { useDismiss } from './useDismiss'
-import { useFlyout } from './useFlyout'
+import { CATEGORY_PRESET_GRID } from '../color/categoryColors'
+import { useCustomPalette } from '../hooks/useCustomPalette'
+import { useDismiss } from '../hooks/useDismiss'
+import { useFlyout } from '../hooks/useFlyout'
 import { HsvPicker } from './HsvPicker'
 import { useT } from '../../i18n/useT'
 
